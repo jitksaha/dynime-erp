@@ -56,6 +56,8 @@ class CouponController extends Controller
             $coupon->created_by = creatorId();
             $coupon->save();
 
+            $this->syncToLiveSite($coupon);
+
             return redirect()->route('coupons.index')->with('success', __('The coupon has been created successfully.'));
         }
         else{
@@ -83,6 +85,8 @@ class CouponController extends Controller
             $coupon->status = $request->boolean('status', true);
             $coupon->save();
 
+            $this->syncToLiveSite($coupon);
+
             return back()->with('success', __('The coupon details are updated successfully.'));
         }
         else{
@@ -93,12 +97,51 @@ class CouponController extends Controller
     public function destroy(Coupon $coupon)
     {
         if(Auth::user()->can('delete-coupons')){
+            $this->deleteOnLiveSite($coupon->code);
             $coupon->delete();
 
             return redirect()->route('coupons.index')->with('success', __('The coupon has been deleted.'));
         }
         else{
             return redirect()->route('coupons.index')->with('error', __('Permission denied'));
+        }
+    }
+
+    private function syncToLiveSite($coupon)
+    {
+        try {
+            $liveUrl = env('LIVE_SITE_URL', 'http://127.0.0.1:3001');
+            \Illuminate\Support\Facades\Http::withHeaders([
+                'Content-Type' => 'application/json',
+            ])->post("{$liveUrl}/api/v1/cms/sync/catalog", [
+                'coupons' => [[
+                    'code' => $coupon->code,
+                    'description' => $coupon->description,
+                    'type' => $coupon->type,
+                    'discount' => $coupon->discount,
+                    'minimum_spend' => $coupon->minimum_spend,
+                    'maximum_spend' => $coupon->maximum_spend,
+                    'limit' => $coupon->limit,
+                    'expiry_date' => $coupon->expiry_date,
+                    'status' => $coupon->status,
+                ]]
+            ]);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Failed to sync coupon to live site: ' . $e->getMessage());
+        }
+    }
+
+    private function deleteOnLiveSite($code)
+    {
+        try {
+            $liveUrl = env('LIVE_SITE_URL', 'http://127.0.0.1:3001');
+            \Illuminate\Support\Facades\Http::withHeaders([
+                'Content-Type' => 'application/json',
+            ])->post("{$liveUrl}/api/v1/cms/sync/catalog", [
+                'delete_coupons' => [$code]
+            ]);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Failed to delete coupon on live site: ' . $e->getMessage());
         }
     }
 

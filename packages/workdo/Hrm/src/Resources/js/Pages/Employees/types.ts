@@ -29,6 +29,8 @@ export interface Employee {
     shift?: { id: number; shift_name: string; };
     date_of_joining: string;
     employment_type: string;
+    work_mode?: string;
+    work_location_country?: string;
     address_line_1?: string;
     address_line_2?: string;
     city?: string;
@@ -43,6 +45,8 @@ export interface Employee {
     account_number?: string;
     bank_identifier_code?: string;
     bank_branch?: string;
+    bank_country?: string;
+    bank_notes?: string;
     tax_payer_id?: string;
     basic_salary?: number;
     hours_per_day?: number;
@@ -66,6 +70,8 @@ export interface CreateEmployeeFormData {
     shift_id: string;
     date_of_joining: string;
     employment_type: string;
+    work_mode: string;
+    work_location_country: string;
     address_line_1: string;
     address_line_2: string;
     city: string;
@@ -89,6 +95,10 @@ export interface CreateEmployeeFormData {
     branch_id: string;
     department_id: string;
     designation_id: string;
+    avatar: File | null;
+    bank_country: string;
+    bank_notes: string;
+    documents: Array<{ document_type_id: string; file: any }>;
 }
 
 export interface EditEmployeeFormData {
@@ -98,6 +108,8 @@ export interface EditEmployeeFormData {
     shift_id: string;
     date_of_joining: string;
     employment_type: string;
+    work_mode: string;
+    work_location_country: string;
     address_line_1: string;
     address_line_2: string;
     city: string;
@@ -121,11 +133,15 @@ export interface EditEmployeeFormData {
     branch_id: string;
     department_id: string;
     designation_id: string;
+    avatar: File | null;
+    bank_country: string;
+    bank_notes: string;
+    documents: Array<{ document_type_id: string; file: any }>;
 }
 
 export interface EmployeeFilters {
     employee_id: string;
-    user.name: string;
+    user_name: string;
     branch_id: string;
     department_id: string;
     employment_type: string;

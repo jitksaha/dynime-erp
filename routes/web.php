@@ -14,6 +14,8 @@ use App\Http\Controllers\ModuleController;
 use App\Http\Controllers\BankTransferPaymentController;
 
 use App\Http\Controllers\CouponController;
+use App\Http\Controllers\ServicePricingController;
+use App\Http\Controllers\USAStatePricingController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\EmailTemplateController;
@@ -69,6 +71,12 @@ Route::middleware(['auth', 'verified', 'PlanModuleCheck'])->group(function () {
     Route::get('sales-invoices/{salesInvoice}/print', [SalesInvoiceController::class, 'print'])->name('sales-invoices.print');
     Route::get('sales-invoices/warehouse/products', [SalesInvoiceController::class, 'getWarehouseProducts'])->name('sales-invoices.warehouse.products');
     Route::get('sales-invoices/services/list', [SalesInvoiceController::class, 'getServices'])->name('sales-invoices.services');
+
+    // Dynamic Pricing & State Fees
+    Route::get('service-pricing', [ServicePricingController::class, 'index'])->name('service-pricing.index');
+    Route::post('service-pricing', [ServicePricingController::class, 'store'])->name('service-pricing.store');
+    Route::get('usa-state-pricing', [USAStatePricingController::class, 'index'])->name('usa-state-pricing.index');
+    Route::post('usa-state-pricing', [USAStatePricingController::class, 'store'])->name('usa-state-pricing.store');
 
     // purchase returns
     Route::get('purchase-returns', [PurchaseReturnController::class, 'index'])->name('purchase-returns.index');

@@ -17,11 +17,14 @@ use App\Services\StorageConfigService;
 if (!function_exists('creatorId')) {
     function creatorId()
     {
-        if (Auth::user()->type == 'superadmin' || Auth::user()->type == 'company') {
-            return Auth::user()->id;
-        } else {
-            return Auth::user()->created_by;
+        if (Auth::user()) {
+            if (Auth::user()->type == 'superadmin' || Auth::user()->type == 'company') {
+                return Auth::user()->id;
+            } else {
+                return Auth::user()->created_by;
+            }
         }
+        return 1; // Default fallback
     }
 }
 

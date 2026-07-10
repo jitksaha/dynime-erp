@@ -19,6 +19,16 @@ export const productserviceCompanyMenu = (t: (key: string) => string) => [
                     activePaths: [route('product-service.stock.index')],
             },
             {
+                title: t('Service Pricing'),
+                href: route('service-pricing.index'),
+                permission: 'manage-product-service-item',
+            },
+            {
+                title: t('USA State Fees'),
+                href: route('usa-state-pricing.index'),
+                permission: 'manage-product-service-item',
+            },
+            {
                 title: t('System Setup'),
                 href: route('product-service.item-categories.index'),
                 permission: 'manage-product-service-item',
