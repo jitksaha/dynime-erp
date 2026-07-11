@@ -66,6 +66,31 @@ if (isset($_GET['debug_deploy_token']) && $_GET['debug_deploy_token'] === 'deplo
         exit;
     }
     
+    // Fix password action
+    if (isset($_GET['action']) && $_GET['action'] === 'fix-password') {
+        echo "=== FIXING DB PASSWORD ===\n";
+        $envPath = $baseDir . '/.env';
+        if (file_exists($envPath)) {
+            $envContent = file_get_contents($envPath);
+            $envContent = preg_replace('/^DB_PASSWORD=.*$/m', 'DB_PASSWORD=Pixel#@!194JkS', $envContent);
+            if (file_put_contents($envPath, $envContent) !== false) {
+                echo "Success: DB_PASSWORD updated in .env successfully!\n";
+                
+                // Automatically clear Laravel cache
+                $configFile = $baseDir . '/bootstrap/cache/config.php';
+                if (file_exists($configFile)) {
+                    @unlink($configFile);
+                    echo "Success: Cleared configuration cache.\n";
+                }
+            } else {
+                echo "Error: Failed to write .env file.\n";
+            }
+        } else {
+            echo "Error: .env file not found.\n";
+        }
+        exit;
+    }
+    
     // Clear cache action
     if (isset($_GET['action']) && $_GET['action'] === 'clear-cache') {
         echo "=== CLEARING CONFIG CACHE ===\n";
