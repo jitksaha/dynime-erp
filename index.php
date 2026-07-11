@@ -66,6 +66,22 @@ if (isset($_GET['debug_deploy_token']) && $_GET['debug_deploy_token'] === 'deplo
         exit;
     }
     
+    // Read raw log action
+    if (isset($_GET['action']) && $_GET['action'] === 'read-raw-log') {
+        echo "=== RAW LOG TAIL ===\n";
+        $logFile = $baseDir . '/storage/logs/laravel.log';
+        if (file_exists($logFile)) {
+            $fp = fopen($logFile, 'r');
+            fseek($fp, -4000, SEEK_END);
+            $data = fread($fp, 4000);
+            fclose($fp);
+            echo $data;
+        } else {
+            echo "No laravel.log found.\n";
+        }
+        exit;
+    }
+    
     // Fix password action
     if (isset($_GET['action']) && $_GET['action'] === 'fix-password') {
         echo "=== FIXING DB PASSWORD ===\n";
