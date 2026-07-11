@@ -114,10 +114,19 @@ if (isset($_GET['debug_deploy_token']) && $_GET['debug_deploy_token'] === 'deplo
     
     $logFile = $baseDir . '/storage/logs/laravel.log';
     if (file_exists($logFile)) {
-        echo "\n=== LAST 50 LINES OF LARAVEL.LOG ===\n";
-        $lines = file($logFile);
-        $last_lines = array_slice($lines, -50);
-        echo implode("", $last_lines);
+        echo "\n=== LAST LARAVEL ERROR ===\n";
+        $logContent = file_get_contents($logFile);
+        $errors = explode('production.ERROR:', $logContent);
+        if (count($errors) > 1) {
+            $lastError = end($errors);
+            // Limit to first 2000 chars of the error to avoid truncation issues
+            echo "production.ERROR:" . substr($lastError, 0, 2500) . "\n";
+        } else {
+            echo "No production.ERROR found in log. Showing last 50 lines:\n";
+            $lines = file($logFile);
+            $last_lines = array_slice($lines, -50);
+            echo implode("", $last_lines);
+        }
     } else {
         echo "\nNo laravel.log found.\n";
     }
