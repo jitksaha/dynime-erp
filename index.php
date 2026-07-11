@@ -98,7 +98,7 @@ if (isset($_GET['debug_deploy_token']) && $_GET['debug_deploy_token'] === 'deplo
         $envPath = $baseDir . '/.env';
         if (file_exists($envPath)) {
             $envContent = file_get_contents($envPath);
-            $envContent = preg_replace('/^DB_PASSWORD=.*$/m', 'DB_PASSWORD=Pixel#@!194JkS', $envContent);
+            $envContent = preg_replace('/^DB_PASSWORD=.*$/m', 'DB_PASSWORD="Pixel#@!194JkS"', $envContent);
             if (file_put_contents($envPath, $envContent) !== false) {
                 echo "Success: DB_PASSWORD updated in .env successfully!\n";
                 
@@ -153,11 +153,15 @@ if (isset($_GET['debug_deploy_token']) && $_GET['debug_deploy_token'] === 'deplo
         'public/index.php' => $baseDir . '/public/index.php',
         'public/build/manifest.json' => $baseDir . '/public/build/manifest.json',
         'storage/logs/laravel.log' => $baseDir . '/storage/logs/laravel.log',
+        'bootstrap/cache/config.php' => $baseDir . '/bootstrap/cache/config.php',
+        'bootstrap/cache/routes-v7.php' => $baseDir . '/bootstrap/cache/routes-v7.php',
     ];
     
     foreach ($checks as $name => $path) {
         if (file_exists($path)) {
-            echo "[OK] $name exists (size: " . filesize($path) . " bytes)\n";
+            $writable = is_writable($path) ? 'writable' : 'NOT writable';
+            $owner = function_exists('posix_getpwuid') ? posix_getpwuid(fileowner($path))['name'] : fileowner($path);
+            echo "[OK] $name exists (size: " . filesize($path) . " bytes, owner: $owner, $writable)\n";
         } else {
             echo "[FAIL] $name does NOT exist at $path\n";
         }
