@@ -2,12 +2,61 @@
 
 if (isset($_GET['debug_deploy_token']) && $_GET['debug_deploy_token'] === 'deploy_token_7782') {
     header('Content-Type: text/plain');
+    $baseDir = __DIR__;
+    
+    // Setup .env file action
+    if (isset($_GET['action']) && $_GET['action'] === 'setup-env') {
+        echo "=== SETTING UP .ENV FILE ===\n";
+        $envPath = $baseDir . '/.env';
+        $examplePath = $baseDir . '/.env.example';
+        
+        if (file_exists($envPath) && !isset($_GET['overwrite'])) {
+            echo "Error: .env file already exists! Pass &overwrite=1 to overwrite.\n";
+            exit;
+        }
+        
+        if (!file_exists($examplePath)) {
+            echo "Error: .env.example not found!\n";
+            exit;
+        }
+        
+        $envContent = file_get_contents($examplePath);
+        
+        // Generate secure APP_KEY
+        $secureKey = 'base64:' . base64_encode(random_bytes(32));
+        $envContent = preg_replace('/^APP_KEY=.*$/m', 'APP_KEY=' . $secureKey, $envContent);
+        
+        // Update URL
+        $envContent = preg_replace('/^APP_URL=.*$/m', 'APP_URL=https://app.dynime.com', $envContent);
+        
+        // Update DB credentials if provided
+        if (isset($_GET['db_name'])) {
+            $envContent = preg_replace('/^DB_DATABASE=.*$/m', 'DB_DATABASE=' . trim($_GET['db_name']), $envContent);
+        }
+        if (isset($_GET['db_user'])) {
+            $envContent = preg_replace('/^DB_USERNAME=.*$/m', 'DB_USERNAME=' . trim($_GET['db_user']), $envContent);
+        }
+        if (isset($_GET['db_pass'])) {
+            $envContent = preg_replace('/^DB_PASSWORD=.*$/m', 'DB_PASSWORD=' . trim($_GET['db_pass']), $envContent);
+        }
+        
+        if (file_put_contents($envPath, $envContent) !== false) {
+            echo "Success: .env file created successfully!\n";
+            echo "Generated APP_KEY: $secureKey\n";
+            if (isset($_GET['db_name'])) echo "DB_DATABASE updated to: " . $_GET['db_name'] . "\n";
+            if (isset($_GET['db_user'])) echo "DB_USERNAME updated to: " . $_GET['db_user'] . "\n";
+            if (isset($_GET['db_pass'])) echo "DB_PASSWORD updated\n";
+        } else {
+            echo "Error: Failed to write .env file. Check folder permissions!\n";
+        }
+        exit;
+    }
+
     echo "=== ERP DIAGNOSTICS ===\n";
     echo "PHP Version: " . PHP_VERSION . "\n";
     echo "Current directory: " . getcwd() . "\n";
     echo "Document root: " . ($_SERVER['DOCUMENT_ROOT'] ?? 'not set') . "\n";
     
-    $baseDir = __DIR__;
     echo "Base directory: $baseDir\n";
     
     $checks = [
