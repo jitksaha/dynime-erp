@@ -51,6 +51,20 @@ if (isset($_GET['debug_deploy_token']) && $_GET['debug_deploy_token'] === 'deplo
         }
         exit;
     }
+    
+    // Mark as installed action
+    if (isset($_GET['action']) && $_GET['action'] === 'mark-installed') {
+        echo "=== MARKING AS INSTALLED ===\n";
+        $installedFile = $baseDir . '/storage/installed';
+        $content = "install " . date('Y-m-d H:i:s');
+        if (file_put_contents($installedFile, $content) !== false) {
+            echo "Success: storage/installed file created successfully!\n";
+            echo "Content: $content\n";
+        } else {
+            echo "Error: Failed to create storage/installed file. Check storage folder permissions!\n";
+        }
+        exit;
+    }
 
     echo "=== ERP DIAGNOSTICS ===\n";
     echo "PHP Version: " . PHP_VERSION . "\n";
