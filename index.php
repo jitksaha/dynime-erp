@@ -65,6 +65,29 @@ if (isset($_GET['debug_deploy_token']) && $_GET['debug_deploy_token'] === 'deplo
         }
         exit;
     }
+    
+    // Clear cache action
+    if (isset($_GET['action']) && $_GET['action'] === 'clear-cache') {
+        echo "=== CLEARING CONFIG CACHE ===\n";
+        $configFile = $baseDir . '/bootstrap/cache/config.php';
+        $routesFile = $baseDir . '/bootstrap/cache/routes-v7.php';
+        $servicesFile = $baseDir . '/bootstrap/cache/services.php';
+        $packagesFile = $baseDir . '/bootstrap/cache/packages.php';
+        
+        $files = [$configFile, $routesFile, $servicesFile, $packagesFile];
+        foreach ($files as $file) {
+            if (file_exists($file)) {
+                if (@unlink($file)) {
+                    echo "Success: Deleted cache file " . basename($file) . "\n";
+                } else {
+                    echo "Error: Failed to delete cache file " . basename($file) . "\n";
+                }
+            } else {
+                echo "Info: Cache file " . basename($file) . " does not exist\n";
+            }
+        }
+        exit;
+    }
 
     echo "=== ERP DIAGNOSTICS ===\n";
     echo "PHP Version: " . PHP_VERSION . "\n";
