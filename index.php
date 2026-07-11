@@ -68,14 +68,24 @@ if (isset($_GET['debug_deploy_token']) && $_GET['debug_deploy_token'] === 'deplo
     
     // Read raw log action
     if (isset($_GET['action']) && $_GET['action'] === 'read-raw-log') {
-        echo "=== RAW LOG TAIL ===\n";
+        echo "=== LAST ERROR DETAILS ===\n";
         $logFile = $baseDir . '/storage/logs/laravel.log';
         if (file_exists($logFile)) {
-            $fp = fopen($logFile, 'r');
-            fseek($fp, -4000, SEEK_END);
-            $data = fread($fp, 4000);
-            fclose($fp);
-            echo $data;
+            $content = file_get_contents($logFile);
+            $errors = explode('production.ERROR:', $content);
+            if (count($errors) > 1) {
+                $lastError = end($errors);
+                $lines = explode("\n", $lastError);
+                // Print error message
+                echo "ERROR MESSAGE:\n" . trim($lines[0]) . "\n\n";
+                // Print top 20 stack trace lines
+                echo "=== STACK TRACE ===\n";
+                for ($i = 1; $i <= min(20, count($lines) - 1); $i++) {
+                    echo $lines[$i] . "\n";
+                }
+            } else {
+                echo "No production.ERROR found in log.\n";
+            }
         } else {
             echo "No laravel.log found.\n";
         }
