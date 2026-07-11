@@ -137,6 +137,48 @@ if (isset($_GET['debug_deploy_token']) && $_GET['debug_deploy_token'] === 'deplo
         }
     }
     
+    // Read and parse .env
+    $db_settings = [
+        'DB_HOST' => '127.0.0.1',
+        'DB_DATABASE' => '',
+        'DB_USERNAME' => '',
+        'DB_PASSWORD' => '',
+    ];
+    $envPath = $baseDir . '/.env';
+    if (file_exists($envPath)) {
+        $lines = file($envPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+        foreach ($lines as $line) {
+            if (strpos(trim($line), '#') === 0) continue;
+            $parts = explode('=', $line, 2);
+            if (count($parts) === 2) {
+                $name = trim($parts[0]);
+                $value = trim($parts[1]);
+                if (array_key_exists($name, $db_settings)) {
+                    $db_settings[$name] = trim($value, "\"' ");
+                }
+            }
+        }
+    }
+    
+    echo "\n=== DATABASE CONNECTIVITY TEST ===\n";
+    echo "Configured DB Name: " . $db_settings['DB_DATABASE'] . "\n";
+    echo "Configured DB User: " . $db_settings['DB_USERNAME'] . "\n";
+    
+    $hosts = ['127.0.0.1', 'localhost'];
+    foreach ($hosts as $host) {
+        try {
+            $dsn = "mysql:host=$host;dbname=" . $db_settings['DB_DATABASE'] . ";charset=utf8mb4";
+            $options = [
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                PDO::ATTR_TIMEOUT => 3,
+            ];
+            $pdo = new PDO($dsn, $db_settings['DB_USERNAME'], $db_settings['DB_PASSWORD'], $options);
+            echo "[OK] Connected successfully to host: $host\n";
+        } catch (PDOException $e) {
+            echo "[FAIL] Failed to connect to host: $host. Error: " . $e->getMessage() . "\n";
+        }
+    }
+    
     $logFile = $baseDir . '/storage/logs/laravel.log';
     if (file_exists($logFile)) {
         echo "\n=== LAST LARAVEL ERROR ===\n";
