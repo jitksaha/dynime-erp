@@ -19,11 +19,13 @@ import {
     Play,
     Square,
     Shield,
-    MessageSquare
+    MessageSquare,
+    PenTool
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { router } from '@inertiajs/react';
 import { formatDate, formatTime,formatDateTime } from '@/utils/helpers';
+import { getDocumentName } from '../DocumentBuilder/Index';
 
 interface EmployeeDashboardProps {
     message: string;
@@ -73,6 +75,20 @@ interface EmployeeDashboardProps {
             warning_type: string;
             warning_date: string;
             created_at: string;
+        }>;
+        pending_signatures?: Array<{
+            id: number;
+            document_type: string;
+            issued_date: string;
+            is_signed: boolean;
+            signed_at?: string;
+        }>;
+        signed_documents?: Array<{
+            id: number;
+            document_type: string;
+            issued_date: string;
+            is_signed: boolean;
+            signed_at?: string;
         }>;
     };
 }
@@ -125,6 +141,40 @@ export default function EmployeeDashboard({ message, stats }: EmployeeDashboardP
             <Head title={t('Employee Dashboard')} />
 
             <div className="space-y-6">
+                {/* Documents Awaiting Digital Signature */}
+                {stats.pending_signatures && stats.pending_signatures.length > 0 && (
+                    <Card className="border-amber-200 bg-amber-50/20 shadow-sm">
+                        <CardHeader className="pb-3">
+                            <CardTitle className="text-base font-bold text-amber-900 flex items-center gap-2">
+                                <FileText className="h-5 w-5 text-amber-600 animate-pulse" />
+                                {t('Documents Awaiting Your Signature')}
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {stats.pending_signatures.map((doc: any) => (
+                                    <div key={doc.id} className="flex justify-between items-center p-4 bg-white rounded-xl border border-amber-200 hover:border-amber-400 transition-colors shadow-sm">
+                                        <div className="space-y-1">
+                                            <p className="font-semibold text-slate-800 text-sm">{getDocumentName(doc.document_type)}</p>
+                                            <p className="text-xs text-slate-400 font-medium">
+                                                {t('Issued Date')}: {new Date(doc.issued_date).toLocaleDateString()}
+                                            </p>
+                                        </div>
+                                        <Button
+                                            onClick={() => router.visit(route('hrm.document-builder.sign', doc.id))}
+                                            size="sm"
+                                            className="bg-amber-600 hover:bg-amber-700 text-white font-bold"
+                                        >
+                                            <PenTool className="h-3.5 w-3.5 mr-1.5" />
+                                            {t('Sign Document')}
+                                        </Button>
+                                    </div>
+                                ))}
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
+
                 {/* Employee Quick Stats */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     <div onClick={() => window.location.href = route('hrm.attendances.index')} className="cursor-pointer">
@@ -355,6 +405,41 @@ export default function EmployeeDashboard({ message, stats }: EmployeeDashboardP
                             </CardContent>
                         </Card>
                     </div>
+                )}
+
+                {/* Signed Letters & Documents */}
+                {stats.signed_documents && stats.signed_documents.length > 0 && (
+                    <Card className="border-slate-200 shadow-sm">
+                        <CardHeader className="pb-3 border-b border-slate-100">
+                            <CardTitle className="flex items-center gap-2 text-base font-bold text-slate-800">
+                                <FileText className="h-5 w-5 text-indigo-650" />
+                                {t('My Signed Letters & Documents')}
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="pt-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {stats.signed_documents.map((doc: any) => (
+                                    <div key={doc.id} className="flex justify-between items-center p-4 bg-white rounded-xl border border-slate-200 hover:border-slate-350 transition-colors shadow-sm">
+                                        <div className="space-y-1">
+                                            <p className="font-semibold text-slate-800 text-sm">{getDocumentName(doc.document_type)}</p>
+                                            <p className="text-[11px] text-slate-400 font-medium">
+                                                {t('Signed on')}: {formatDate(doc.signed_at.split(' ')[0])}
+                                            </p>
+                                        </div>
+                                        <Button
+                                            onClick={() => router.visit(route('hrm.document-builder.sign', doc.id))}
+                                            size="sm"
+                                            variant="outline"
+                                            className="text-indigo-600 border-indigo-200 hover:bg-indigo-50"
+                                        >
+                                            <FileText className="h-3.5 w-3.5 mr-1.5" />
+                                            {t('View / PDF')}
+                                        </Button>
+                                    </div>
+                                ))}
+                            </div>
+                        </CardContent>
+                    </Card>
                 )}
 
                 {/* Employee Actions & Info */}

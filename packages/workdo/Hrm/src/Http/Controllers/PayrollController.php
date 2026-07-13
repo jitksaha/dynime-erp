@@ -235,6 +235,13 @@ class PayrollController extends Controller
     {
         // Get employee basic salary
         $basicSalary = $employee->basic_salary ?? 0;
+        
+        // Apply probation percentage if employee is on probation
+        if (($employee->employment_status ?? 'probation') === 'probation') {
+            $pct = $employee->probation_percentage ?? 70;
+            $basicSalary = ($basicSalary * $pct) / 100;
+        }
+
         $perDaySalary = $workingDaysCount > 0 ? $basicSalary / $workingDaysCount : 0;
 
         // Calculate allowances, deductions, overtimes and loans
@@ -334,6 +341,14 @@ class PayrollController extends Controller
 
     private function calculateAllowances($employee, $basicSalary)
     {
+        // If employee is on probation, they get 0 allowances
+        if (($employee->employment_status ?? 'probation') === 'probation') {
+            return [
+                'breakdown' => json_encode([]),
+                'total' => 0
+            ];
+        }
+
         $allowances = Allowance::where('employee_id', $employee->user_id)->where('created_by', creatorId())->get();
         $breakdown = [];
         $total = 0;

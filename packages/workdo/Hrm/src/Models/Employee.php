@@ -20,6 +20,9 @@ class Employee extends Model
         'shift_id',
         'date_of_joining',
         'employment_type',
+        'employment_status',
+        'probation_percentage',
+        'probation_period',
         'work_mode',
         'work_location_country',
         'address_line_1',
@@ -40,6 +43,7 @@ class Employee extends Model
         'bank_notes',
         'tax_payer_id',
         'basic_salary',
+        'salary_type',
         'hours_per_day',
         'days_per_week',
         'rate_per_hour',
@@ -49,13 +53,16 @@ class Employee extends Model
         'designation_id',
         'creator_id',
         'created_by',
+        'payment_method',
+        'payment_details',
     ];
 
     protected function casts(): array
     {
         return [
             'date_of_birth' => 'date',
-            'date_of_joining' => 'date'
+            'date_of_joining' => 'date',
+            'payment_details' => 'array',
         ];
     }
 

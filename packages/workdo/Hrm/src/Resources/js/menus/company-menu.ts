@@ -127,11 +127,6 @@ export const hrmCompanyMenu = (t: (key: string) => string) => [
                 permission: 'manage-employees',
             },
             {
-                title: t('Documents History'),
-                href: route('hrm.document-builder.history'),
-                permission: 'manage-employees',
-            },
-            {
                 title: t('Acknowledgments'),
                 href: route('hrm.acknowledgments.index'),
                 permission: 'manage-acknowledgments',
@@ -147,9 +142,14 @@ export const hrmCompanyMenu = (t: (key: string) => string) => [
                 permission: 'manage-events',
             },
             {
+                title: t('Payroll Settings'),
+                href: route('settings.index') + '#payroll-settings',
+                permission: 'manage-company-settings',
+            },
+            {
                 title: t('System Setup'),
                 href: route('hrm.branches.index'),
-                permission: 'manage-hrm',
+                permission: 'manage-branches',
                 activePaths: [
                     route('hrm.departments.index'),
                     route('hrm.designations.index'),

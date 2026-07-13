@@ -377,136 +377,66 @@ class HrmModel extends Model
     {
 
         $staff_permission = [
-            // HRM
             'manage-hrm-dashboard',
             'manage-hrm',
-
-            // Employees
             'manage-employees',
             'manage-own-employees',
             'view-employees',
-
-            // Awards
             'manage-awards',
             'manage-own-awards',
-
-            // Promotions
             'manage-promotions',
             'manage-own-promotions',
             'view-promotions',
-
-            // Resignations
             'manage-resignations',
             'manage-own-resignations',
             'view-resignations',
-            'create-resignations',
-            'edit-resignations',
-
-            // Terminations
             'manage-terminations',
             'manage-own-terminations',
             'view-terminations',
-
-            // Warnings
             'manage-warnings',
             'manage-own-warnings',
-            'manage-warning-response',
-            'view-warnings',
-
-
-            // Complaints
             'manage-complaints',
             'manage-own-complaints',
             'view-complaints',
-            'create-complaints',
-
-            // Employee Transfers
             'manage-employee-transfers',
             'manage-own-employee-transfers',
             'view-employee-transfers',
-
-
-            // Holidays
             'manage-holidays',
-            'manage-any-holidays',
             'view-holidays',
-
-            // HRM Documents
             'manage-hrm-documents',
             'manage-own-hrm-documents',
             'view-hrm-documents',
             'download-hrm-documents',
-
-            // Acknowledgments
             'manage-acknowledgments',
             'manage-own-acknowledgments',
             'download-acknowledgment',
             'view-acknowledgments',
-
-            // Announcement management
             'manage-announcements',
-            'manage-any-announcements',
             'view-announcements',
-
-            // Event management
             'manage-events',
-            'manage-any-events',
-            'view-event-calendar',
             'view-events',
-
-            // LeaveApplication management
+            'view-event-calendar',
             'manage-leave-applications',
             'manage-own-leave-applications',
-            'create-leave-applications',
             'view-leave-applications',
-
-            // Leave Balance management
-            'manage-leave-balance',
+            'create-leave-applications',
             'manage-own-leave-balance',
-
-
-            // Attendance management
             'manage-attendances',
             'manage-own-attendances',
             'view-attendances',
-            'create-attendances',
-            'edit-attendances',
             'clock-in',
             'clock-out',
-
-            // Payslip management
-            'manage-payslip',
             'manage-own-payslip',
             'download-payslip',
             'view-payslip',
-
-            // Set Salary management
-            'manage-set-salary',
             'manage-own-set-salary',
             'view-set-salary',
-
-            // Allowance management
-            'manage-allowances',
             'manage-own-allowances',
-
-            // Deduction management
-            'manage-deductions',
             'manage-own-deductions',
-
-            // Loan management
-            'manage-loans',
             'manage-own-loans',
             'view-loans',
-
-            // Overtime management
-            'manage-overtimes',
             'manage-own-overtimes',
             'view-overtimes',
-
-            // Payroll management
-            'manage-payrolls',
-            'manage-any-payrolls',
-            'view-payrolls',
             'view-own-payrolls',
         ];
 

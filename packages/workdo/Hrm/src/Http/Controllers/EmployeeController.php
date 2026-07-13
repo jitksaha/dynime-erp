@@ -102,6 +102,9 @@ class EmployeeController extends Controller
             $employee->shift = $validated['shift_id'];
             $employee->date_of_joining = $validated['date_of_joining'];
             $employee->employment_type = $validated['employment_type'];
+            $employee->employment_status = $validated['employment_status'];
+            $employee->probation_percentage = $validated['probation_percentage'] ?? null;
+            $employee->probation_period = $validated['probation_period'] ?? null;
             $employee->work_mode = $validated['work_mode'];
             $employee->work_location_country = $validated['work_location_country'];
             $employee->address_line_1 = $validated['address_line_1'];
@@ -113,15 +116,22 @@ class EmployeeController extends Controller
             $employee->emergency_contact_name = $validated['emergency_contact_name'];
             $employee->emergency_contact_relationship = $validated['emergency_contact_relationship'];
             $employee->emergency_contact_number = $validated['emergency_contact_number'];
-            $employee->bank_name = $validated['bank_name'];
-            $employee->account_holder_name = $validated['account_holder_name'];
-            $employee->account_number = $validated['account_number'];
-            $employee->bank_identifier_code = $validated['bank_identifier_code'];
-            $employee->bank_branch = $validated['bank_branch'];
-            $employee->bank_country = $validated['bank_country'];
-            $employee->bank_notes = $validated['bank_notes'];
-            $employee->tax_payer_id = $validated['tax_payer_id'];
+            $employee->bank_name = $validated['bank_name'] ?? null;
+            $employee->account_holder_name = $validated['account_holder_name'] ?? null;
+            $employee->account_number = $validated['account_number'] ?? null;
+            $employee->bank_identifier_code = $validated['bank_identifier_code'] ?? null;
+            $employee->bank_branch = $validated['bank_branch'] ?? null;
+            $employee->bank_country = $validated['bank_country'] ?? null;
+            $employee->bank_notes = $validated['bank_notes'] ?? null;
+            $employee->tax_payer_id = $validated['tax_payer_id'] ?? null;
+            $employee->payment_method = $validated['payment_method'] ?? 'bank_transfer';
+            $paymentDetails = $validated['payment_details'] ?? null;
+            if (is_string($paymentDetails)) {
+                $paymentDetails = json_decode($paymentDetails, true);
+            }
+            $employee->payment_details = $paymentDetails;
             $employee->basic_salary = $validated['basic_salary'];
+            $employee->salary_type = $validated['salary_type'] ?? 'yearly';
             $employee->hours_per_day = $validated['hours_per_day'];
             $employee->days_per_week = $validated['days_per_week'];
             $employee->rate_per_hour = $validated['rate_per_hour'];
@@ -226,6 +236,9 @@ class EmployeeController extends Controller
             $employee->shift = $validated['shift_id'];
             $employee->date_of_joining = $validated['date_of_joining'];
             $employee->employment_type = $validated['employment_type'];
+            $employee->employment_status = $validated['employment_status'];
+            $employee->probation_percentage = $validated['probation_percentage'] ?? null;
+            $employee->probation_period = $validated['probation_period'] ?? null;
             $employee->work_mode = $validated['work_mode'];
             $employee->work_location_country = $validated['work_location_country'];
             $employee->address_line_1 = $validated['address_line_1'];
@@ -237,15 +250,22 @@ class EmployeeController extends Controller
             $employee->emergency_contact_name = $validated['emergency_contact_name'];
             $employee->emergency_contact_relationship = $validated['emergency_contact_relationship'];
             $employee->emergency_contact_number = $validated['emergency_contact_number'];
-            $employee->bank_name = $validated['bank_name'];
-            $employee->account_holder_name = $validated['account_holder_name'];
-            $employee->account_number = $validated['account_number'];
-            $employee->bank_identifier_code = $validated['bank_identifier_code'];
-            $employee->bank_branch = $validated['bank_branch'];
-            $employee->bank_country = $validated['bank_country'];
-            $employee->bank_notes = $validated['bank_notes'];
-            $employee->tax_payer_id = $validated['tax_payer_id'];
+            $employee->bank_name = $validated['bank_name'] ?? null;
+            $employee->account_holder_name = $validated['account_holder_name'] ?? null;
+            $employee->account_number = $validated['account_number'] ?? null;
+            $employee->bank_identifier_code = $validated['bank_identifier_code'] ?? null;
+            $employee->bank_branch = $validated['bank_branch'] ?? null;
+            $employee->bank_country = $validated['bank_country'] ?? null;
+            $employee->bank_notes = $validated['bank_notes'] ?? null;
+            $employee->tax_payer_id = $validated['tax_payer_id'] ?? null;
+            $employee->payment_method = $validated['payment_method'] ?? 'bank_transfer';
+            $paymentDetails = $validated['payment_details'] ?? null;
+            if (is_string($paymentDetails)) {
+                $paymentDetails = json_decode($paymentDetails, true);
+            }
+            $employee->payment_details = $paymentDetails;
             $employee->basic_salary = $validated['basic_salary'];
+            $employee->salary_type = $validated['salary_type'] ?? 'yearly';
             $employee->hours_per_day = $validated['hours_per_day'];
             $employee->days_per_week = $validated['days_per_week'];
             $employee->rate_per_hour = $validated['rate_per_hour'];
@@ -341,9 +361,15 @@ class EmployeeController extends Controller
                     ];
                 });
 
+            $issuedDocuments = \Workdo\Hrm\Models\IssuedDocument::where('employee_id', $employee->id)
+                ->where('created_by', creatorId())
+                ->latest()
+                ->get();
+
             return Inertia::render('Hrm/Employees/Show', [
                 'employee' => $employee,
                 'documents' => $documents,
+                'issuedDocuments' => $issuedDocuments,
             ]);
         } else {
             return redirect()->route('hrm.employees.index')->with('error', __('Permission denied'));

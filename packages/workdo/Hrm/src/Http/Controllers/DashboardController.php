@@ -22,6 +22,7 @@ use Workdo\Hrm\Models\Event;
 use Workdo\Hrm\Models\Holiday;
 use Workdo\Hrm\Models\Shift;
 use Workdo\Hrm\Models\Warning;
+use Workdo\Hrm\Models\IssuedDocument;
 
 class DashboardController extends Controller
 {
@@ -483,6 +484,28 @@ class DashboardController extends Controller
 
         // Get employee shift information
         $employee = Employee::where('user_id', $userId)->where('created_by', $creatorId)->first();
+        
+        // Fetch issued documents for this employee
+        $issuedDocs = $employee ? IssuedDocument::where('employee_id', $employee->id)->latest()->get() : collect();
+        $pendingSignatures = [];
+        $signedDocuments = [];
+
+        foreach ($issuedDocs as $doc) {
+            $isSigned = isset($doc->payload['employee_signature']);
+            $mappedDoc = [
+                'id' => $doc->id,
+                'document_type' => $doc->document_type,
+                'issued_date' => $doc->issued_date ? $doc->issued_date->toDateString() : '',
+                'is_signed' => $isSigned,
+                'signed_at' => $doc->payload['employee_signature_date'] ?? null,
+            ];
+            if ($isSigned) {
+                $signedDocuments[] = $mappedDoc;
+            } else {
+                $pendingSignatures[] = $mappedDoc;
+            }
+        }
+
         $shift = $employee ? Shift::find($employee->shift) : null;
         // Check for pending attendance (including night shifts)
         $pendingAttendance = Attendance::where('created_by', $creatorId)
@@ -591,6 +614,8 @@ class DashboardController extends Controller
                 'recent_warnings' => $recentWarnings,
                 'attendance_data' => $attendanceData,
                 'recent_attendance' => $recentAttendance,
+                'pending_signatures' => $pendingSignatures,
+                'signed_documents' => $signedDocuments,
             ],
             'message' => __('Employee Dashboard - Your personal workspace.')
         ]);

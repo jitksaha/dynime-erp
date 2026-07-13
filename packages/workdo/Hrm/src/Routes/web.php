@@ -265,6 +265,10 @@ Route::middleware(['web', 'auth', 'verified', 'PlanModuleCheck:Hrm'])->group(fun
         Route::post('/', [DocumentBuilderController::class, 'store'])->name('store');
         Route::get('/history', [DocumentBuilderController::class, 'history'])->name('history');
         Route::delete('/{id}', [DocumentBuilderController::class, 'destroy'])->name('destroy');
+        
+        // Digital employee signature routes
+        Route::get('/sign/{id}', [DocumentBuilderController::class, 'signView'])->name('sign');
+        Route::post('/sign/{id}', [DocumentBuilderController::class, 'signSubmit'])->name('sign-submit');
     });
 
     Route::prefix('hrm/acknowledgments')->name('hrm.acknowledgments.')->group(function () {

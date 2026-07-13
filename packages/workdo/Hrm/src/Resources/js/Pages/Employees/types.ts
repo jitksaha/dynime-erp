@@ -29,6 +29,9 @@ export interface Employee {
     shift?: { id: number; shift_name: string; };
     date_of_joining: string;
     employment_type: string;
+    employment_status: string;
+    probation_percentage?: number;
+    probation_period?: number;
     work_mode?: string;
     work_location_country?: string;
     address_line_1?: string;
@@ -48,7 +51,10 @@ export interface Employee {
     bank_country?: string;
     bank_notes?: string;
     tax_payer_id?: string;
+    payment_method?: string;
+    payment_details?: any;
     basic_salary?: number;
+    salary_type?: string;
     hours_per_day?: number;
     days_per_week?: number;
     rate_per_hour?: number;
@@ -70,6 +76,9 @@ export interface CreateEmployeeFormData {
     shift_id: string;
     date_of_joining: string;
     employment_type: string;
+    employment_status: string;
+    probation_percentage: string;
+    probation_period: string;
     work_mode: string;
     work_location_country: string;
     address_line_1: string;
@@ -88,6 +97,7 @@ export interface CreateEmployeeFormData {
     bank_branch: string;
     tax_payer_id: string;
     basic_salary: string;
+    salary_type: string;
     hours_per_day: string;
     days_per_week: string;
     rate_per_hour: string;
@@ -98,6 +108,8 @@ export interface CreateEmployeeFormData {
     avatar: File | null;
     bank_country: string;
     bank_notes: string;
+    payment_method: string;
+    payment_details: any;
     documents: Array<{ document_type_id: string; file: any }>;
 }
 
@@ -108,6 +120,9 @@ export interface EditEmployeeFormData {
     shift_id: string;
     date_of_joining: string;
     employment_type: string;
+    employment_status: string;
+    probation_percentage: string;
+    probation_period: string;
     work_mode: string;
     work_location_country: string;
     address_line_1: string;
@@ -126,6 +141,7 @@ export interface EditEmployeeFormData {
     bank_branch: string;
     tax_payer_id: string;
     basic_salary: string;
+    salary_type: string;
     hours_per_day: string;
     days_per_week: string;
     rate_per_hour: string;
@@ -136,6 +152,8 @@ export interface EditEmployeeFormData {
     avatar: File | null;
     bank_country: string;
     bank_notes: string;
+    payment_method: string;
+    payment_details: any;
     documents: Array<{ document_type_id: string; file: any }>;
 }
 
