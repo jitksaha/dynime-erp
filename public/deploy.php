@@ -49,9 +49,9 @@ function findSystemBinary($name) {
 }
 
 // Pure PHP Database Dumper (independent of mysqldump shell execution)
-function phpDumpDatabase($host, $db, $user, $pass, $outputFile) {
+function phpDumpDatabase($host, $db, $user, $pass, $outputFile, $port = '3306') {
     try {
-        $dsn = "mysql:host=$host;dbname=$db;charset=utf8mb4";
+        $dsn = "mysql:host=$host;port=$port;dbname=$db;charset=utf8mb4";
         $pdo = new PDO($dsn, $user, $pass, [
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
             PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4"
@@ -108,9 +108,9 @@ function phpDumpDatabase($host, $db, $user, $pass, $outputFile) {
 }
 
 // Pure PHP Database Importer/Restorer (independent of mysql CLI shell execution)
-function phpImportDatabase($host, $db, $user, $pass, $inputFile) {
+function phpImportDatabase($host, $db, $user, $pass, $inputFile, $port = '3306') {
     try {
-        $dsn = "mysql:host=$host;dbname=$db;charset=utf8mb4";
+        $dsn = "mysql:host=$host;port=$port;dbname=$db;charset=utf8mb4";
         $pdo = new PDO($dsn, $user, $pass, [
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
             PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4"
@@ -517,7 +517,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'pull-db') {
     echo "\nStep 3/3: Importing dump into local database...\n";
     try {
         @set_time_limit(300);
-        phpImportDatabase($localHost, $localDB, $localUser, $localPass, $tempFile);
+        phpImportDatabase($localHost, $localDB, $localUser, $localPass, $tempFile, $localPort);
         echo "Import successful!\n";
     } catch (Throwable $e) {
         echo "Error: Importing to Local Database failed! Message: " . $e->getMessage() . "\n";
@@ -640,7 +640,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'push-db') {
     echo "Step 1/2: Dumping local database...\n";
     try {
         @set_time_limit(300);
-        phpDumpDatabase($localHost, $localDB, $localUser, $localPass, $tempFile);
+        phpDumpDatabase($localHost, $localDB, $localUser, $localPass, $tempFile, $localPort);
         echo "Local dump successful! Size: " . round(filesize($tempFile) / 1024, 2) . " KB\n";
     } catch (Throwable $e) {
         echo "Error: Local dump failed! Message: " . $e->getMessage() . "\n";
