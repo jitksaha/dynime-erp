@@ -17,10 +17,23 @@ import { useEffect, useState } from 'react';
 import { useFormFields } from '@/hooks/useFormFields';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import axios from 'axios';
+import { usePersistentForm } from "@/hooks/usePersistentForm";
 
 export default function Create() {
     const { users = [], roles = {}, branches, departments, designations, shifts, documentTypes, generatedEmployeeId, companyAllSetting = {} } = usePage<any>().props;
-    const [activeTab, setActiveTab] = useState('personal');
+    const [activeTab, setActiveTab] = useState(() => {
+        try {
+            return localStorage.getItem('employee_create_active_tab') || 'personal';
+        } catch (e) {
+            return 'personal';
+        }
+    });
+
+    useEffect(() => {
+        try {
+            localStorage.setItem('employee_create_active_tab', activeTab);
+        } catch (e) {}
+    }, [activeTab]);
     const [filteredBranches, setFilteredBranches] = useState(branches || []);
     const [filteredDepartments, setFilteredDepartments] = useState(departments || []);
     const [filteredDesignations, setFilteredDesignations] = useState(designations || []);
@@ -158,7 +171,7 @@ export default function Create() {
     };
 
 
-    const { data, setData, post, processing, errors } = useForm<CreateEmployeeFormData>({
+    const { data, setData, post, processing, errors, clearStorage } = usePersistentForm<CreateEmployeeFormData>('employee_create_form', {
         employee_id: generatedEmployeeId,
         avatar: null,
         date_of_birth: '',
@@ -399,6 +412,12 @@ export default function Create() {
         post(route('hrm.employees.store'), {
             data: formData,
             forceFormData: true,
+            onSuccess: () => {
+                clearStorage();
+                try {
+                    localStorage.removeItem('employee_create_active_tab');
+                } catch (e) {}
+            }
         });
     };
 
