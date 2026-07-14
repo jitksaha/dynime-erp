@@ -642,6 +642,7 @@ $checks = [
     'public/index.php' => $baseDir . '/public/index.php',
     'public/build/manifest.json' => $baseDir . '/public/build/manifest.json',
     'public/repair.php' => $baseDir . '/public/repair.php',
+    'routes/api.php' => $baseDir . '/routes/api.php',
 ];
 
 $checkResults = [];
