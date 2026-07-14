@@ -10,12 +10,12 @@ export interface SettingMenuItem {
 }
 
 export const getXenditCompanySettings = (t: (key: string) => string): SettingMenuItem[] => [
-  // {
-  //   order: 1060,
-  //   title: t('Xendit Settings'),
-  //   href: '#xendit-settings',
-  //   icon: CreditCard,
-  //   permission: 'manage-xendit-settings',
-  //   component: 'xendit-settings'
-  // }
+  {
+  order: 1060,
+  title: t('Xendit Settings'),
+  href: '#xendit-settings',
+  icon: CreditCard,
+  permission: 'manage-xendit-settings',
+  component: 'xendit-settings'
+  }
 ];

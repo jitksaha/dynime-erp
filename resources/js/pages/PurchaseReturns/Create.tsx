@@ -13,6 +13,16 @@ import { DatePicker } from '@/components/ui/date-picker';
 import { Separator } from '@/components/ui/separator';
 import { CalendarDays, Package, RotateCcw, Trash2 } from 'lucide-react';
 import { formatCurrency } from '@/utils/helpers';
+import CurrencyConverter from '@/components/CurrencyConverter';
+
+const calculateLineItemAmounts = (quantity: number, unitPrice: number, discountPercentage = 0, taxPercentage = 0) => {
+    const lineTotal = quantity * unitPrice;
+    const discountAmount = (lineTotal * discountPercentage) / 100;
+    const afterDiscount = lineTotal - discountAmount;
+    const taxAmount = (afterDiscount * taxPercentage) / 100;
+    const totalAmount = afterDiscount + taxAmount;
+    return { discountAmount, taxAmount, totalAmount };
+};
 
 interface PurchaseInvoice {
     id: number;
@@ -161,6 +171,27 @@ export default function Create() {
             return sum + tax;
         }, 0),
         total: returnItems.reduce((sum, item) => sum + item.total_amount, 0)
+    };
+
+    const mappedReturnItems = returnItems.map(item => {
+        const originalItem = selectedInvoice?.items.find(i => i.id === item.original_invoice_item_id);
+        return {
+            ...item,
+            quantity: item.return_quantity,
+            discount_percentage: originalItem?.discount_percentage || 0,
+            tax_percentage: originalItem?.tax_percentage || 0
+        };
+    });
+
+    const handleReturnItemsChange = (newItems: any[]) => {
+        setReturnItems(newItems.map(item => ({
+            product_id: item.product_id,
+            original_invoice_item_id: item.original_invoice_item_id,
+            return_quantity: item.quantity,
+            unit_price: item.unit_price,
+            reason: item.reason || '',
+            total_amount: item.total_amount
+        })));
     };
 
     return (
@@ -486,10 +517,15 @@ export default function Create() {
                                     </table>
                                 </div>
 
-                                {/* Return Summary */}
-                                <div className="mt-6 flex justify-end">
-                                    <div className="w-80 bg-muted/30 rounded-lg p-4">
-                                        <h3 className="font-semibold mb-3">{t('Return Summary')}</h3>
+                                 {/* Currency Converter & Return Summary */}
+                                 <div className="mt-6 flex flex-col md:flex-row justify-between items-start gap-4">
+                                     <CurrencyConverter
+                                         items={mappedReturnItems}
+                                         onChange={handleReturnItemsChange}
+                                         calculateLineItemAmounts={calculateLineItemAmounts}
+                                     />
+                                     <div className="w-80 bg-muted/30 rounded-lg p-4">
+                                         <h3 className="font-semibold mb-3">{t('Return Summary')}</h3>
                                         <div>
                                             <div className="flex justify-between text-sm">
                                                 <span className="text-muted-foreground">{t('Subtotal')}</span>

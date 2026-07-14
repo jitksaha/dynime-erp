@@ -11,9 +11,7 @@ class FormBuilderUtility extends Model
     public static function GivePermissionToRoles($role_id = null, $rolename = null)
     {
         $staff_permission = [
-            'manage-formbuilder',
             'manage-own-formbuilder-form',
-            'view-formbuilder-responses',
         ];
 
         $client_permission = [

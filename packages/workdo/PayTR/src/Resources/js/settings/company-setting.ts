@@ -10,12 +10,12 @@ export interface SettingMenuItem {
 }
 
 export const getPayTRCompanySettings = (t: (key: string) => string): SettingMenuItem[] => [
-  // {
-  //   order: 1060,
-  //   title: t('PayTR Settings'),
-  //   href: '#paytr-settings',
-  //   icon: CreditCard,
-  //   permission: 'manage-paytr-settings',
-  //   component: 'paytr-settings'
-  // }
+  {
+  order: 1060,
+  title: t('PayTR Settings'),
+  href: '#paytr-settings',
+  icon: CreditCard,
+  permission: 'manage-paytr-settings',
+  component: 'paytr-settings'
+  }
 ];

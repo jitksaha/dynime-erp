@@ -231,28 +231,12 @@ class Job extends Model
     public static function GivePermissionToRoles($role_id = null, $rolename = null)
     {
         $staff_permission = [
-            // Dashboard
-            'manage-dashboard',
-            'manage-recruitment',
-            'manage-recruitment-dashboard',
-
-            // Job Interviews
-            'manage-interviews',
             'manage-own-interviews',
             'view-interviews',
-
-            // Candidates Assessments
-            'manage-candidate-assessments',
             'manage-own-candidate-assessments',
             'view-candidate-assessments',
-
-            // Interview Feedbacks
-            'manage-interview-feedbacks',
             'manage-own-interview-feedbacks',
             'view-interview-feedbacks',
-
-            // Candidate Onboardings
-            'manage-candidate-onboardings',
             'manage-own-candidate-onboardings',
             'view-candidate-onboardings',
         ];

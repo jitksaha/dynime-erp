@@ -10,12 +10,12 @@ export interface SettingMenuItem {
 }
 
 export const getPaystackCompanySettings = (t: (key: string) => string): SettingMenuItem[] => [
-  //   {
-  //     order: 1040,
-  //     title: t('Paystack Settings'),
-  //     href: '#paystack-settings',
-  //     icon: CreditCard,
-  //     permission: 'manage-paystack-settings',
-  //     component: 'paystack-settings'
-  //   }
+  {
+  order: 1040,
+  title: t('Paystack Settings'),
+  href: '#paystack-settings',
+  icon: CreditCard,
+  permission: 'manage-paystack-settings',
+  component: 'paystack-settings'
+  }
 ];

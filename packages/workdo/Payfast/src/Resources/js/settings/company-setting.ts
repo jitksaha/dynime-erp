@@ -10,12 +10,12 @@ export interface SettingMenuItem {
 }
 
 export const getPayfastCompanySettings = (t: (key: string) => string): SettingMenuItem[] => [
-  // {
-  //   order: 1060,
-  //   title: t('Payfast Settings'),
-  //   href: '#payfast-payment-settings',
-  //   icon: CreditCard,
-  //   permission: 'manage-payfast-settings',
-  //   component: 'payfast-payment-settings'
-  // }
+  {
+  order: 1060,
+  title: t('Payfast Settings'),
+  href: '#payfast-payment-settings',
+  icon: CreditCard,
+  permission: 'manage-payfast-settings',
+  component: 'payfast-payment-settings'
+  }
 ];

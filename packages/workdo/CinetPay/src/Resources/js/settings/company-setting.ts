@@ -10,12 +10,12 @@ export interface SettingMenuItem {
 }
 
 export const getCinetPayCompanySettings = (t: (key: string) => string): SettingMenuItem[] => [
-  // {
-  //   order: 1310,
-  //   title: t('CinetPay Settings'),
-  //   href: '#cinetpay-settings',
-  //   icon: CreditCard,
-  //   permission: 'manage-cinetpay-settings',
-  //   component: 'cinetpay-settings'
-  // }
+  {
+  order: 1310,
+  title: t('CinetPay Settings'),
+  href: '#cinetpay-settings',
+  icon: CreditCard,
+  permission: 'manage-cinetpay-settings',
+  component: 'cinetpay-settings'
+  }
 ];

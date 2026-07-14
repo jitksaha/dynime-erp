@@ -7,15 +7,31 @@ import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { allSettingsItems } from '@/utils/settings';
 import { getSettingsComponent } from '@/utils/settings-components';
+import { ChevronDown, ChevronRight, CreditCard } from 'lucide-react';
+
+const PAYMENT_GATEWAY_COMPONENTS = [
+  'stripe', 'paypal', 'mollie', 'razorpay', 'payfast', 'yookassa', 'paytabs', 
+  'toyyibpay', 'iyzipay', 'paytr', 'aamarpay', 'benefit', 'cashfree', 'coingate', 
+  'mercado', 'midtrans', 'xendit', 'tap', 'dodopay', 'authorizenet', 'cinetpay', 
+  'easebuzz', 'fedapay', 'khalti', 'ozow', 'paiementpro', 'payhere', 'paystack', 
+  'paytab', 'bank-transfer'
+];
+
+const isPaymentGateway = (componentName: string) => {
+  const name = componentName.toLowerCase();
+  return PAYMENT_GATEWAY_COMPONENTS.some(gw => name.includes(gw)) || name.includes('payment');
+};
 
 export default function Settings() {
   const { t } = useTranslation();
   const { auth, globalSettings = {}, emailProviders = {}, cacheSize = '0.00' } = usePage().props as any;
   const [activeSection, setActiveSection] = useState('brand-settings');
+  const [isGatewaysExpanded, setIsGatewaysExpanded] = useState(false);
 
   const sidebarNavItems = allSettingsItems();
 
-
+  const gatewayItems = sidebarNavItems.filter(item => isPaymentGateway(item.component));
+  const coreItems = sidebarNavItems.filter(item => !isPaymentGateway(item.component));
 
   const handleNavClick = (href: string) => {
     const id = href.replace('#', '');
@@ -25,6 +41,13 @@ export default function Settings() {
       setActiveSection(id);
     }
   };
+
+  useEffect(() => {
+    const isActiveGateway = gatewayItems.some(item => activeSection === item.href.replace('#', ''));
+    if (isActiveGateway) {
+      setIsGatewaysExpanded(true);
+    }
+  }, [activeSection, gatewayItems]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -59,7 +82,8 @@ export default function Settings() {
           <div className="sticky top-4">
             <ScrollArea className="h-[calc(100vh-8rem)]">
               <div className="pr-4 space-y-1">
-                {sidebarNavItems.map((item) => (
+                {/* Core Items */}
+                {coreItems.map((item) => (
                   <Button
                     key={item.href}
                     variant="ghost"
@@ -72,6 +96,45 @@ export default function Settings() {
                     {item.title}
                   </Button>
                 ))}
+
+                {/* Collapsible Gateways Items */}
+                {gatewayItems.length > 0 && (
+                  <div className="space-y-1">
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-between hover:bg-muted/50 text-left font-normal"
+                      onClick={() => setIsGatewaysExpanded(!isGatewaysExpanded)}
+                    >
+                      <span className="flex items-center">
+                        <CreditCard className="h-4 w-4 mr-2" />
+                        {t('Payment Gateways')}
+                      </span>
+                      {isGatewaysExpanded ? (
+                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                      )}
+                    </Button>
+                    
+                    {isGatewaysExpanded && (
+                      <div className="pl-4 space-y-1 border-l ml-4 mt-1">
+                        {gatewayItems.map((item) => (
+                          <Button
+                            key={item.href}
+                            variant="ghost"
+                            size="sm"
+                            className={cn('w-full justify-start text-xs h-8 font-normal', {
+                              'bg-muted font-semibold text-primary': activeSection === item.href.replace('#', ''),
+                            })}
+                            onClick={() => handleNavClick(item.href)}
+                          >
+                            {item.title}
+                          </Button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </ScrollArea>
           </div>

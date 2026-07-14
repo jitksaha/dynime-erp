@@ -27,6 +27,8 @@ use Workdo\Account\Models\AccountType;
 Route::middleware(['web', 'auth', 'verified', 'PlanModuleCheck:Account'])->group(function () {
     Route::get('/dashboard/account', [DashboardController::class, 'index'])->name('account.index');
     Route::resource('account/vendors', VendorController::class, ['as' => 'account']);
+    Route::post('account/customers/quick-store', [CustomerController::class, 'quickStore'])->name('account.customers.quick-store');
+    Route::post('account/customers/{customer}/send-login-info', [CustomerController::class, 'sendLoginInfo'])->name('account.customers.send-login-info');
     Route::resource('account/customers', CustomerController::class, ['as' => 'account']);
 
     Route::prefix('account/bank-accounts')->name('account.bank-accounts.')->group(function () {

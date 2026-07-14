@@ -4,7 +4,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { formatCurrency } from '@/utils/helpers';
 
 interface Product {
-    id: number;
+    id: number | string;
     name: string;
     sale_price: number;
     unit?: string;
@@ -13,27 +13,27 @@ interface Product {
 
 interface Props {
     products: Product[];
-    value: number;
-    onChange: (productId: number, product?: Product) => void;
+    value: number | string;
+    onChange: (productId: number | string, product?: Product) => void;
 }
 
 export default function ProductSelector({ products, value, onChange }: Props) {
     const { t } = useTranslation();
 
     const handleChange = (productId: string) => {
-        const id = parseInt(productId);
-        const product = products.find(p => p.id === id);
+        const id = /^\d+$/.test(productId) ? parseInt(productId) : productId;
+        const product = products.find(p => p.id === id || p.id.toString() === productId);
         onChange(id, product);
     };
 
     return (
-        <Select value={value.toString()} onValueChange={handleChange}>
+        <Select value={value ? value.toString() : ''} onValueChange={handleChange}>
             <SelectTrigger className="w-full">
                 <SelectValue placeholder={t('Select Product')} />
             </SelectTrigger>
             <SelectContent searchable>
                 {products.map((product) => (
-                    <SelectItem key={product.id} value={product.id.toString()}>
+                    <SelectItem key={product.id.toString()} value={product.id.toString()}>
                         {product.name} - {formatCurrency(product.sale_price || 0)}
                     </SelectItem>
                 ))}

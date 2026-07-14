@@ -1,4 +1,4 @@
-import { Link, usePage } from '@inertiajs/react';
+import { Link, usePage, router } from '@inertiajs/react';
 import { SidebarGroup, SidebarGroupLabel, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarMenuSub, SidebarMenuSubItem, SidebarMenuSubButton } from '@/components/ui/sidebar';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -80,18 +80,41 @@ export function NavMain({ items = [], searchQuery = "" }: { items: NavItem[], se
                   const hasActiveChild = item.children ? isChildActive(item.children) : false;
                   const shouldBeActive = isActive || hasActiveChild;
                     if (item.children && item.children.length > 0) {
+                        const hasLink = !!item.href;
                         return (
                             <SidebarMenuItem key={item.title}>
                                 {/* Expanded sidebar - use collapsible */}
                                 <Collapsible asChild defaultOpen={shouldBeActive} className="group/collapsible group-data-[collapsible=icon]:hidden">
                                     <div>
-                                        <CollapsibleTrigger asChild>
-                                            <SidebarMenuButton tooltip={item.title} isActive={shouldBeActive} data-current={false}>
-                                                {item.icon && <item.icon />}
-                                                <span>{item.title}</span>
-                                                <ChevronDown className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-180" />
-                                            </SidebarMenuButton>
-                                        </CollapsibleTrigger>
+                                        {hasLink ? (
+                                            <div className="flex items-center gap-1 w-full group/menu-item">
+                                                <SidebarMenuButton asChild tooltip={item.title} isActive={shouldBeActive} className="flex-1">
+                                                    <Link 
+                                                        href={item.href!}
+                                                        onClick={(e) => {
+                                                            e.preventDefault();
+                                                            router.visit(item.href!);
+                                                        }}
+                                                    >
+                                                        {item.icon && <item.icon />}
+                                                        <span>{item.title}</span>
+                                                    </Link>
+                                                </SidebarMenuButton>
+                                                <CollapsibleTrigger asChild>
+                                                    <button className="h-8 w-8 flex items-center justify-center rounded-md hover:bg-accent text-muted-foreground hover:text-foreground mr-1 transition-colors">
+                                                        <ChevronDown className="h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-180" />
+                                                    </button>
+                                                </CollapsibleTrigger>
+                                            </div>
+                                        ) : (
+                                            <CollapsibleTrigger asChild>
+                                                <SidebarMenuButton tooltip={item.title} isActive={shouldBeActive}>
+                                                    {item.icon && <item.icon />}
+                                                    <span>{item.title}</span>
+                                                    <ChevronDown className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-180" />
+                                                </SidebarMenuButton>
+                                            </CollapsibleTrigger>
+                                        )}
                                         <CollapsibleContent>
                                             <SidebarMenuSub>
                                                 {item.children.map((subItem) => {

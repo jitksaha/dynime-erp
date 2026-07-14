@@ -17,17 +17,22 @@ class ZoomMeetingUtility
             'start-zoom-meetings'
         ];
             
-            if ($rolename == 'staff') {
+        if ($rolename == 'staff') {
             $roles_v = Role::where('name', 'staff')->where('id', $role_id)->first();
-                foreach ($permission as $permission_v) {
-                    $permission = Permission::where('name', $permission_v)->first();
-                    if (!empty($permission)) {
-                        if (!$roles_v->hasPermissionTo($permission_v)) {
-                            $roles_v->givePermissionTo($permission);
-                        }
+            $staff_permission = [
+                'manage-own-zoom-meetings',  
+                'view-zoom-meetings',
+                'join-zoom-meetings',
+            ];
+            foreach ($staff_permission as $permission_v) {
+                $permission_obj = Permission::where('name', $permission_v)->first();
+                if (!empty($permission_obj)) {
+                    if (!$roles_v->hasPermissionTo($permission_v)) {
+                        $roles_v->givePermissionTo($permission_obj);
                     }
                 }
             }
+        }
 
             if ($rolename == 'client') {
                 $roles_v = Role::where('name', 'client')->where('id', $role_id)->first();

@@ -45,30 +45,11 @@ class SupporUtility extends Model
     public static function GivePermissionToRoles($role_id = null, $rolename = null)
     {
         $staff_permissions = [
-            'manage-dashboard-support-ticket',
-            'manage-support-tickets',
             'manage-own-support-tickets',
             'view-support-tickets',
             'create-support-tickets',
-            'edit-support-tickets',
-            'delete-support-tickets',
             'reply-support-tickets',
-            'manage-own-ticket-categories',
-            'manage-ticket-categories',
-            'create-ticket-categories',
-            'edit-ticket-categories',
-            'delete-ticket-categories',
             'manage-own-knowledge-base',
-            'manage-knowledge-base',
-            'create-knowledge-base',
-            'edit-knowledge-base',
-            'delete-knowledge-base',
-            'manage-any-knowledge-base',
-            'manage-faq',
-            'create-faq',
-            'edit-faq',
-            'delete-faq',
-            'manage-contact',
             'view-contact',
         ];
 

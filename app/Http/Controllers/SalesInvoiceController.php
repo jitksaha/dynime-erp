@@ -131,7 +131,13 @@ class SalesInvoiceController extends Controller
     public function store(StoreSalesInvoiceRequest $request)
     {
         if(Auth::user()->can('create-sales-invoices')){
-            $totals = $this->calculateTotals($request->items);
+            $items = $request->items;
+            foreach ($items as &$item) {
+                $item['product_id'] = \App\Helpers\PaidItemsHelper::resolveProductId($item['product_id'], creatorId());
+            }
+            unset($item);
+
+            $totals = $this->calculateTotals($items);
 
             $invoice = new SalesInvoice();
             $invoice->invoice_date = $request->invoice_date;
@@ -151,7 +157,7 @@ class SalesInvoiceController extends Controller
             $invoice->save();
 
             // Create invoice items
-            $this->createInvoiceItems($invoice->id, $request->items);
+            $this->createInvoiceItems($invoice->id, $items);
 
             try {
                 CreateSalesInvoice::dispatch($request, $invoice);
@@ -223,7 +229,13 @@ class SalesInvoiceController extends Controller
             if ($salesInvoice->status != 'draft') {
                 return redirect()->route('sales-invoices.index')->with('error', __('Cannot update posted invoice.'));
             }
-            $totals = $this->calculateTotals($request->items);
+            $items = $request->items;
+            foreach ($items as &$item) {
+                $item['product_id'] = \App\Helpers\PaidItemsHelper::resolveProductId($item['product_id'], creatorId());
+            }
+            unset($item);
+
+            $totals = $this->calculateTotals($items);
 
             $salesInvoice->invoice_date = $request->invoice_date;
             $salesInvoice->due_date = $request->due_date;
@@ -240,7 +252,7 @@ class SalesInvoiceController extends Controller
 
             // Delete existing items and recreate
             $salesInvoice->items()->delete();
-            $this->createInvoiceItems($salesInvoice->id, $request->items);
+            $this->createInvoiceItems($salesInvoice->id, $items);
 
             // Dispatch event for packages to handle their fields
             UpdateSalesInvoice::dispatch($request, $salesInvoice);
@@ -278,10 +290,20 @@ class SalesInvoiceController extends Controller
         $totalDiscount = 0;
 
         foreach ($items as $item) {
-            $lineTotal = $item['quantity'] * $item['unit_price'];
-            $discountAmount = ($lineTotal * ($item['discount_percentage'] ?? 0)) / 100;
-            $afterDiscount = $lineTotal - $discountAmount;
-            $taxAmount = ($afterDiscount * ($item['tax_percentage'] ?? 0)) / 100;
+            $qty = max(1, (float)($item['quantity'] ?? 1));
+            $unitPrice = (float)($item['unit_price'] ?? 0);
+            $lineTotal = $qty * $unitPrice;
+
+            // Use pre-calculated discount_amount if provided by frontend,
+            // otherwise fall back to computing from discount_percentage.
+            if (isset($item['discount_amount']) && (float)$item['discount_amount'] > 0) {
+                $discountAmount = (float)$item['discount_amount'];
+            } else {
+                $discountAmount = ($lineTotal * ((float)($item['discount_percentage'] ?? 0))) / 100;
+            }
+
+            $afterDiscount = max(0, $lineTotal - $discountAmount);
+            $taxAmount = ($afterDiscount * ((float)($item['tax_percentage'] ?? 0))) / 100;
 
             $subtotal += $lineTotal;
             $totalDiscount += $discountAmount;
@@ -289,32 +311,48 @@ class SalesInvoiceController extends Controller
         }
 
         return [
-            'subtotal' => $subtotal,
-            'tax_amount' => $totalTax,
+            'subtotal'        => $subtotal,
+            'tax_amount'      => $totalTax,
             'discount_amount' => $totalDiscount,
-            'total_amount' => $subtotal + $totalTax - $totalDiscount
+            'total_amount'    => $subtotal + $totalTax - $totalDiscount
         ];
     }
 
     private function createInvoiceItems($invoiceId, $items)
     {
         foreach ($items as $itemData) {
+            $qty = max(1, (float)($itemData['quantity'] ?? 1));
+            $unitPrice = (float)($itemData['unit_price'] ?? 0);
+            $discountPct = (float)($itemData['discount_percentage'] ?? 0);
+            $taxPct = (float)($itemData['tax_percentage'] ?? 0);
+
+            // Use pre-calculated discount_amount if frontend provided it (fixed mode)
+            if (isset($itemData['discount_amount']) && (float)$itemData['discount_amount'] > 0) {
+                $discountAmt = (float)$itemData['discount_amount'];
+                // Keep discount_percentage in sync
+                $lineTotal = $qty * $unitPrice;
+                $discountPct = $lineTotal > 0 ? ($discountAmt / $lineTotal) * 100 : 0;
+            } else {
+                $lineTotal = $qty * $unitPrice;
+                $discountAmt = ($lineTotal * $discountPct) / 100;
+            }
+
             $item = new SalesInvoiceItem();
-            $item->invoice_id = $invoiceId;
-            $item->product_id = $itemData['product_id'];
-            $item->quantity = $itemData['quantity'];
-            $item->unit_price = $itemData['unit_price'];
-            $item->discount_percentage = $itemData['discount_percentage'] ?? 0;
-            $item->tax_percentage = $itemData['tax_percentage'] ?? 0;
+            $item->invoice_id         = $invoiceId;
+            $item->product_id         = $itemData['product_id'];
+            $item->quantity           = $qty;
+            $item->unit_price         = $unitPrice;
+            $item->discount_percentage = round($discountPct, 4);
+            $item->tax_percentage     = $taxPct;
             $item->save();
 
             // Store individual taxes
             if (isset($itemData['taxes']) && is_array($itemData['taxes'])) {
                 foreach ($itemData['taxes'] as $tax) {
                     $salesInvoiceItemTax = new SalesInvoiceItemTax();
-                    $salesInvoiceItemTax->item_id = $item->id;
-                    $salesInvoiceItemTax->tax_name = $tax['tax_name'];
-                    $salesInvoiceItemTax->tax_rate = $tax['tax_rate'] ?? $tax['rate'] ?? 0;
+                    $salesInvoiceItemTax->item_id   = $item->id;
+                    $salesInvoiceItemTax->tax_name  = $tax['tax_name'];
+                    $salesInvoiceItemTax->tax_rate  = $tax['tax_rate'] ?? $tax['rate'] ?? 0;
                     $salesInvoiceItemTax->save();
                 }
             }
@@ -391,29 +429,24 @@ class SalesInvoiceController extends Controller
     public function getServices(Request $request)
     {
         if(Auth::user()->can('create-sales-invoices') || Auth::user()->can('edit-sales-invoices')){
-            $services = ProductServiceItem::select('id', 'name', 'sku', 'sale_price', 'tax_ids', 'unit', 'type')
-                ->where('is_active', true)
-                ->where('type', 'service')
-                ->where('created_by', creatorId())
-                ->get()
-                ->map(function ($service) {
-                    return [
-                        'id' => $service->id,
-                        'name' => $service->name,
-                        'sku' => $service->sku,
-                        'sale_price' => $service->sale_price,
-                        'unit' => $service->unit,
-                        'type' => $service->type,
-                        'taxes' => $service->taxes->map(function ($tax) {
-                            return [
-                                'id' => $tax->id,
-                                'tax_name' => $tax->tax_name,
-                                'rate' => $tax->rate
-                            ];
-                        })
-                    ];
-                });
-            return response()->json($services);
+            $allPaidItems = \App\Helpers\PaidItemsHelper::getPaidItems(creatorId());
+            $servicesAndFees = array_filter($allPaidItems, function($item) {
+                return $item['type'] === 'service' || $item['type'] === 'state_fee';
+            });
+            
+            $formatted = array_map(function($item) {
+                return [
+                    'id' => $item['id'],
+                    'name' => $item['name'],
+                    'sku' => $item['sku'],
+                    'sale_price' => $item['purchase_price'],
+                    'unit' => $item['unit'],
+                    'type' => $item['type'],
+                    'taxes' => $item['taxes']
+                ];
+            }, $servicesAndFees);
+
+            return response()->json(array_values($formatted));
         }
         else{
             return response()->json([], 403);

@@ -10,12 +10,12 @@ export interface SettingMenuItem {
 }
 
 export const getAamarpayCompanySettings = (t: (key: string) => string): SettingMenuItem[] => [
-  //   {
-  //     order: 1040,
-  //     title: t('Aamarpay Settings'),
-  //     href: '#aamarpay-settings',
-  //     icon: CreditCard,
-  //     permission: 'manage-aamarpay-settings',
-  //     component: 'aamarpay-settings'
-  //   }
+  {
+  order: 1040,
+  title: t('Aamarpay Settings'),
+  href: '#aamarpay-settings',
+  icon: CreditCard,
+  permission: 'manage-aamarpay-settings',
+  component: 'aamarpay-settings'
+  }
 ];

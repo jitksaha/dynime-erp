@@ -21,10 +21,11 @@ class UpdateSalesInvoiceRequest extends FormRequest
             'payment_terms' => 'nullable|string|max:255',
             'notes' => 'nullable|string',
             'items' => 'required|array|min:1',
-            'items.*.product_id' => 'required|integer|min:1',
-            'items.*.quantity' => 'required|integer|min:1',
+            'items.*.product_id' => 'required',
+            'items.*.quantity' => 'required|numeric|min:0',
             'items.*.unit_price' => 'required|numeric|min:0',
             'items.*.discount_percentage' => 'nullable|numeric|min:0|max:100',
+            'items.*.discount_amount' => 'nullable|numeric|min:0',
             'items.*.tax_percentage' => 'nullable|numeric|min:0|max:100'
         ];
     }

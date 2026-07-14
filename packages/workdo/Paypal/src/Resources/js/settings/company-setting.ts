@@ -10,12 +10,12 @@ export interface SettingMenuItem {
 }
 
 export const getPaypalCompanySettings = (t: (key: string) => string): SettingMenuItem[] => [
-  //   {
-  //     order: 1020,
-  //     title: t('PayPal Settings'),
-  //     href: '#paypal-settings',
-  //     icon: CreditCard,
-  //     permission: 'manage-paypal-settings',
-  //     component: 'paypal-settings'
-  //   }
+  {
+  order: 1020,
+  title: t('PayPal Settings'),
+  href: '#paypal-settings',
+  icon: CreditCard,
+  permission: 'manage-paypal-settings',
+  component: 'paypal-settings'
+  }
 ];

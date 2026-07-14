@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Plus, Edit as EditIcon, Trash2, Building2, User as UserIcon, Lock, FileText, Eye } from "lucide-react";
+import { Plus, Edit as EditIcon, Trash2, Building2, User as UserIcon, Lock, FileText, Eye, Mail, Loader2 } from "lucide-react";
 import { getImagePath } from '@/utils/helpers';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { DataTable } from "@/components/ui/data-table";
@@ -23,6 +23,7 @@ import Edit from './Edit';
 import View from './View';
 import { Customer, User } from './types';
 import { usePageButtons } from '@/hooks/usePageButtons';
+import { toast } from 'sonner';
 interface CustomerFilters {
     company_name: string;
     customer_code: string;
@@ -77,6 +78,28 @@ export default function Index() {
     const googleDriveButtons = usePageButtons('googleDriveBtn', { module: 'Customer', settingKey: 'GoogleDrive Customer' });
     const oneDriveButtons = usePageButtons('oneDriveBtn', { module: 'Customer', settingKey: 'OneDrive Customer' });
     const dropboxBtn = usePageButtons('dropboxBtn', { module: 'Account Customer', settingKey: 'Dropbox Account Customer' });
+    const [sendingLoginInfo, setSendingLoginInfo] = useState<number | null>(null);
+
+    const handleSendLoginInfo = async (customerId: number) => {
+        setSendingLoginInfo(customerId);
+        try {
+            const csrfToken = (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content ?? '';
+            const res = await fetch(route('account.customers.send-login-info', customerId), {
+                method: 'POST',
+                headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': csrfToken },
+            });
+            const data = await res.json();
+            if (res.ok) {
+                toast.success(data.success);
+            } else {
+                toast.error(data.error || 'Failed to send login info');
+            }
+        } catch {
+            toast.error('Network error. Please try again.');
+        } finally {
+            setSendingLoginInfo(null);
+        }
+    };
     const { deleteState, openDeleteDialog, closeDeleteDialog, confirmDelete } = useDeleteHandler({
         routeName: 'account.customers.destroy',
         defaultMessage: 'Are you sure you want to delete this customer?'
@@ -225,6 +248,25 @@ export default function Index() {
                                         </Button>
                                     </TooltipTrigger>
                                     <TooltipContent><p>{t('Edit')}</p></TooltipContent>
+                                </Tooltip>
+                            )}
+                            {auth.user?.permissions?.includes('edit-customers') && customer.user_id && (
+                                <Tooltip delayDuration={0}>
+                                    <TooltipTrigger asChild>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => handleSendLoginInfo(customer.id)}
+                                            disabled={sendingLoginInfo === customer.id}
+                                            className="h-8 w-8 p-0 text-purple-600 hover:text-purple-700"
+                                        >
+                                            {sendingLoginInfo === customer.id
+                                                ? <Loader2 className="h-4 w-4 animate-spin" />
+                                                : <Mail className="h-4 w-4" />
+                                            }
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent><p>{t('Send Login Info')}</p></TooltipContent>
                                 </Tooltip>
                             )}
                             {auth.user?.permissions?.includes('delete-customers') && (

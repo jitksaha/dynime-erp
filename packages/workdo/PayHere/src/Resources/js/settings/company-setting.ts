@@ -10,12 +10,12 @@ export interface SettingMenuItem {
 }
 
 export const getPayHereCompanySettings = (t: (key: string) => string): SettingMenuItem[] => [
-  // {
-  //   order: 1280,
-  //   title: t('PayHere Settings'),
-  //   href: '#payhere-settings',
-  //   icon: CreditCard,
-  //   permission: 'manage-payhere-settings',
-  //   component: 'payhere-settings'
-  // }
+  {
+  order: 1280,
+  title: t('PayHere Settings'),
+  href: '#payhere-settings',
+  icon: CreditCard,
+  permission: 'manage-payhere-settings',
+  component: 'payhere-settings'
+  }
 ];

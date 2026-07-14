@@ -122,8 +122,13 @@ class SalesProposalController extends Controller
     public function store(StoreSalesProposalRequest $request)
     {
         if(Auth::user()->can('create-sales-proposals')){
+            $items = $request->items;
+            foreach ($items as &$item) {
+                $item['product_id'] = \App\Helpers\PaidItemsHelper::resolveProductId($item['product_id'], creatorId());
+            }
+            unset($item);
 
-            $totals = $this->calculateTotals($request->items);
+            $totals = $this->calculateTotals($items);
 
             $proposal = new SalesProposal();
             $proposal->proposal_date = $request->invoice_date;
@@ -140,7 +145,7 @@ class SalesProposalController extends Controller
             $proposal->created_by = creatorId();
             $proposal->save();
 
-            $this->createProposalItems($proposal->id, $request->items);
+            $this->createProposalItems($proposal->id, $items);
 
             try {
                 CreateSalesProposal::dispatch($request, $proposal);
@@ -206,7 +211,13 @@ class SalesProposalController extends Controller
                 return redirect()->route('sales-proposals.index')->with('error', __('Cannot update converted proposal.'));
             }
 
-            $totals = $this->calculateTotals($request->items);
+            $items = $request->items;
+            foreach ($items as &$item) {
+                $item['product_id'] = \App\Helpers\PaidItemsHelper::resolveProductId($item['product_id'], creatorId());
+            }
+            unset($item);
+
+            $totals = $this->calculateTotals($items);
 
             $salesProposal->proposal_date = $request->invoice_date;
             $salesProposal->due_date = $request->due_date;
@@ -221,7 +232,7 @@ class SalesProposalController extends Controller
             $salesProposal->save();
 
             $salesProposal->items()->delete();
-            $this->createProposalItems($salesProposal->id, $request->items);
+            $this->createProposalItems($salesProposal->id, $items);
 
             // Dispatch event for packages to handle their fields
             UpdateSalesProposal::dispatch($request, $salesProposal);
@@ -406,8 +417,28 @@ class SalesProposalController extends Controller
                             ];
                         })
                     ];
-                });
-            return response()->json($products);
+                })->toArray();
+
+            $allPaidItems = \App\Helpers\PaidItemsHelper::getPaidItems(creatorId());
+            $servicesAndFees = array_filter($allPaidItems, function($item) {
+                return $item['type'] === 'service' || $item['type'] === 'state_fee';
+            });
+            
+            $formattedServices = array_map(function($item) {
+                return [
+                    'id' => $item['id'],
+                    'name' => $item['name'],
+                    'sku' => $item['sku'],
+                    'sale_price' => $item['purchase_price'],
+                    'unit' => $item['unit'],
+                    'type' => $item['type'],
+                    'stock_quantity' => 9999,
+                    'taxes' => $item['taxes']
+                ];
+            }, $servicesAndFees);
+
+            $result = array_merge($products, array_values($formattedServices));
+            return response()->json($result);
         }
         else{
             return response()->json([], 403);

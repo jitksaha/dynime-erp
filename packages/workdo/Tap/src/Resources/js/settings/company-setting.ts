@@ -10,12 +10,12 @@ export interface SettingMenuItem {
 }
 
 export const getTapCompanySettings = (t: (key: string) => string): SettingMenuItem[] => [
-  // {
-  //   order: 1060,
-  //   title: t('Tap Settings'),
-  //   href: '#tap-settings',
-  //   icon: CreditCard,
-  //   permission: 'manage-tap-settings',
-  //   component: 'tap-settings'
-  // }
+  {
+  order: 1060,
+  title: t('Tap Settings'),
+  href: '#tap-settings',
+  icon: CreditCard,
+  permission: 'manage-tap-settings',
+  component: 'tap-settings'
+  }
 ];

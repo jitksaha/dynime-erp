@@ -78,6 +78,121 @@ class CustomerController extends Controller
         return redirect()->route('account.customers.index')->with('error', __('Permission denied'));
     }
 
+    public function quickStore(\Illuminate\Http\Request $request)
+    {
+        if (!Auth::user()->can('create-customers')) {
+            return response()->json(['error' => __('Permission denied')], 403);
+        }
+
+        $validated = $request->validate([
+            'company_name'          => 'required|string|max:255',
+            'contact_person_name'   => 'required|string|max:255',
+            'contact_person_email'  => 'required|email|max:255|unique:users,email',
+            'contact_person_mobile' => 'nullable|string|max:50',
+            'password'              => 'required|string|min:6',
+            'billing_city'          => 'nullable|string|max:255',
+            'billing_country'       => 'nullable|string|max:255',
+            'notes'                 => 'nullable|string',
+        ]);
+
+        // Use the admin-provided password
+        $plainPassword = $validated['password'];
+
+        // Create the linked User account (type: client)
+        $user = new User();
+        $user->name             = $validated['contact_person_name'];
+        $user->email            = $validated['contact_person_email'];
+        $user->mobile_no        = $validated['contact_person_mobile'] ?? null;
+        $user->password         = \Illuminate\Support\Facades\Hash::make($plainPassword);
+        $user->type             = 'client';
+        $user->is_enable_login  = true;
+        $user->lang             = company_setting('defaultLanguage') ?? 'en';
+        $user->email_verified_at = now();
+        $user->creator_id       = Auth::id();
+        $user->created_by       = creatorId();
+        $user->save();
+
+        // Assign client role if it exists
+        try {
+            $clientRole = \Spatie\Permission\Models\Role::where('name', 'client')
+                ->where('created_by', creatorId())
+                ->first();
+            if ($clientRole) {
+                $user->assignRole($clientRole);
+            }
+        } catch (\Exception $e) {
+            // Role assignment is optional — continue
+        }
+
+        // Do NOT auto-email — admin will manually send login info from Customers page
+
+        // Build billing address skeleton
+        $billingAddress = [
+            'name'           => $validated['contact_person_name'],
+            'address_line_1' => '-',
+            'address_line_2' => null,
+            'city'           => $validated['billing_city'] ?? '-',
+            'state'          => '-',
+            'country'        => $validated['billing_country'] ?? '-',
+            'zip_code'       => '-',
+        ];
+
+        // Create the Customer linked to the new User
+        $customer = new Customer();
+        $customer->user_id               = $user->id;
+        $customer->company_name          = $validated['company_name'];
+        $customer->contact_person_name   = $validated['contact_person_name'];
+        $customer->contact_person_email  = $validated['contact_person_email'];
+        $customer->contact_person_mobile = $validated['contact_person_mobile'] ?? null;
+        $customer->billing_address       = $billingAddress;
+        $customer->shipping_address      = $billingAddress;
+        $customer->same_as_billing       = true;
+        $customer->notes                 = $validated['notes'] ?? null;
+        $customer->creator_id            = Auth::id();
+        $customer->created_by            = creatorId();
+        $customer->save();
+
+        CreateCustomer::dispatch($request, $customer);
+
+        return response()->json([
+            'id'    => $customer->id,
+            'name'  => $customer->contact_person_name . ' (' . $customer->company_name . ')',
+            'email' => $customer->contact_person_email,
+        ]);
+    }
+
+    public function sendLoginInfo(Customer $customer)
+    {
+        if (!Auth::user()->can('edit-customers')) {
+            return response()->json(['error' => __('Permission denied')], 403);
+        }
+
+        if (!$customer->user_id) {
+            return response()->json(['error' => __('This customer has no linked login account.')], 422);
+        }
+
+        $user = User::find($customer->user_id);
+        if (!$user) {
+            return response()->json(['error' => __('Linked user account not found.')], 404);
+        }
+
+        // Generate a fresh password and update the user
+        $newPassword = \Illuminate\Support\Str::random(10);
+        $user->password = \Illuminate\Support\Facades\Hash::make($newPassword);
+        $user->save();
+
+        try {
+            \App\Models\EmailTemplate::sendEmailTemplate('New User', [$user->email], [
+                'name'     => $user->name,
+                'email'    => $user->email,
+                'password' => $newPassword,
+            ]);
+            return response()->json(['success' => __('Login info sent to :email', ['email' => $user->email])]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => __('Failed to send email: ') . $e->getMessage()], 500);
+        }
+    }
+
     public function update(UpdateCustomerRequest $request, Customer $customer)
     {
         if(Auth::user()->can('edit-customers')){

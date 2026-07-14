@@ -4,7 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { SalesInvoiceItem } from '@/pages/Sales/types';
 import AuthenticatedLayout from '@/layouts/authenticated-layout';
 import InvoiceItemsTable from '@/pages/Sales/components/InvoiceItemsTable';
-import { useTaxCalculator } from '@/pages/Sales/components/TaxCalculator';
+import { useTaxCalculator, calculateLineItemAmounts } from '@/pages/Sales/components/TaxCalculator';
+import CurrencyConverter from '@/components/CurrencyConverter';
 import { formatCurrency } from '@/utils/helpers';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -237,7 +238,13 @@ export default function Create() {
                                 showAddButton={false}
                             />
 
-                            <div className="mt-6 flex justify-end">
+                            {/* Currency Converter & Invoice Summary */}
+                            <div className="mt-6 flex flex-col md:flex-row justify-between items-start gap-4">
+                                <CurrencyConverter
+                                    items={data.items}
+                                    onChange={(items) => setData('items', items)}
+                                    calculateLineItemAmounts={calculateLineItemAmounts}
+                                />
                                 <div className="w-80 bg-muted/30 rounded-lg p-4">
                                     <h3 className="font-semibold mb-3">{t('Proposal Summary')}</h3>
                                     <div>

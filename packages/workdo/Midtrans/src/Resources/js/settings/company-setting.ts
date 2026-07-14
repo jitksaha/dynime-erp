@@ -10,12 +10,12 @@ export interface SettingMenuItem {
 }
 
 export const getMidtransCompanySettings = (t: (key: string) => string): SettingMenuItem[] => [
-  // {
-  //   order: 1060,
-  //   title: t('Midtrans Settings'),
-  //   href: '#midtrans-settings',
-  //   icon: CreditCard,
-  //   permission: 'manage-midtrans-settings',
-  //   component: 'midtrans-settings'
-  // }
+  {
+  order: 1060,
+  title: t('Midtrans Settings'),
+  href: '#midtrans-settings',
+  icon: CreditCard,
+  permission: 'manage-midtrans-settings',
+  component: 'midtrans-settings'
+  }
 ];

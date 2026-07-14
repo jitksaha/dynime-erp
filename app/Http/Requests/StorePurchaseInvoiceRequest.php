@@ -21,7 +21,7 @@ class StorePurchaseInvoiceRequest extends FormRequest
             'payment_terms' => 'nullable|string|max:255',
             'notes' => 'nullable|string',
             'items' => 'required|array|min:1',
-            'items.*.product_id' => 'required|integer|min:1',
+            'items.*.product_id' => 'required',
 
             'items.*.quantity' => 'required|integer|min:1',
             'items.*.unit_price' => 'required|numeric|min:0',

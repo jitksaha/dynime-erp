@@ -70,12 +70,9 @@ class Project extends Model
     public static function GivePermissionToRoles($role_id = null, $rolename = null)
     {
         $staff_permission = [
-            'manage-project',
-            'view-project',
             'manage-own-project',
-            'manage-project-task',
+            'view-project',
             'manage-own-project-task',
-            'manage-project-bug',
             'manage-own-project-bug'
         ];
 

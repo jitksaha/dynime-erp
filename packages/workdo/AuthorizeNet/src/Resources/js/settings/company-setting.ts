@@ -10,12 +10,12 @@ export interface SettingMenuItem {
 }
 
 export const getAuthorizeNetCompanySettings = (t: (key: string) => string): SettingMenuItem[] => [
-  //   {
-  //     order: 1050,
-  //     title: t('AuthorizeNet Settings'),
-  //     href: '#authorizenet-settings',
-  //     icon: CreditCard,
-  //     permission: 'manage-authorizenet-settings',
-  //     component: 'authorizenet-settings'
-  //   }
+  {
+  order: 1050,
+  title: t('AuthorizeNet Settings'),
+  href: '#authorizenet-settings',
+  icon: CreditCard,
+  permission: 'manage-authorizenet-settings',
+  component: 'authorizenet-settings'
+  }
 ];

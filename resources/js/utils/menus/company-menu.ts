@@ -7,6 +7,7 @@ export const getCompanyMenu = (t: (key: string) => string): NavItem[] => [
         icon: LayoutGrid,
         permission: 'manage-dashboard',
         name: 'dashboard',
+        href: route('dashboard'),
         order: 1,
     },
     {

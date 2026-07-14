@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import AuthenticatedLayout from '@/layouts/authenticated-layout';
 import InvoiceItemsTable from '../Sales/components/InvoiceItemsTable';
 import { useTaxCalculator, calculateLineItemAmounts } from '../Sales/components/TaxCalculator';
+import CurrencyConverter from '@/components/CurrencyConverter';
 import { formatCurrency } from '@/utils/helpers';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -248,9 +249,15 @@ export default function Edit() {
                                 showAddButton={false}
                             />
 
-                            <div className="mt-6 flex justify-end">
-                                <div className="w-80 bg-muted/30 rounded-lg p-4">
-                                    <h3 className="font-semibold mb-3">{t('Proposal Summary')}</h3>
+                             {/* Currency Converter & Invoice Summary */}
+                             <div className="mt-6 flex flex-col md:flex-row justify-between items-start gap-4">
+                                 <CurrencyConverter
+                                     items={data.items}
+                                     onChange={(items) => setData('items', items)}
+                                     calculateLineItemAmounts={calculateLineItemAmounts}
+                                 />
+                                 <div className="w-80 bg-muted/30 rounded-lg p-4">
+                                     <h3 className="font-semibold mb-3">{t('Proposal Summary')}</h3>
                                     <div>
                                         <div className="flex justify-between text-sm">
                                             <span className="text-muted-foreground">{t('Subtotal')}</span>

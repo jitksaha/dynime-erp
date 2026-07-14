@@ -75,6 +75,53 @@ const SelectContent = React.forwardRef<
   }
 >(({ className, children, position = "popper", searchable = false, ...props }, ref) => {
   const [search, setSearch] = React.useState("")
+  const inputRef = React.useRef<HTMLInputElement>(null)
+
+  // KEY FIX: After every search state change, Radix re-renders and tries to focus
+  // the active SelectItem. We immediately re-claim focus for the input.
+  React.useEffect(() => {
+    if (!searchable) return
+    // Use requestAnimationFrame so we run AFTER Radix's own focus management tick
+    const raf = requestAnimationFrame(() => {
+      inputRef.current?.focus()
+    })
+    return () => cancelAnimationFrame(raf)
+  }, [search, searchable])
+
+  React.useEffect(() => {
+    if (!searchable) return
+
+    const input = inputRef.current
+    if (!input) return
+
+    const handlePropagation = (e: Event) => {
+      e.stopPropagation()
+      e.stopImmediatePropagation()
+    }
+
+    // Stop pointer/mouse events from bubbling up to Radix handlers
+    input.addEventListener('pointerdown', handlePropagation, { capture: true })
+    input.addEventListener('mousedown', handlePropagation, { capture: true })
+    input.addEventListener('mouseup', handlePropagation, { capture: true })
+    input.addEventListener('click', handlePropagation, { capture: true })
+    input.addEventListener('touchstart', handlePropagation, { capture: true })
+
+    // Stop keyboard events from triggering typeahead
+    input.addEventListener('keydown', handlePropagation, { capture: true })
+    input.addEventListener('keyup', handlePropagation, { capture: true })
+    input.addEventListener('keypress', handlePropagation, { capture: true })
+
+    return () => {
+      input.removeEventListener('pointerdown', handlePropagation, { capture: true })
+      input.removeEventListener('mousedown', handlePropagation, { capture: true })
+      input.removeEventListener('mouseup', handlePropagation, { capture: true })
+      input.removeEventListener('click', handlePropagation, { capture: true })
+      input.removeEventListener('touchstart', handlePropagation, { capture: true })
+      input.removeEventListener('keydown', handlePropagation, { capture: true })
+      input.removeEventListener('keyup', handlePropagation, { capture: true })
+      input.removeEventListener('keypress', handlePropagation, { capture: true })
+    }
+  }, [searchable])
 
   const filteredChildren = React.useMemo(() => {
     if (!searchable || !search) return children
@@ -105,20 +152,19 @@ const SelectContent = React.forwardRef<
       >
         <SelectScrollUpButton />
         {searchable && (
-          <div className="flex items-center border-b px-3 py-2">
+          <div
+            className="flex items-center border-b px-3 py-2"
+            // Prevent Radix's pointer-move hover logic from shifting focus away
+            onPointerMove={(e) => e.stopPropagation()}
+            onPointerEnter={(e) => e.stopPropagation()}
+          >
             <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
             <Input
+              ref={inputRef}
               placeholder="Search..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              onKeyDown={(e) => {
-                e.stopPropagation()
-                e.nativeEvent.stopImmediatePropagation()
-              }}
-              onKeyUp={(e) => e.stopPropagation()}
-              onKeyPress={(e) => e.stopPropagation()}
               className="h-8 border-0 p-0 focus-visible:ring-0 focus-visible:ring-offset-0"
-              autoFocus
             />
           </div>
         )}

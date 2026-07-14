@@ -10,12 +10,12 @@ export interface SettingMenuItem {
 }
 
 export const getBenefitCompanySettings = (t: (key: string) => string): SettingMenuItem[] => [
-  // {
-  //   order: 1060,
-  //   title: t('Benefit Settings'),
-  //   href: '#benefit-settings',
-  //   icon: CreditCard,
-  //   permission: 'manage-benefit-settings',
-  //   component: 'benefit-settings'
-  // }
+  {
+  order: 1060,
+  title: t('Benefit Settings'),
+  href: '#benefit-settings',
+  icon: CreditCard,
+  permission: 'manage-benefit-settings',
+  component: 'benefit-settings'
+  }
 ];

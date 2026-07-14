@@ -1,0 +1,25 @@
+{
+    "name": "workdo/dodopay",
+    "description": "Description for DodoPay package",
+    "type": "library",
+    "license": "MIT",
+    "require": {},
+    "autoload": {
+        "psr-4": {
+            "Workdo\\DodoPay\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Dynime",
+            "email": "support@dynime.com"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Workdo\\DodoPay\\Providers\\DodoPayServiceProvider"
+            ]
+        }
+    }
+}

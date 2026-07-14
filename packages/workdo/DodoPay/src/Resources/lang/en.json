@@ -1,0 +1,18 @@
+{
+    "DodoPay": "DodoPay",
+    "DodoPay Settings": "DodoPay Settings",
+    "Configure Dodo Payments settings": "Configure Dodo Payments settings",
+    "Enable DodoPay": "Enable DodoPay",
+    "Enable or disable DodoPay payment gateway": "Enable or disable DodoPay payment gateway",
+    "DodoPay API Key": "DodoPay API Key",
+    "Enter DodoPay secret API Key": "Enter DodoPay secret API Key",
+    "DodoPay Product ID": "DodoPay Product ID",
+    "Enter DodoPay product ID": "Enter DodoPay product ID",
+    "DodoPay Mode": "DodoPay Mode",
+    "Test Mode": "Test Mode",
+    "Live Mode": "Live Mode",
+    "DodoPay settings saved successfully.": "DodoPay settings saved successfully.",
+    "Failed to update DodoPay settings: ": "Failed to update DodoPay settings: ",
+    "Pay securely with DodoPay": "Pay securely with DodoPay",
+    "Redirecting to DodoPay...": "Redirecting to DodoPay..."
+}

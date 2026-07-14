@@ -10,12 +10,12 @@ export interface SettingMenuItem {
 }
 
 export const getMercadoCompanySettings = (t: (key: string) => string): SettingMenuItem[] => [
-  // {
-  //   order: 1190,
-  //   title: t('Mercado Settings'),
-  //   href: '#mercado-settings',
-  //   icon: CreditCard,
-  //   permission: 'manage-mercado-settings',
-  //   component: 'mercado-settings'
-  // }
+  {
+  order: 1190,
+  title: t('Mercado Settings'),
+  href: '#mercado-settings',
+  icon: CreditCard,
+  permission: 'manage-mercado-settings',
+  component: 'mercado-settings'
+  }
 ];

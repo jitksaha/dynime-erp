@@ -6,6 +6,7 @@ import { PurchaseInvoice, PurchaseInvoiceItem } from './types';
 import AuthenticatedLayout from '@/layouts/authenticated-layout';
 import InvoiceItemsTable from './components/InvoiceItemsTable';
 import { useTaxCalculator, calculateLineItemAmounts } from './components/TaxCalculator';
+import CurrencyConverter from '@/components/CurrencyConverter';
 import { formatCurrency } from '@/utils/helpers';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,7 +22,7 @@ import { CalendarDays, Building2, User, Package } from 'lucide-react';
 interface EditProps {
     invoice: PurchaseInvoice;
     vendors: Array<{id: number; name: string; email: string}>;
-    products: Array<{id: number; name: string; sku: string; purchase_price: number; unit: string; type: string; taxes: Array<{id: number; tax_name: string; rate: number}>}>;
+    products: Array<{id: number | string; name: string; sku: string; purchase_price: number; unit: string; type: string; taxes: Array<{id: number; tax_name: string; rate: number}>}>;
     warehouses: Array<{id: number; name: string; address: string}>;
     modules?: {recurringinvoicebill?: boolean};
     [key: string]: any;
@@ -234,8 +235,13 @@ export default function Edit() {
                                 showAddButton={false}
                             />
 
-                            {/* Invoice Summary */}
-                            <div className="mt-6 flex justify-end">
+                             {/* Currency Converter & Invoice Summary */}
+                             <div className="mt-6 flex flex-col md:flex-row justify-between items-start gap-4">
+                                 <CurrencyConverter
+                                     items={data.items}
+                                     onChange={(items) => setData('items', items)}
+                                     calculateLineItemAmounts={calculateLineItemAmounts}
+                                 />
                                 <div className="w-80 bg-muted/30 rounded-lg p-4">
                                     <h3 className="font-semibold mb-3">{t('Invoice Summary')}</h3>
                                     <div>

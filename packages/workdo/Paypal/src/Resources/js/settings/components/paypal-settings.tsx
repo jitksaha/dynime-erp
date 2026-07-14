@@ -8,7 +8,7 @@ import { CreditCard, Save, Eye, EyeOff } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { router, usePage } from '@inertiajs/react';
 import { Switch } from '@/components/ui/switch';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { cn } from '@/lib/utils';
 
 interface PaypalSettings {
   paypal_client_id: string;
@@ -139,22 +139,33 @@ export default function PaypalSettings({ userSettings, auth }: PaypalSettingsPro
                   {/* PayPal Mode */}
                   <div className="space-y-3">
                     <Label>{t('PayPal Mode')}</Label>
-                    <RadioGroup
-                      value={settings.paypal_mode}
-                      onValueChange={(value) => handleSelectChange('paypal_mode', value)}
-                      disabled={!canEdit}
-                      className="flex gap-6"
-                    >
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="sandbox" id="paypal-sandbox" />
-                        <Label htmlFor="paypal-sandbox">{t('Sandbox')}</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="live" id="paypal-live" />
-                        <Label htmlFor="paypal-live">{t('Live')}</Label>
-                      </div>
-                    </RadioGroup>
-                    <p className="text-xs text-muted-foreground">
+                    <div className="flex rounded-md bg-muted p-1 w-fit border">
+                      <button
+                        type="button"
+                        className={cn("px-4 py-1.5 text-sm font-medium rounded-sm transition-all duration-200", 
+                          settings.paypal_mode === 'sandbox' 
+                            ? "bg-background text-foreground shadow-sm" 
+                            : "text-muted-foreground hover:text-foreground"
+                        )}
+                        onClick={() => handleSelectChange('paypal_mode', 'sandbox')}
+                        disabled={!canEdit}
+                      >
+                        {t('Sandbox')}
+                      </button>
+                      <button
+                        type="button"
+                        className={cn("px-4 py-1.5 text-sm font-medium rounded-sm transition-all duration-200", 
+                          settings.paypal_mode === 'live' 
+                            ? "bg-background text-foreground shadow-sm" 
+                            : "text-muted-foreground hover:text-foreground"
+                        )}
+                        onClick={() => handleSelectChange('paypal_mode', 'live')}
+                        disabled={!canEdit}
+                      >
+                        {t('Live')}
+                      </button>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
                       {settings.paypal_mode === 'sandbox'
                         ? t('Use sandbox credentials for development and testing')
                         : t('Use live credentials for production transactions')

@@ -19,25 +19,10 @@ class ContractUtility extends Model
     public static function GivePermissionToRoles($role_id = null, $rolename = null)
     {
         $staff_permission = [
-            'manage-contracts',
             'manage-own-contracts',
             'view-contracts',
             'signatures-contracts',
             'preview-contracts',
-
-            'manage-any-contract-attachments',
-            'create-contract-attachments',
-            'delete-contract-attachments',
-
-            'manage-any-contract-comments',
-            'create-contract-comments',
-            'edit-contract-comments',
-            'delete-contract-comments',
-
-            'manage-any-contract-notes',
-            'create-contract-notes',
-            'edit-contract-notes',
-            'delete-contract-notes',
         ];
 
         $client_permission = [

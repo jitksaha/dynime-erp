@@ -10,12 +10,12 @@ export interface SettingMenuItem {
 }
 
 export const getPaiementProCompanySettings = (t: (key: string) => string): SettingMenuItem[] => [
-  // {
-  //   order: 1290,
-  //   title: t('PaiementPro Settings'),
-  //   href: '#paiementpro-payment-settings',
-  //   icon: CreditCard,
-  //   permission: 'manage-paiement-pro-settings',
-  //   component: 'paiementpro-payment-settings'
-  // }
+  {
+  order: 1290,
+  title: t('PaiementPro Settings'),
+  href: '#paiementpro-payment-settings',
+  icon: CreditCard,
+  permission: 'manage-paiement-pro-settings',
+  component: 'paiementpro-payment-settings'
+  }
 ];

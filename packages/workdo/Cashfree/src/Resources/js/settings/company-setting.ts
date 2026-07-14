@@ -10,12 +10,12 @@ export interface SettingMenuItem {
 }
 
 export const getCashfreeCompanySettings = (t: (key: string) => string): SettingMenuItem[] => [
-  //   {
-  //     order: 1170,
-  //     title: t('Cashfree Settings'),
-  //     href: '#cashfree-settings',
-  //     icon: CreditCard,
-  //     permission: 'manage-cashfree-settings',
-  //     component: 'cashfree-settings'
-  //   }
+  {
+  order: 1170,
+  title: t('Cashfree Settings'),
+  href: '#cashfree-settings',
+  icon: CreditCard,
+  permission: 'manage-cashfree-settings',
+  component: 'cashfree-settings'
+  }
 ];

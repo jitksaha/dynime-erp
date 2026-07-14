@@ -10,12 +10,12 @@ export interface SettingMenuItem {
 }
 
 export const getRazorpayCompanySettings = (t: (key: string) => string): SettingMenuItem[] => [
-  // {
-  //   order: 1050,
-  //   title: t('Razorpay Settings'),
-  //   href: '#razorpay-settings',
-  //   icon: CreditCard,
-  //   permission: 'manage-razorpay-settings',
-  //   component: 'razorpay-settings'
-  // }
+  {
+  order: 1050,
+  title: t('Razorpay Settings'),
+  href: '#razorpay-settings',
+  icon: CreditCard,
+  permission: 'manage-razorpay-settings',
+  component: 'razorpay-settings'
+  }
 ];

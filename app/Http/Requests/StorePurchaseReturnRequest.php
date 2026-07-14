@@ -21,7 +21,7 @@ class StorePurchaseReturnRequest extends FormRequest
             'reason' => 'required|in:defective,wrong_item,damaged,excess_quantity,other',
             'notes' => 'nullable|string',
             'items' => 'required|array|min:1',
-            'items.*.product_id' => 'required|integer|min:1',
+            'items.*.product_id' => 'required',
             'items.*.original_invoice_item_id' => 'required|integer|min:1',
             'items.*.return_quantity' => 'required|integer|min:1',
             'items.*.unit_price' => 'required|numeric|min:0',

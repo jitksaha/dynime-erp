@@ -10,12 +10,12 @@ export interface SettingMenuItem {
 }
 
 export const getEasebuzzCompanySettings = (t: (key: string) => string): SettingMenuItem[] => [
-  // {
-  //   order: 1380,
-  //   title: t('Easebuzz Settings'),
-  //   href: '#easebuzz-settings',
-  //   icon: CreditCard,
-  //   permission: 'manage-easebuzz-settings',
-  //   component: 'easebuzz-settings'
-  // }
+  {
+  order: 1380,
+  title: t('Easebuzz Settings'),
+  href: '#easebuzz-settings',
+  icon: CreditCard,
+  permission: 'manage-easebuzz-settings',
+  component: 'easebuzz-settings'
+  }
 ];

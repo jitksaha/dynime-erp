@@ -10,12 +10,12 @@ export interface SettingMenuItem {
 }
 
 export const getToyyibpayCompanySettings = (t: (key: string) => string): SettingMenuItem[] => [
-  // {
-  //   order: 1060,
-  //   title: t('Toyyibpay Settings'),
-  //   href: '#toyyibpay-settings',
-  //   icon: CreditCard,
-  //   permission: 'manage-toyyibpay-settings',
-  //   component: 'toyyibpay-settings'
-  // }
+  {
+  order: 1060,
+  title: t('Toyyibpay Settings'),
+  href: '#toyyibpay-settings',
+  icon: CreditCard,
+  permission: 'manage-toyyibpay-settings',
+  component: 'toyyibpay-settings'
+  }
 ];

@@ -10,12 +10,12 @@ export interface SettingMenuItem {
 }
 
 export const getFlutterwaveCompanySettings = (t: (key: string) => string): SettingMenuItem[] => [
-  // {
-  //   order: 1050,
-  //   title: t('Flutterwave Settings'),
-  //   href: '#flutterwave-settings',
-  //   icon: CreditCard,
-  //   permission: 'manage-flutterwave-settings',
-  //   component: 'flutterwave-settings'
-  // }
+  {
+  order: 1050,
+  title: t('Flutterwave Settings'),
+  href: '#flutterwave-settings',
+  icon: CreditCard,
+  permission: 'manage-flutterwave-settings',
+  component: 'flutterwave-settings'
+  }
 ];

@@ -29,7 +29,7 @@ export interface SalesInvoice {
 export interface SalesInvoiceItem {
     id?: number;
     invoice_id?: number;
-    product_id: number;
+    product_id: number | string;
     quantity: number;
     unit_price: number;
     discount_percentage: number;

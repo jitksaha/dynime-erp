@@ -10,12 +10,12 @@ export interface SettingMenuItem {
 }
 
 export const getOzowCompanySettings = (t: (key: string) => string): SettingMenuItem[] => [
-  // {
-  //   order: 1350,
-  //   title: t('Ozow Settings'),
-  //   href: '#ozow-settings',
-  //   icon: CreditCard,
-  //   permission: 'manage-ozow-settings',
-  //   component: 'ozow-settings'
-  // }
+  {
+  order: 1350,
+  title: t('Ozow Settings'),
+  href: '#ozow-settings',
+  icon: CreditCard,
+  permission: 'manage-ozow-settings',
+  component: 'ozow-settings'
+  }
 ];

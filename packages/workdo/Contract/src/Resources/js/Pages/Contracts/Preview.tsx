@@ -236,6 +236,10 @@ export default function Preview() {
             </div>
 
             <style jsx>{`
+                @page {
+                    size: auto;
+                    margin: 0 !important;
+                }
                 @media print {
                     .print\\:hidden {
                         display: none !important;
@@ -256,6 +260,7 @@ export default function Preview() {
                         width: 100% !important;
                         max-width: none !important;
                         margin: 0 !important;
+                        padding: 1.5cm !important;
                     }
                 }
             `}</style>

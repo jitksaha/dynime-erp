@@ -10,12 +10,12 @@ export interface SettingMenuItem {
 }
 
 export const getIyzipayCompanySettings = (t: (key: string) => string): SettingMenuItem[] => [
-  // {
-  //   order: 1130,
-  //   title: t('Iyzipay Settings'),
-  //   href: '#iyzipay-settings',
-  //   icon: CreditCard,
-  //   permission: 'manage-iyzipay-settings',
-  //   component: 'iyzipay-settings'
-  // }
+  {
+  order: 1130,
+  title: t('Iyzipay Settings'),
+  href: '#iyzipay-settings',
+  icon: CreditCard,
+  permission: 'manage-iyzipay-settings',
+  component: 'iyzipay-settings'
+  }
 ];

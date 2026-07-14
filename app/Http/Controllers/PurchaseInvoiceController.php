@@ -114,26 +114,7 @@ class PurchaseInvoiceController extends Controller
     {
         if(Auth::user()->can('create-purchase-invoices')){
             $vendors = User::where('type', 'vendor')->select('id', 'name', 'email')->where('created_by', creatorId())->get();
-            $products = ProductServiceItem::select('id', 'name', 'sku', 'purchase_price', 'tax_ids', 'unit', 'type')
-            ->where('is_active', true)->where('created_by', creatorId())
-            ->get()
-            ->map(function ($product) {
-                return [
-                    'id' => $product->id,
-                    'name' => $product->name,
-                    'sku' => $product->sku,
-                    'purchase_price' => $product->purchase_price,
-                    'unit' => $product->unit,
-                    'type' => $product->type,
-                    'taxes' => $product->taxes->map(function ($tax) {
-                        return [
-                            'id' => $tax->id,
-                            'tax_name' => $tax->tax_name,
-                            'rate' => $tax->rate
-                        ];
-                    })
-                ];
-            });
+            $products = \App\Helpers\PaidItemsHelper::getPaidItems(creatorId());
 
             $warehouses = Warehouse::where('is_active', true)->select('id', 'name', 'address')->where('created_by', creatorId())->get();
 
@@ -154,7 +135,13 @@ class PurchaseInvoiceController extends Controller
     public function store(StorePurchaseInvoiceRequest $request)
     {
         if(Auth::user()->can('create-purchase-invoices')){
-            $totals = $this->calculateTotals($request->items);
+            $items = $request->items;
+            foreach ($items as &$item) {
+                $item['product_id'] = \App\Helpers\PaidItemsHelper::resolveProductId($item['product_id'], creatorId());
+            }
+            unset($item);
+
+            $totals = $this->calculateTotals($items);
 
             $invoice = new PurchaseInvoice();
             $invoice->invoice_date = $request->invoice_date;
@@ -173,7 +160,7 @@ class PurchaseInvoiceController extends Controller
             $invoice->save();
 
             // Create invoice items
-            $this->createInvoiceItems($invoice->id, $request->items);
+            $this->createInvoiceItems($invoice->id, $items);
 
             try {
                 CreatePurchaseInvoice::dispatch($request, $invoice);
@@ -223,26 +210,7 @@ class PurchaseInvoiceController extends Controller
             EditPurchaseInvoice::dispatch($purchaseInvoice);
 
             $vendors = User::where('type', 'vendor')->select('id', 'name', 'email')->where('created_by', creatorId())->get();
-            $products = ProductServiceItem::select('id', 'name', 'sku', 'purchase_price', 'tax_ids', 'unit', 'type')
-                ->where('is_active', true)->where('created_by', creatorId())
-                ->get()
-                ->map(function ($product) {
-                    return [
-                        'id' => $product->id,
-                        'name' => $product->name,
-                        'sku' => $product->sku,
-                        'purchase_price' => $product->purchase_price,
-                        'unit' => $product->unit,
-                        'type' => $product->type,
-                        'taxes' => $product->taxes->map(function ($tax) {
-                            return [
-                                'id' => $tax->id,
-                                'tax_name' => $tax->tax_name,
-                                'rate' => $tax->rate
-                            ];
-                        })
-                    ];
-                });
+            $products = \App\Helpers\PaidItemsHelper::getPaidItems(creatorId());
 
             $warehouses = Warehouse::where('is_active', true)->select('id', 'name', 'address')->where('created_by', creatorId())->get();
 
@@ -267,7 +235,13 @@ class PurchaseInvoiceController extends Controller
             if ($purchaseInvoice->status != 'draft') {
                 return redirect()->route('purchase-invoices.index')->with('error', __('Cannot update posted invoice.'));
             }
-            $totals = $this->calculateTotals($request->items);
+            $items = $request->items;
+            foreach ($items as &$item) {
+                $item['product_id'] = \App\Helpers\PaidItemsHelper::resolveProductId($item['product_id'], creatorId());
+            }
+            unset($item);
+
+            $totals = $this->calculateTotals($items);
 
             $purchaseInvoice->invoice_date = $request->invoice_date;
             $purchaseInvoice->due_date = $request->due_date;
@@ -284,7 +258,7 @@ class PurchaseInvoiceController extends Controller
 
             // Delete existing items and recreate
             $purchaseInvoice->items()->delete();
-            $this->createInvoiceItems($purchaseInvoice->id, $request->items);
+            $this->createInvoiceItems($purchaseInvoice->id, $items);
 
             // Dispatch event for packages to handle their fields
             UpdatePurchaseInvoice::dispatch($request, $purchaseInvoice);

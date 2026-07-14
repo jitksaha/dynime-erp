@@ -10,12 +10,12 @@ export interface SettingMenuItem {
 }
 
 export const getKhaltiCompanySettings = (t: (key: string) => string): SettingMenuItem[] => [
-  // {
-  //   order: 1250,
-  //   title: t('Khalti Settings'),
-  //   href: '#khalti-settings',
-  //   icon: CreditCard,
-  //   permission: 'manage-khalti-settings',
-  //   component: 'khalti-settings'
-  // }
+  {
+  order: 1250,
+  title: t('Khalti Settings'),
+  href: '#khalti-settings',
+  icon: CreditCard,
+  permission: 'manage-khalti-settings',
+  component: 'khalti-settings'
+  }
 ];

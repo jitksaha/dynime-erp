@@ -10,12 +10,12 @@ export interface SettingMenuItem {
 }
 
 export const getStripeCompanySettings = (t: (key: string) => string): SettingMenuItem[] => [
-  //   {
-  //     order: 1010,
-  //     title: t('Stripe Settings'),
-  //     href: '#stripe-settings',
-  //     icon: CreditCard,
-  //     permission: 'manage-stripe-settings',
-  //     component: 'stripe-settings'
-  //   }
+  {
+  order: 1010,
+  title: t('Stripe Settings'),
+  href: '#stripe-settings',
+  icon: CreditCard,
+  permission: 'manage-stripe-settings',
+  component: 'stripe-settings'
+  }
 ];

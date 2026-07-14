@@ -10,12 +10,12 @@ export interface SettingMenuItem {
 }
 
 export const getCoingateCompanySettings = (t: (key: string) => string): SettingMenuItem[] => [
-  // {
-  //   order: 1060,
-  //   title: t('Coingate Settings'),
-  //   href: '#coingate-settings',
-  //   icon: CreditCard,
-  //   permission: 'manage-coingate-settings',
-  //   component: 'coingate-settings'
-  // }
+  {
+  order: 1060,
+  title: t('Coingate Settings'),
+  href: '#coingate-settings',
+  icon: CreditCard,
+  permission: 'manage-coingate-settings',
+  component: 'coingate-settings'
+  }
 ];

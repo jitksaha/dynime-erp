@@ -5,7 +5,8 @@ import { useFormFields } from '@/hooks/useFormFields';
 import { SalesInvoiceItem } from './types';
 import AuthenticatedLayout from '@/layouts/authenticated-layout';
 import InvoiceItemsTable from './components/InvoiceItemsTable';
-import { useTaxCalculator } from './components/TaxCalculator';
+import { useTaxCalculator, calculateLineItemAmounts } from './components/TaxCalculator';
+import CurrencyConverter from '@/components/CurrencyConverter';
 import { formatCurrency } from '@/utils/helpers';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,6 +19,8 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Separator } from '@/components/ui/separator';
 import { CalendarDays, Building2, User, FileText, Package } from 'lucide-react';
+import QuickCreateCustomerDialog from '@/components/QuickCreateCustomerDialog';
+import MiniCalculator from '@/components/MiniCalculator';
 
 interface CreateProps {
     customers: Array<{id: number; name: string; email: string}>;
@@ -28,15 +31,16 @@ interface CreateProps {
 
 export default function Create() {
     const { t } = useTranslation();
-    const { customers, warehouses, modules } = usePage<CreateProps>().props;
+    const { customers: initialCustomers, warehouses, modules } = usePage<CreateProps>().props;
     const [availableProducts, setAvailableProducts] = useState([]);
+    const [customers, setCustomers] = useState(initialCustomers);
 
     const { data, setData, post, processing, errors } = useForm({
         invoice_date: new Date().toISOString().split('T')[0],
         due_date: '',
         customer_id: '',
         warehouse_id: '',
-        type: 'product',
+        type: 'service',
         payment_terms: '',
         notes: '',
         sync_to_google_calendar: false,
@@ -51,6 +55,21 @@ export default function Create() {
             total_amount: 0
         }] as SalesInvoiceItem[]
     });
+
+    useEffect(() => {
+        if (data.type === 'service') {
+            const fetchServices = async () => {
+                try {
+                    const response = await fetch(route('sales-invoices.services'));
+                    const services = await response.json();
+                    setAvailableProducts(services);
+                } catch (error) {
+                    console.error('Failed to fetch initial services:', error);
+                }
+            };
+            fetchServices();
+        }
+    }, []);
 
     const calendarFields = useFormFields('createCalendarSyncField', data, setData, errors, 'create', t, 'Sales');
 
@@ -143,24 +162,10 @@ export default function Create() {
                 <form onSubmit={handleSubmit} className="space-y-6">
                     <Card>
                         <CardHeader>
-                            <div className="flex items-center justify-between">
-                                <CardTitle className="flex items-center gap-2 text-lg">
-                                    <CalendarDays className="h-5 w-5" />
-                                    {t('Sales Invoice Details')}
-                                </CardTitle>
-                                <div className="flex items-center gap-2">
-                                    <RadioGroup value={data.type} onValueChange={handleTypeChange} className="flex gap-4">
-                                        <div className="flex items-center gap-2">
-                                            <RadioGroupItem value="product" id="type-product" />
-                                            <Label htmlFor="type-product" className="cursor-pointer font-normal">{t('Product Wise')}</Label>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <RadioGroupItem value="service" id="type-service" />
-                                            <Label htmlFor="type-service" className="cursor-pointer font-normal">{t('Service Wise')}</Label>
-                                        </div>
-                                    </RadioGroup>
-                                </div>
-                            </div>
+                            <CardTitle className="flex items-center gap-2 text-lg">
+                                <CalendarDays className="h-5 w-5" />
+                                {t('Sales Invoice Details')}
+                            </CardTitle>
                         </CardHeader>
                         <CardContent>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -191,9 +196,17 @@ export default function Create() {
                                 </div>
 
                                 <div>
-                                    <Label htmlFor="customer_id" required>
-                                        {t('Customer')}
-                                    </Label>
+                                    <div className="flex items-center justify-between mb-1">
+                                        <Label htmlFor="customer_id" required>
+                                            {t('Customer')}
+                                        </Label>
+                                        <QuickCreateCustomerDialog
+                                            onCreated={(newCustomer) => {
+                                                setCustomers(prev => [...prev, newCustomer]);
+                                                setData('customer_id', newCustomer.id.toString());
+                                            }}
+                                        />
+                                    </div>
                                     <Select value={data.customer_id} onValueChange={(value) => setData('customer_id', value)}>
                                         <SelectTrigger>
                                             <SelectValue placeholder={t('Select Customer')} />
@@ -297,11 +310,23 @@ export default function Create() {
 
                     <Card>
                         <CardHeader>
-                            <div className="flex items-center justify-between">
-                                <CardTitle className="flex items-center gap-2 text-lg">
-                                    <Package className="h-5 w-5" />
-                                    {t('Sales Invoice Items')}
-                                </CardTitle>
+                            <div className="flex items-center justify-between flex-wrap gap-4">
+                                <div className="flex items-center gap-6">
+                                    <CardTitle className="flex items-center gap-2 text-lg">
+                                        <Package className="h-5 w-5" />
+                                        {t('Sales Invoice Items')}
+                                    </CardTitle>
+                                    <RadioGroup value={data.type} onValueChange={handleTypeChange} className="flex gap-4">
+                                        <div className="flex items-center gap-2">
+                                            <RadioGroupItem value="product" id="type-product" />
+                                            <Label htmlFor="type-product" className="cursor-pointer font-normal">{t('Product Wise')}</Label>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <RadioGroupItem value="service" id="type-service" />
+                                            <Label htmlFor="type-service" className="cursor-pointer font-normal">{t('Service Wise')}</Label>
+                                        </div>
+                                    </RadioGroup>
+                                </div>
                                 <Button
                                     type="button"
                                     onClick={() => {
@@ -334,7 +359,16 @@ export default function Create() {
                                 invoiceType={data.type}
                             />
 
-                            <div className="mt-6 flex justify-end">
+                             {/* Currency Converter, Calculator & Invoice Summary */}
+                             <div className="mt-6 flex flex-col md:flex-row justify-between items-start gap-4">
+                                 <div className="flex flex-col sm:flex-row gap-3 items-stretch">
+                                     <CurrencyConverter
+                                         items={data.items}
+                                         onChange={(items) => setData('items', items)}
+                                         calculateLineItemAmounts={calculateLineItemAmounts}
+                                     />
+                                     <MiniCalculator />
+                                 </div>
                                 <div className="w-80 bg-muted/30 rounded-lg p-4">
                                     <h3 className="font-semibold mb-3">{t('Invoice Summary')}</h3>
                                     <div>

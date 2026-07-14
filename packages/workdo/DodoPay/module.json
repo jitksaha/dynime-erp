@@ -1,0 +1,10 @@
+{
+    "name": "DodoPay",
+    "alias": "DodoPay",
+    "description": "Dodo Payments integration for dynamic plan purchases.",
+    "priority": 1600,
+    "version": 5.0,
+    "monthly_price": 0,
+    "yearly_price": 0,
+    "package_name": "dodopay"
+}

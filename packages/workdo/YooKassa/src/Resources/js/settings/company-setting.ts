@@ -10,12 +10,12 @@ export interface SettingMenuItem {
 }
 
 export const getYooKassaCompanySettings = (t: (key: string) => string): SettingMenuItem[] => [
-  //   {
-  //     order: 1080,
-  //     title: t('YooKassa Settings'),
-  //     href: '#yookassa-settings',
-  //     icon: CreditCard,
-  //     permission: 'manage-yookassa-settings',
-  //     component: 'yookassa-settings'
-  //   }
+  {
+  order: 1080,
+  title: t('YooKassa Settings'),
+  href: '#yookassa-settings',
+  icon: CreditCard,
+  permission: 'manage-yookassa-settings',
+  component: 'yookassa-settings'
+  }
 ];

@@ -4,6 +4,11 @@ use Illuminate\Http\Request;
 
 define('LARAVEL_START', microtime(true));
 
+// Increase execution time for remote DB latency
+if (php_sapi_name() !== 'cli') {
+    @set_time_limit(120);
+}
+
 // Determine if the application is in maintenance mode...
 if (file_exists($maintenance = __DIR__.'/../storage/framework/maintenance.php')) {
     require $maintenance;

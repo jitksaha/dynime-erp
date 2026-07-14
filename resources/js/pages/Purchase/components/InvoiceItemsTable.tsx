@@ -13,7 +13,7 @@ interface Props {
     items: PurchaseInvoiceItem[];
     onChange: (items: PurchaseInvoiceItem[]) => void;
     errors: any;
-    products?: Array<{id: number; name: string; purchase_price: number; unit?: string; taxes?: Array<{id: number; tax_name: string; rate: number}>}>;
+    products?: Array<{id: number | string; name: string; purchase_price: number; unit?: string; taxes?: Array<{id: number; tax_name: string; rate: number}>}>;
     showAddButton?: boolean;
 }
 
@@ -47,8 +47,8 @@ export default function InvoiceItemsTable({ items, onChange, errors, products = 
         const item = newItems[index];
 
         // If tax_percentage is 0 but product has taxes, recalculate tax_percentage
-        if (item.tax_percentage === 0 && item.product_id > 0) {
-            const product = products.find(p => p.id === item.product_id);
+        if (item.tax_percentage === 0 && item.product_id) {
+            const product = products.find(p => p.id === item.product_id || p.id.toString() === item.product_id.toString());
             if (product?.taxes?.length) {
                 item.tax_percentage = product.taxes.reduce((sum, tax) => sum + tax.rate, 0);
             }
@@ -68,7 +68,7 @@ export default function InvoiceItemsTable({ items, onChange, errors, products = 
         onChange(newItems);
     };
 
-    const handleProductSelect = (index: number, productId: number, product?: any) => {
+    const handleProductSelect = (index: number, productId: number | string, product?: any) => {
         const newItems = [...items];
         const totalTaxRate = product?.taxes?.reduce((sum: number, tax: any) => sum + Number(tax.rate), 0) || 0;
         const taxes = product?.taxes?.map((tax: any) => ({
