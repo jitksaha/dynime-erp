@@ -102,20 +102,26 @@ $context = stream_context_create([
         "ignore_errors" => true
     ]
 ]);
-$url = "https://app.dynime.com/index.php?debug_deploy_token=deploy_token_7782&action=dump-db";
+$url = "https://app.dynime.com/deploy.php?debug_deploy_token=deploy_token_7782&action=dump-db";
 $response = @file_get_contents($url, false, $context);
 
 if ($response && strpos($response, "SUCCESS") !== false) {
     echo "Remote server successfully created dump locally in 1 second!\n";
     echo "Downloading dump file...\n";
-    $dumpData = @file_get_contents("https://app.dynime.com/storage/backup_temp.sql", false, $context);
+    
+    $isGz = (strpos($response, "SUCCESS_GZ") !== false);
+    $downloadUrl = $isGz ? "https://app.dynime.com/storage/backup_temp.sql.gz" : "https://app.dynime.com/storage/backup_temp.sql";
+    $dumpData = @file_get_contents($downloadUrl, false, $context);
     
     if ($dumpData) {
+        if ($isGz) {
+            $dumpData = gzdecode($dumpData);
+        }
         file_put_contents($tempFile, $dumpData);
         echo "Download completed: " . round(filesize($tempFile) / 1024, 2) . " KB\n";
         
         // Clean up live dump file immediately for security
-        @file_get_contents("https://app.dynime.com/index.php?debug_deploy_token=deploy_token_7782&action=clean-dump", false, $context);
+        @file_get_contents("https://app.dynime.com/deploy.php?debug_deploy_token=deploy_token_7782&action=clean-dump", false, $context);
         $useHttp = true;
     } else {
         echo "Warning: Failed to download dump file over HTTP. Falling back to direct CLI...\n";

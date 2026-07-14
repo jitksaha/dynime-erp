@@ -45,7 +45,15 @@ if (isset($_GET['action']) && $_GET['action'] === 'dump-db') {
     exec(sprintf('"%s" -h 127.0.0.1 -u u740731947_erpapp -p\'Pixel#@!194JkS\' u740731947_erpapp > "%s" 2>&1', $mysqldump, $dumpFile), $output, $status);
     
     if ($status === 0) {
-        echo "SUCCESS";
+        if (file_exists($dumpFile)) {
+            $sqlContent = file_get_contents($dumpFile);
+            $gzipped = gzencode($sqlContent, 9);
+            file_put_contents($dumpFile . '.gz', $gzipped);
+            @unlink($dumpFile);
+            echo "SUCCESS_GZ";
+        } else {
+            echo "FAILED: File not created";
+        }
     } else {
         echo "FAILED: " . implode("\n", $output);
     }
@@ -56,15 +64,55 @@ if (isset($_GET['action']) && $_GET['action'] === 'dump-db') {
 if (isset($_GET['action']) && $_GET['action'] === 'clean-dump') {
     header('Content-Type: text/plain');
     $dumpFile = $baseDir . '/public/storage/backup_temp.sql';
-    if (file_exists($dumpFile)) {
-        if (@unlink($dumpFile)) {
-            echo "CLEANED";
-        } else {
-            echo "FAILED_TO_DELETE";
-        }
-    } else {
-        echo "NOT_FOUND";
-    }
+    @unlink($dumpFile);
+    @unlink($dumpFile . '.gz');
+    echo "CLEANED";
+    exit;
+}
+
+// Action: Run Laravel Migrations
+if (isset($_GET['action']) && $_GET['action'] === 'migrate') {
+    header('Content-Type: text/plain');
+    echo "=== RUNNING DATABASE MIGRATIONS (migrate) ===\n";
+    $php = defined('PHP_BINARY') ? PHP_BINARY : findSystemBinary('php');
+    $artisan = $baseDir . '/artisan';
+    exec(sprintf('"%s" "%s" migrate --force 2>&1', $php, $artisan), $output, $status);
+    echo implode("\n", $output) . "\n";
+    echo $status === 0 ? "SUCCESS\n" : "FAILED\n";
+    exit;
+}
+
+// Action: Migration status
+if (isset($_GET['action']) && $_GET['action'] === 'migrate-status') {
+    header('Content-Type: text/plain');
+    echo "=== DATABASE MIGRATION STATUS (migrate:status) ===\n";
+    $php = defined('PHP_BINARY') ? PHP_BINARY : findSystemBinary('php');
+    $artisan = $baseDir . '/artisan';
+    exec(sprintf('"%s" "%s" migrate:status 2>&1', $php, $artisan), $output, $status);
+    echo implode("\n", $output) . "\n";
+    exit;
+}
+
+// Action: Migration rollback
+if (isset($_GET['action']) && $_GET['action'] === 'migrate-rollback') {
+    header('Content-Type: text/plain');
+    echo "=== DATABASE MIGRATION ROLLBACK (migrate:rollback) ===\n";
+    $php = defined('PHP_BINARY') ? PHP_BINARY : findSystemBinary('php');
+    $artisan = $baseDir . '/artisan';
+    exec(sprintf('"%s" "%s" migrate:rollback --force 2>&1', $php, $artisan), $output, $status);
+    echo implode("\n", $output) . "\n";
+    exit;
+}
+
+// Action: Database Seed
+if (isset($_GET['action']) && $_GET['action'] === 'db-seed') {
+    header('Content-Type: text/plain');
+    echo "=== RUNNING DATABASE SEEDERS (db:seed) ===\n";
+    $php = defined('PHP_BINARY') ? PHP_BINARY : findSystemBinary('php');
+    $artisan = $baseDir . '/artisan';
+    exec(sprintf('"%s" "%s" db:seed --force 2>&1', $php, $artisan), $output, $status);
+    echo implode("\n", $output) . "\n";
+    echo $status === 0 ? "SUCCESS\n" : "FAILED\n";
     exit;
 }
 
@@ -132,9 +180,15 @@ if (isset($_GET['action']) && $_GET['action'] === 'pull-db') {
     if ($response && strpos($response, "SUCCESS") !== false) {
         echo "Remote server successfully created dump locally!\n";
         echo "Downloading dump file...\n";
-        $dumpData = @file_get_contents("https://app.dynime.com/storage/backup_temp.sql", false, $context);
+        
+        $isGz = (strpos($response, "SUCCESS_GZ") !== false);
+        $downloadUrl = $isGz ? "https://app.dynime.com/storage/backup_temp.sql.gz" : "https://app.dynime.com/storage/backup_temp.sql";
+        $dumpData = @file_get_contents($downloadUrl, false, $context);
         
         if ($dumpData) {
+            if ($isGz) {
+                $dumpData = gzdecode($dumpData);
+            }
             file_put_contents($tempFile, $dumpData);
             echo "Download completed: " . round(filesize($tempFile) / 1024, 2) . " KB\n";
             @file_get_contents("https://app.dynime.com/deploy.php?debug_deploy_token=deploy_token_7782&action=clean-dump", false, $context);
@@ -196,10 +250,17 @@ if (isset($_GET['action']) && $_GET['action'] === 'upload-db') {
     $targetFile = $baseDir . '/public/storage/upload_temp.sql';
     
     $rawData = file_get_contents('php://input');
-    if ($rawData && file_put_contents($targetFile, $rawData)) {
-        echo "UPLOAD_SUCCESS";
+    if ($rawData) {
+        if (substr($rawData, 0, 2) === "\x1f\x8b") {
+            $rawData = gzdecode($rawData);
+        }
+        if (file_put_contents($targetFile, $rawData)) {
+            echo "UPLOAD_SUCCESS";
+        } else {
+            echo "UPLOAD_FAILED";
+        }
     } else {
-        echo "UPLOAD_FAILED";
+        echo "UPLOAD_EMPTY";
     }
     exit;
 }
@@ -587,6 +648,55 @@ try {
                 </button>
             </div>
 
+            <!-- Laravel Database Migrations Dashboard -->
+            <div class="glass-card rounded-2xl p-6 shadow-xl space-y-4">
+                <h3 class="text-sm font-semibold tracking-wide text-indigo-400 uppercase flex items-center gap-2">
+                    <svg class="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 7v10c0 2.21 3.58 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.58 4 8 4s8-1.79 8-4M4 7c0-2.21 3.58-4 8-4s8 1.79 8 4m0 5c0 2.21-3.58 4-8 4s-8-1.79-8-4" /></svg>
+                    Laravel Database Migrations
+                </h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <button onclick="runAction('migrate-status')" class="group p-4 rounded-xl border border-indigo-500/10 bg-slate-900/50 hover:bg-indigo-500/10 hover:border-indigo-500/30 transition-all duration-200 text-left flex items-start gap-3">
+                        <div class="p-2.5 rounded-lg bg-indigo-500/10 text-indigo-400 group-hover:scale-105 transition-transform duration-200">
+                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-sm text-slate-200 group-hover:text-white">Migration Status</h4>
+                            <p class="text-xs text-slate-500 mt-1">Check executed & pending migrations</p>
+                        </div>
+                    </button>
+                    
+                    <button onclick="runAction('migrate')" class="group p-4 rounded-xl border border-emerald-500/10 bg-slate-900/50 hover:bg-emerald-500/10 hover:border-emerald-500/30 transition-all duration-200 text-left flex items-start gap-3">
+                        <div class="p-2.5 rounded-lg bg-emerald-500/10 text-emerald-400 group-hover:scale-105 transition-transform duration-200">
+                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-sm text-slate-200 group-hover:text-white">Run Migrations</h4>
+                            <p class="text-xs text-slate-500 mt-1">Run pending migrations safely</p>
+                        </div>
+                    </button>
+
+                    <button onclick="confirmRollback()" class="group p-4 rounded-xl border border-rose-500/10 bg-slate-900/50 hover:bg-rose-500/10 hover:border-rose-500/30 transition-all duration-200 text-left flex items-start gap-3">
+                        <div class="p-2.5 rounded-lg bg-rose-500/10 text-rose-400 group-hover:scale-105 transition-transform duration-200">
+                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" /></svg>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-sm text-slate-200 group-hover:text-white">Rollback Migrations</h4>
+                            <p class="text-xs text-slate-500 mt-1">Rollback the last batch of migrations</p>
+                        </div>
+                    </button>
+
+                    <button onclick="runAction('db-seed')" class="group p-4 rounded-xl border border-amber-500/10 bg-slate-900/50 hover:bg-amber-500/10 hover:border-amber-500/30 transition-all duration-200 text-left flex items-start gap-3">
+                        <div class="p-2.5 rounded-lg bg-amber-500/10 text-amber-400 group-hover:scale-105 transition-transform duration-200">
+                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-sm text-slate-200 group-hover:text-white">Run DB Seed</h4>
+                            <p class="text-xs text-slate-500 mt-1">Seed database tables with default records</p>
+                        </div>
+                    </button>
+                </div>
+            </div>
+
             <!-- Console Box -->
             <div class="glass-card rounded-2xl flex-1 p-6 flex flex-col shadow-xl min-h-[350px] border border-white/5 relative overflow-hidden">
                 <div class="flex items-center justify-between border-b border-white/5 pb-4 mb-4">
@@ -628,6 +738,10 @@ try {
             
             if (action === 'pull-db') loadingText.textContent = "Pulling live DB (please wait)...";
             else if (action === 'push-db') loadingText.textContent = "Pushing local DB to live...";
+            else if (action === 'migrate') loadingText.textContent = "Running migrations on live...";
+            else if (action === 'migrate-status') loadingText.textContent = "Checking migration status...";
+            else if (action === 'migrate-rollback') loadingText.textContent = "Rolling back migrations...";
+            else if (action === 'db-seed') loadingText.textContent = "Seeding database...";
             else loadingText.textContent = "Executing action...";
 
             const token = 'deploy_token_7782';
@@ -648,6 +762,12 @@ try {
         function confirmPush() {
             if (confirm("⚠️ WARNING: This will overwrite the live remote database with all local tables and data! Are you absolutely sure you want to proceed?")) {
                 runAction('push-db');
+            }
+        }
+
+        function confirmRollback() {
+            if (confirm("⚠️ WARNING: This will rollback the last batch of database migrations! Are you sure you want to proceed?")) {
+                runAction('migrate-rollback');
             }
         }
 

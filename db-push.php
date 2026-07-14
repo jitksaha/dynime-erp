@@ -128,13 +128,16 @@ echo "Local dump successful! Dump size: " . round(filesize($tempFile) / 1024, 2)
 
 // Step 2: Push dump to Live Remote DB via HTTP upload + import
 echo "Step 2/2: Pushing dump to Remote Hostinger Database...\n";
-echo "Uploading dump file to remote server...\n";
+echo "Compressing dump file...\n";
+$sqlContent = file_get_contents($tempFile);
+$gzippedContent = gzencode($sqlContent, 9);
+echo "Uploading compressed dump file (" . round(strlen($gzippedContent) / 1024, 2) . " KB) to remote server...\n";
 $uploadUrl = "https://app.dynime.com/deploy.php?debug_deploy_token=deploy_token_7782&action=upload-db";
 
 $ch = curl_init();
 curl_setopt($ch, CURLOPT_URL, $uploadUrl);
 curl_setopt($ch, CURLOPT_POST, true);
-curl_setopt($ch, CURLOPT_POSTFIELDS, file_get_contents($tempFile));
+curl_setopt($ch, CURLOPT_POSTFIELDS, $gzippedContent);
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 curl_setopt($ch, CURLOPT_TIMEOUT, 60);
 $uploadResponse = curl_exec($ch);
