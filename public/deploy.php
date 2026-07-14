@@ -272,6 +272,22 @@ if (isset($_GET['action']) && $_GET['action'] === 'read-raw-log') {
     exit;
 }
 
+if (isset($_GET['action']) && $_GET['action'] === 'get-live-db') {
+    header('Content-Type: text/plain');
+    $envPath = $baseDir . '/.env';
+    if (file_exists($envPath)) {
+        $lines = file($envPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+        foreach ($lines as $line) {
+            if (strpos(trim($line), 'DB_') === 0) {
+                echo $line . "\n";
+            }
+        }
+    } else {
+        echo ".env not found";
+    }
+    exit;
+}
+
 // Action: Fix password
 if (isset($_GET['action']) && $_GET['action'] === 'fix-password') {
     header('Content-Type: text/plain');
