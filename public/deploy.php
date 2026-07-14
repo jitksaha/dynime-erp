@@ -214,7 +214,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'migrate') {
         echo "Artisan migrate completed with exit code: $exitCode\n";
         echo "Output:\n" . Illuminate\Support\Facades\Artisan::output() . "\n";
         echo "SUCCESS\n";
-    } catch (Exception $e) {
+    } catch (Throwable $e) {
         echo "Exception caught during migration: " . $e->getMessage() . "\n";
         echo "Trace:\n" . $e->getTraceAsString() . "\n";
         echo "FAILED\n";
@@ -231,7 +231,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'migrate-status') {
         $exitCode = Illuminate\Support\Facades\Artisan::call('migrate:status');
         echo "Artisan migrate:status completed with exit code: $exitCode\n";
         echo "Output:\n" . Illuminate\Support\Facades\Artisan::output() . "\n";
-    } catch (Exception $e) {
+    } catch (Throwable $e) {
         echo "Exception caught: " . $e->getMessage() . "\n";
         echo "Trace:\n" . $e->getTraceAsString() . "\n";
     }
@@ -247,7 +247,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'migrate-rollback') {
         $exitCode = Illuminate\Support\Facades\Artisan::call('migrate:rollback', ['--force' => true]);
         echo "Artisan migrate:rollback completed with exit code: $exitCode\n";
         echo "Output:\n" . Illuminate\Support\Facades\Artisan::output() . "\n";
-    } catch (Exception $e) {
+    } catch (Throwable $e) {
         echo "Exception caught: " . $e->getMessage() . "\n";
         echo "Trace:\n" . $e->getTraceAsString() . "\n";
     }
@@ -264,7 +264,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'db-seed') {
         echo "Artisan db:seed completed with exit code: $exitCode\n";
         echo "Output:\n" . Illuminate\Support\Facades\Artisan::output() . "\n";
         echo "SUCCESS\n";
-    } catch (Exception $e) {
+    } catch (Throwable $e) {
         echo "Exception caught: " . $e->getMessage() . "\n";
         echo "Trace:\n" . $e->getTraceAsString() . "\n";
         echo "FAILED\n";
