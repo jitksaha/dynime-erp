@@ -611,10 +611,47 @@ if (isset($_GET['action']) && $_GET['action'] === 'repair-minimal') {
     }
 
     $target = $baseDir . '/storage/app/public';
-    if (@symlink($target, $publicStorage)) {
-        echo "SUCCESS: Recreated symbolic link: public/storage -> storage/app/public\n";
-    } else {
-        echo "FAILED to recreate symbolic link. Error: " . json_encode(error_get_last()) . "\n";
+    $symlinkSuccess = false;
+    
+    if (function_exists('symlink')) {
+        try {
+            if (@symlink($target, $publicStorage)) {
+                echo "SUCCESS: Recreated symbolic link: public/storage -> storage/app/public\n";
+                $symlinkSuccess = true;
+            }
+        } catch (Throwable $e) {}
+    }
+    
+    if (!$symlinkSuccess) {
+        echo "symlink() function is disabled or failed. Falling back to recursive directory copying...\n";
+        if (!function_exists('copyDir')) {
+            function copyDir($src, $dst) {
+                if (is_link($src)) return;
+                if (!file_exists($dst)) {
+                    @mkdir($dst, 0755, true);
+                }
+                $dir = @opendir($src);
+                if (!$dir) return;
+                while (($file = readdir($dir)) !== false) {
+                    if ($file === '.' || $file === '..') continue;
+                    $srcPath = $src . DIRECTORY_SEPARATOR . $file;
+                    $dstPath = $dst . DIRECTORY_SEPARATOR . $file;
+                    if (is_dir($srcPath)) {
+                        copyDir($srcPath, $dstPath);
+                    } else {
+                        @copy($srcPath, $dstPath);
+                    }
+                }
+                closedir($dir);
+            }
+        }
+        
+        copyDir($target, $publicStorage);
+        if (file_exists($publicStorage) && is_dir($publicStorage)) {
+            echo "SUCCESS: Copied storage files recursively to public/storage!\n";
+        } else {
+            echo "FAILED to copy storage files.\n";
+        }
     }
 
     // 2. Clear bootstrap/cache files
@@ -680,26 +717,48 @@ if (isset($_GET['action']) && $_GET['action'] === 'fix-storage') {
         echo "Removed existing public/storage path.\n";
     }
     
-    try {
-        bootLaravel();
-        $exitCode = Illuminate\Support\Facades\Artisan::call('storage:link');
-        echo "Artisan storage:link completed with exit code: $exitCode\n";
-        echo "Output:\n" . Illuminate\Support\Facades\Artisan::output() . "\n";
-    } catch (Throwable $e) {
-        echo "Artisan storage:link failed: " . $e->getMessage() . "\n";
-        echo "Attempting raw PHP symlink fallback...\n";
-        $target = $baseDir . '/storage/app/public';
-        if (@symlink($target, $publicStorage)) {
-            echo "Successfully created raw symlink.\n";
-        } else {
-            echo "Failed to create raw symlink: " . error_get_last()['message'] . "\n";
-        }
+    $target = $baseDir . '/storage/app/public';
+    $symlinkSuccess = false;
+    
+    if (function_exists('symlink')) {
+        try {
+            if (@symlink($target, $publicStorage)) {
+                echo "SUCCESS: Created symbolic link successfully via PHP symlink().\n";
+                $symlinkSuccess = true;
+            }
+        } catch (Throwable $e) {}
     }
     
-    if (is_link($publicStorage)) {
-        echo "SUCCESS: public/storage is a valid symbolic link.\n";
-    } else {
-        echo "FAILED: public/storage could not be set up as a symlink.\n";
+    if (!$symlinkSuccess) {
+        echo "symlink() function is disabled or failed. Falling back to recursive directory copying...\n";
+        if (!function_exists('copyDir')) {
+            function copyDir($src, $dst) {
+                if (is_link($src)) return;
+                if (!file_exists($dst)) {
+                    @mkdir($dst, 0755, true);
+                }
+                $dir = @opendir($src);
+                if (!$dir) return;
+                while (($file = readdir($dir)) !== false) {
+                    if ($file === '.' || $file === '..') continue;
+                    $srcPath = $src . DIRECTORY_SEPARATOR . $file;
+                    $dstPath = $dst . DIRECTORY_SEPARATOR . $file;
+                    if (is_dir($srcPath)) {
+                        copyDir($srcPath, $dstPath);
+                    } else {
+                        @copy($srcPath, $dstPath);
+                    }
+                }
+                closedir($dir);
+            }
+        }
+        
+        copyDir($target, $publicStorage);
+        if (file_exists($publicStorage) && is_dir($publicStorage)) {
+            echo "SUCCESS: Copied storage files recursively to public/storage!\n";
+        } else {
+            echo "FAILED: Could not copy storage files.\n";
+        }
     }
     exit;
 }
@@ -987,52 +1046,205 @@ try {
                 <div id="console-output" class="flex-1 font-mono text-xs text-slate-300 overflow-y-auto whitespace-pre-wrap leading-relaxed select-all">
                     Waiting for action to execute...
                 </div>
-                <!-- SpinnerOverlay -->
-                <div id="loading-overlay" class="absolute inset-0 bg-slate-950/80 hidden items-center justify-center backdrop-blur-sm transition-all duration-300 z-10">
-                    <div class="flex flex-col items-center gap-3">
-                        <div class="animate-spin rounded-full h-8 w-8 border-2 border-indigo-500 border-t-transparent"></div>
-                        <span class="text-sm font-medium text-slate-300" id="loading-text">Executing Action...</span>
+                
+                <!-- Redesigned Loader Overlay with Progress Bar and Timer -->
+                <div id="loading-overlay" class="absolute inset-0 bg-slate-950/85 hidden flex-col items-center justify-center backdrop-blur-md transition-all duration-300 z-10 p-6">
+                    <div class="flex flex-col items-center gap-4 text-center max-w-sm">
+                        <div class="animate-spin rounded-full h-10 w-10 border-2 border-indigo-500 border-t-transparent shadow-lg shadow-indigo-500/20"></div>
+                        <div>
+                            <h4 id="loading-text" class="text-sm font-semibold text-slate-100 uppercase tracking-wider">Executing Action...</h4>
+                            <p id="estimated-time-el" class="text-xs text-slate-500 mt-1 font-mono">Est. Time Remaining: --s</p>
+                        </div>
+                        
+                        <!-- Progress Bar Wrapper -->
+                        <div class="w-64 bg-slate-900 rounded-full h-3 border border-white/5 overflow-hidden flex items-center px-0.5 mt-2">
+                            <div id="progress-bar" class="bg-indigo-500 h-2 rounded-full transition-all duration-100" style="width: 0%"></div>
+                        </div>
+                        <span id="progress-percent" class="text-xs font-semibold text-indigo-400 font-mono">0%</span>
                     </div>
                 </div>
             </div>
         </div>
     </main>
 
+    <!-- Success Modal -->
+    <div id="success-modal" class="fixed inset-0 hidden items-center justify-center bg-slate-950/80 backdrop-blur-md z-50">
+        <div class="glass-card max-w-md w-full p-8 rounded-3xl border border-emerald-500/20 text-center shadow-2xl relative mx-4">
+            <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 mb-6">
+                <svg class="h-10 w-10 animate-bounce" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+            </div>
+            <h3 class="text-2xl font-bold text-slate-100 mb-2">Operation Succeeded!</h3>
+            <p class="text-sm text-slate-400 mb-6">The action has completed successfully and all changes are applied.</p>
+            <button onclick="closeModal('success-modal')" class="w-full py-3 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-600 active:scale-[0.98] transition-all text-sm font-semibold text-white shadow-lg shadow-emerald-500/20">
+                Great, Thank You!
+            </button>
+        </div>
+    </div>
+
+    <!-- Failure Modal -->
+    <div id="failure-modal" class="fixed inset-0 hidden items-center justify-center bg-slate-950/80 backdrop-blur-md z-50">
+        <div class="glass-card max-w-md w-full p-8 rounded-3xl border border-rose-500/20 text-center shadow-2xl relative mx-4">
+            <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-rose-500/10 border border-rose-500/30 text-rose-400 mb-6">
+                <svg class="h-10 w-10 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </div>
+            <h3 class="text-2xl font-bold text-slate-100 mb-2">Operation Failed</h3>
+            <p class="text-sm text-slate-400 mb-6">Something went wrong during execution. Please check the terminal log below for more details.</p>
+            <button onclick="closeModal('failure-modal')" class="w-full py-3 px-4 rounded-xl bg-rose-500 hover:bg-rose-600 active:scale-[0.98] transition-all text-sm font-semibold text-white shadow-lg shadow-rose-500/20">
+                Check Logs
+            </button>
+        </div>
+    </div>
+
     <footer class="border-t border-white/5 py-4 text-center text-xs text-slate-500">
         <p>&copy; <?php echo date('Y'); ?> Dynime ERP. Designed for modern pair-programming workflows.</p>
     </footer>
 
     <script>
+        const actionTimes = {
+            'pull-db': 12,
+            'push-db': 15,
+            'migrate': 6,
+            'migrate-status': 2,
+            'migrate-rollback': 5,
+            'db-seed': 6,
+            'fix-storage': 3,
+            'clear-cache': 2,
+            'repair-minimal': 4
+        };
+
+        let progressInterval = null;
+        let timeInterval = null;
+
         function runAction(action) {
             const consoleOutput = document.getElementById('console-output');
             const overlay = document.getElementById('loading-overlay');
             const loadingText = document.getElementById('loading-text');
+            const progressBar = document.getElementById('progress-bar');
+            const progressPercent = document.getElementById('progress-percent');
+            const estimatedTimeEl = document.getElementById('estimated-time-el');
+            
+            // Reset modals
+            document.getElementById('success-modal').classList.add('hidden');
+            document.getElementById('success-modal').classList.remove('flex');
+            document.getElementById('failure-modal').classList.add('hidden');
+            document.getElementById('failure-modal').classList.remove('flex');
 
             consoleOutput.textContent = `[System] Executing action: ${action}...\n`;
             overlay.classList.remove('hidden');
             overlay.classList.add('flex');
             
-            if (action === 'pull-db') loadingText.textContent = "Pulling live DB (please wait)...";
-            else if (action === 'push-db') loadingText.textContent = "Pushing local DB to live...";
-            else if (action === 'migrate') loadingText.textContent = "Running migrations on live...";
-            else if (action === 'migrate-status') loadingText.textContent = "Checking migration status...";
-            else if (action === 'migrate-rollback') loadingText.textContent = "Rolling back migrations...";
-            else if (action === 'db-seed') loadingText.textContent = "Seeding database...";
-            else loadingText.textContent = "Executing action...";
+            const estTime = actionTimes[action] || 5;
+            let currentProgress = 0;
+            let timeLeft = estTime;
+
+            // Set text based on action
+            let actionName = "Executing Action";
+            if (action === 'pull-db') actionName = "Syncing Live DB to Local";
+            else if (action === 'push-db') actionName = "Pushing Local DB to Live";
+            else if (action === 'migrate') actionName = "Running Database Migrations";
+            else if (action === 'migrate-status') actionName = "Checking Migration Status";
+            else if (action === 'migrate-rollback') actionName = "Rolling Back Migrations";
+            else if (action === 'db-seed') actionName = "Seeding Database Tables";
+            else if (action === 'fix-storage') actionName = "Fixing Storage Directory Symlink";
+            else if (action === 'clear-cache') actionName = "Clearing Laravel Cache Files";
+            else if (action === 'repair-minimal') actionName = "Running Complete App Repair";
+
+            loadingText.textContent = actionName;
+            progressBar.style.width = "0%";
+            progressPercent.textContent = "0%";
+            estimatedTimeEl.textContent = `Est. Time Remaining: ${timeLeft}s`;
+
+            // Clear previous timers
+            clearInterval(progressInterval);
+            clearInterval(timeInterval);
+
+            // Ticking stopwatch
+            timeInterval = setInterval(() => {
+                if (timeLeft > 1) {
+                    timeLeft--;
+                    estimatedTimeEl.textContent = `Est. Time Remaining: ${timeLeft}s`;
+                } else {
+                    estimatedTimeEl.textContent = `Wrapping up execution...`;
+                }
+            }, 1000);
+
+            // Progress bar tick
+            const stepMs = (estTime * 1000) / 95; // Go to 95% over the estimated time
+            progressInterval = setInterval(() => {
+                if (currentProgress < 95) {
+                    currentProgress += 1;
+                    progressBar.style.width = `${currentProgress}%`;
+                    progressPercent.textContent = `${currentProgress}%`;
+                }
+            }, stepMs);
 
             const token = 'deploy_token_7782';
+            const startTime = Date.now();
+            
             fetch(`deploy.php?debug_deploy_token=${token}&action=${action}`)
-                .then(response => response.text())
-                .then(data => {
-                    consoleOutput.textContent += data;
-                    overlay.classList.add('hidden');
-                    overlay.classList.remove('flex');
+                .then(response => {
+                    const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+                    clearInterval(progressInterval);
+                    clearInterval(timeInterval);
+                    
+                    progressBar.style.width = "100%";
+                    progressPercent.textContent = "100%";
+                    estimatedTimeEl.textContent = `Completed in ${elapsed}s`;
+                    
+                    if (response.status === 200) {
+                        return response.text().then(data => {
+                            consoleOutput.textContent += data;
+                            
+                            // Check if the output contains "SUCCESS"
+                            const isSuccess = data.toUpperCase().includes('SUCCESS');
+                            
+                            setTimeout(() => {
+                                overlay.classList.add('hidden');
+                                overlay.classList.remove('flex');
+                                if (isSuccess) {
+                                    showModal('success-modal');
+                                } else {
+                                    showModal('failure-modal');
+                                }
+                            }, 500);
+                        });
+                    } else {
+                        return response.text().then(data => {
+                            consoleOutput.textContent += `\nError: Server returned status code ${response.status}\n${data}`;
+                            setTimeout(() => {
+                                overlay.classList.add('hidden');
+                                overlay.classList.remove('flex');
+                                showModal('failure-modal');
+                            }, 500);
+                        });
+                    }
                 })
                 .catch(err => {
+                    clearInterval(progressInterval);
+                    clearInterval(timeInterval);
                     consoleOutput.textContent += `\nError: Failed to connect to server: ${err}`;
-                    overlay.classList.add('hidden');
-                    overlay.classList.remove('flex');
+                    setTimeout(() => {
+                        overlay.classList.add('hidden');
+                        overlay.classList.remove('flex');
+                        showModal('failure-modal');
+                    }, 500);
                 });
+        }
+
+        function showModal(modalId) {
+            const modal = document.getElementById(modalId);
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeModal(modalId) {
+            const modal = document.getElementById(modalId);
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
         }
 
         function confirmPush() {
@@ -1055,3 +1267,4 @@ try {
 </html>
 <?php
 exit;
+
