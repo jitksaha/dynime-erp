@@ -578,9 +578,81 @@ if (isset($_GET['action']) && $_GET['action'] === 'clear-cache') {
         Illuminate\Support\Facades\Artisan::call('view:clear');
         echo "View cache cleared via Artisan.\n";
         echo "All Laravel configuration and routing caches cleared successfully!\n";
-    } catch (Exception $e) {
+    } catch (Throwable $e) {
         echo "Exception caught during cache clearing: " . $e->getMessage() . "\n";
     }
+    exit;
+}
+
+// Action: Minimal Repair
+if (isset($_GET['action']) && $_GET['action'] === 'repair-minimal') {
+    header('Content-Type: text/plain');
+    echo "=== DYNIME ERP LIVE REPAIR (MINIMAL) ===\n";
+    
+    // 1. Recreate storage symlink
+    $publicStorage = $baseDir . '/public/storage';
+    if (!function_exists('deleteDir')) {
+        function deleteDir($dir) {
+            if (!file_exists($dir)) return true;
+            if (!is_dir($dir) || is_link($dir)) return @unlink($dir);
+            foreach (scandir($dir) as $item) {
+                if ($item == '.' || $item == '..') continue;
+                if (!deleteDir($dir . DIRECTORY_SEPARATOR . $item)) return false;
+            }
+            return @rmdir($dir);
+        }
+    }
+    if (file_exists($publicStorage) || is_link($publicStorage)) {
+        if (deleteDir($publicStorage)) {
+            echo "SUCCESS: Cleaned up existing public/storage path.\n";
+        } else {
+            echo "WARNING: Failed to clean up existing public/storage path.\n";
+        }
+    }
+
+    $target = $baseDir . '/storage/app/public';
+    if (@symlink($target, $publicStorage)) {
+        echo "SUCCESS: Recreated symbolic link: public/storage -> storage/app/public\n";
+    } else {
+        echo "FAILED to recreate symbolic link. Error: " . json_encode(error_get_last()) . "\n";
+    }
+
+    // 2. Clear bootstrap/cache files
+    $bootstrapCacheDir = $baseDir . '/bootstrap/cache';
+    if (file_exists($bootstrapCacheDir)) {
+        $files = ['config.php', 'routes-v7.php', 'packages.php', 'services.php'];
+        foreach ($files as $file) {
+            $filePath = $bootstrapCacheDir . '/' . $file;
+            if (file_exists($filePath)) {
+                if (@unlink($filePath)) {
+                    echo "SUCCESS: Deleted cached file: bootstrap/cache/$file\n";
+                } else {
+                    echo "FAILED to delete: bootstrap/cache/$file\n";
+                }
+            }
+        }
+    }
+
+    // 3. Clear file-based application cache
+    $appCacheDir = $baseDir . '/storage/framework/cache/data';
+    if (file_exists($appCacheDir)) {
+        $success = true;
+        foreach (scandir($appCacheDir) as $item) {
+            if ($item == '.' || $item == '..') continue;
+            if (!deleteDir($appCacheDir . '/' . $item)) {
+                $success = false;
+            }
+        }
+        if ($success) {
+            echo "SUCCESS: Flushed file-based application cache.\n";
+        } else {
+            echo "WARNING: Some cache files could not be cleared.\n";
+        }
+    } else {
+        echo "INFO: storage/framework/cache/data does not exist or cache is not using file driver.\n";
+    }
+
+    echo "\n=== REPAIR COMPLETED ===\n";
     exit;
 }
 
@@ -613,7 +685,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'fix-storage') {
         $exitCode = Illuminate\Support\Facades\Artisan::call('storage:link');
         echo "Artisan storage:link completed with exit code: $exitCode\n";
         echo "Output:\n" . Illuminate\Support\Facades\Artisan::output() . "\n";
-    } catch (Exception $e) {
+    } catch (Throwable $e) {
         echo "Artisan storage:link failed: " . $e->getMessage() . "\n";
         echo "Attempting raw PHP symlink fallback...\n";
         $target = $baseDir . '/storage/app/public';
@@ -838,6 +910,16 @@ try {
                     <div>
                         <h4 class="font-semibold text-sm text-slate-200 group-hover:text-white">Clear Cache</h4>
                         <p class="text-xs text-slate-500 mt-1">Flush Laravel config & routing cache</p>
+                    </div>
+                </button>
+
+                <button onclick="runAction('repair-minimal')" class="group p-4 rounded-xl border border-teal-500/10 bg-teal-500/5 hover:bg-teal-500/10 hover:border-teal-500/30 transition-all duration-200 text-left flex items-start gap-3">
+                    <div class="p-2.5 rounded-lg bg-teal-500/10 text-teal-400 group-hover:scale-105 transition-transform duration-200">
+                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold text-sm text-slate-200 group-hover:text-white">Run Minimal Repair</h4>
+                        <p class="text-xs text-slate-500 mt-1">Rebuild symlink & clear settings cache</p>
                     </div>
                 </button>
             </div>
