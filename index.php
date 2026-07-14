@@ -891,7 +891,6 @@ if (isset($_GET['debug_deploy_token']) && $_GET['debug_deploy_token'] === 'deplo
     <?php
     exit;
 }
-}
 
 /**
  * Laravel - A PHP Framework For Web Artisans
