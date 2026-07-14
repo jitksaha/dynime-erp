@@ -364,7 +364,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'pull-db') {
 // Action: Upload DB (Only runs on live remote server to receive dump)
 if (isset($_GET['action']) && $_GET['action'] === 'upload-db') {
     header('Content-Type: text/plain');
-    $targetFile = $baseDir . '/public/storage/upload_temp.sql';
+    $targetFile = $baseDir . '/storage/upload_temp.sql';
     
     $rawData = file_get_contents('php://input');
     if ($rawData) {
@@ -385,7 +385,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'upload-db') {
 // Action: Import DB (Only runs on live remote server to import uploaded dump locally)
 if (isset($_GET['action']) && $_GET['action'] === 'import-db') {
     header('Content-Type: text/plain');
-    $tempFile = $baseDir . '/public/storage/upload_temp.sql';
+    $tempFile = $baseDir . '/storage/upload_temp.sql';
     if (!file_exists($tempFile)) {
         echo "ERROR_FILE_NOT_FOUND";
         exit;
