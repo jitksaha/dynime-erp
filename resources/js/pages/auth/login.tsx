@@ -6,7 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import InputError from "@/components/ui/input-error";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, Fingerprint } from 'lucide-react';
+import { usePasskeyVerify } from "@laravel/passkeys/react";
+
+declare const route: any;
 
 import { useTranslation } from 'react-i18next';
 import { useFormFields } from '@/hooks/useFormFields';
@@ -34,6 +37,15 @@ export default function Login({
 
     const formFields = useFormFields('getReCaptchFields', data, setData, errors, 'create', t);
     const loginButtons = usePageButtons('getLoginButtons', { t, isLoading: processing });
+
+    const { verify, isLoading: verifyLoading, error: verifyError, isSupported } = usePasskeyVerify({
+        autofill: true,
+        onSuccess: (response) => {
+            if (response.redirect) {
+                window.location.href = response.redirect;
+            }
+        },
+    });
 
     useEffect(() => {
         if (isDemo) {
@@ -105,7 +117,7 @@ export default function Login({
                             required
                             autoFocus
                             tabIndex={1}
-                            autoComplete="username"
+                            autoComplete="username webauthn"
                             placeholder={t('Enter email or phone number')}
                             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm focus:outline-none transition-colors placeholder-gray-400 dark:bg-slate-700 dark:text-white"
                         />
@@ -176,6 +188,25 @@ export default function Login({
                     >
                         {processing ? 'Loading...' : t('SIGN IN')}
                     </Button>
+
+                    {isSupported && (
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={verify}
+                            disabled={verifyLoading || processing}
+                            className="w-full py-2.5 text-sm font-medium tracking-wide transition-all duration-200 rounded-md border border-gray-300 dark:border-gray-600 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center justify-center gap-2 mt-3"
+                        >
+                            <Fingerprint className="h-4 w-4 text-primary" />
+                            {verifyLoading ? t('Authenticating...') : t('SIGN IN WITH PASSKEY')}
+                        </Button>
+                    )}
+
+                    {verifyError && (
+                        <p className="text-xs text-red-600 dark:text-red-400 mt-2 text-center">
+                            {verifyError}
+                        </p>
+                    )}
 
                     {loginButtons.length > 0 && (
                         <>

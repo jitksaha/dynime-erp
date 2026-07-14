@@ -22,6 +22,7 @@ class ProfileController extends Controller
             return Inertia::render('profile/edit', [
                 'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
                 'status' => session('status'),
+                'passkeys' => $request->user()->passkeys()->select('id', 'name', 'created_at', 'last_used_at')->get(),
             ]);
         }else{
             return redirect()->back()->with('error', __('Permission denied'));

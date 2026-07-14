@@ -12,10 +12,12 @@ use Spatie\Permission\Models\Permission as ModelsPermission;
 use Spatie\Permission\Models\Role;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\HasApiTokens;
+use Laravel\Passkeys\Contracts\PasskeyUser;
+use Laravel\Passkeys\PasskeyAuthenticatable;
 
-class User extends Authenticatable implements MustVerifyEmail
+class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
 {
-    use HasRoles, HasFactory, Notifiable, HasApiTokens;
+    use HasRoles, HasFactory, Notifiable, HasApiTokens, PasskeyAuthenticatable;
 
     /**
      * The attributes that are mass assignable.

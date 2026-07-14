@@ -13,6 +13,7 @@
         "inertiajs/inertia-laravel": "^2.0",
         "larabug/larabug": "^3.5",
         "laravel/framework": "^12.0",
+        "laravel/passkeys": "^0.2.1",
         "laravel/sanctum": "^4.2",
         "laravel/socialite": "^5.23",
         "laravel/tinker": "^2.9",
