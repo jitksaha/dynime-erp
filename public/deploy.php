@@ -431,7 +431,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'pull-db') {
     $remotePass = 'Pixel#@!194JkS';
 
     $localHost = '127.0.0.1';
-    $localPort = '3306';
+    $localPort = '5002';
     $localDB = 'u740731947_erpapp';
     $localUser = 'root';
     $localPass = '';
@@ -606,7 +606,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'push-db') {
     $remotePass = 'Pixel#@!194JkS';
 
     $localHost = '127.0.0.1';
-    $localPort = '3306';
+    $localPort = '5002';
     $localDB = 'u740731947_erpapp';
     $localUser = 'root';
     $localPass = '';
@@ -933,7 +933,7 @@ foreach ($checks as $name => $path) {
 // Get DB settings
 $db_settings = [
     'DB_HOST' => '127.0.0.1',
-    'DB_PORT' => '3306',
+    'DB_PORT' => '5002',
     'DB_DATABASE' => '',
     'DB_USERNAME' => '',
     'DB_PASSWORD' => '',
