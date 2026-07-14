@@ -38,14 +38,29 @@ export default function Login({
     const formFields = useFormFields('getReCaptchFields', data, setData, errors, 'create', t);
     const loginButtons = usePageButtons('getLoginButtons', { t, isLoading: processing });
 
-    const { verify, isLoading: verifyLoading, error: verifyError, isSupported } = usePasskeyVerify({
+    const [manualLoading, setManualLoading] = useState(false);
+
+    const { verify, error: verifyError, isSupported } = usePasskeyVerify({
         autofill: true,
         onSuccess: (response) => {
+            setManualLoading(false);
             if (response.redirect) {
                 window.location.href = response.redirect;
             }
         },
+        onError: (error) => {
+            setManualLoading(false);
+        }
     });
+
+    const handlePasskeyLogin = async () => {
+        setManualLoading(true);
+        try {
+            await verify();
+        } catch (e) {
+            setManualLoading(false);
+        }
+    };
 
     useEffect(() => {
         if (isDemo) {
@@ -193,12 +208,12 @@ export default function Login({
                         <Button
                             type="button"
                             variant="outline"
-                            onClick={verify}
-                            disabled={verifyLoading || processing}
+                            onClick={handlePasskeyLogin}
+                            disabled={manualLoading || processing}
                             className="w-full py-2.5 text-sm font-medium tracking-wide transition-all duration-200 rounded-md border border-gray-300 dark:border-gray-600 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center justify-center gap-2 mt-3"
                         >
                             <Fingerprint className="h-4 w-4 text-primary" />
-                            {verifyLoading ? t('Authenticating...') : t('SIGN IN WITH PASSKEY')}
+                            {manualLoading ? t('Authenticating...') : t('SIGN IN WITH PASSKEY')}
                         </Button>
                     )}
 
