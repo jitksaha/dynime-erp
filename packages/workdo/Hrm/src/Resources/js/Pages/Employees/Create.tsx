@@ -15,15 +15,83 @@ import { Trash2 } from 'lucide-react';
 import { CreateEmployeeFormData } from './types';
 import { useEffect, useState } from 'react';
 import { useFormFields } from '@/hooks/useFormFields';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import axios from 'axios';
 
 export default function Create() {
-    const { users, branches, departments, designations, shifts, documentTypes, generatedEmployeeId, companyAllSetting = {} } = usePage<any>().props;
+    const { users = [], roles = {}, branches, departments, designations, shifts, documentTypes, generatedEmployeeId, companyAllSetting = {} } = usePage<any>().props;
     const [activeTab, setActiveTab] = useState('personal');
     const [filteredBranches, setFilteredBranches] = useState(branches || []);
     const [filteredDepartments, setFilteredDepartments] = useState(departments || []);
     const [filteredDesignations, setFilteredDesignations] = useState(designations || []);
     const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
     const { t } = useTranslation();
+
+    // MAMP user creation state
+    const [localUsers, setLocalUsers] = useState<any[]>(users);
+    const [isAddUserOpen, setIsAddUserOpen] = useState(false);
+    const [newUserForm, setNewUserForm] = useState({
+        name: '',
+        email: '',
+        password: '',
+        password_confirmation: '',
+        mobile_no: '',
+        type: '',
+        is_enable_login: true,
+    });
+    const [newUserErrors, setNewUserErrors] = useState<any>({});
+    const [newUserProcessing, setNewUserProcessing] = useState(false);
+
+    useEffect(() => {
+        setLocalUsers(users || []);
+    }, [users]);
+
+    const handleCreateUserSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setNewUserProcessing(true);
+        setNewUserErrors({});
+        try {
+            await axios.post(route('users.store'), newUserForm);
+
+            const getRes = await axios.get(route('hrm.employees.create'), {
+                headers: {
+                    'X-Inertia': 'true',
+                }
+            });
+
+            const updatedUsers = getRes.data.props.users || [];
+            
+            const newlyAddedUser = updatedUsers.find(
+                (u: any) => !localUsers.some((oldU: any) => oldU.id === u.id)
+            );
+
+            setLocalUsers(updatedUsers);
+
+            if (newlyAddedUser) {
+                setData('user_id', newlyAddedUser.id.toString());
+            }
+
+            setNewUserForm({
+                name: '',
+                email: '',
+                password: '',
+                password_confirmation: '',
+                mobile_no: '',
+                type: '',
+                is_enable_login: true,
+            });
+            setIsAddUserOpen(false);
+        } catch (error: any) {
+            console.error(error);
+            if (error.response?.data?.errors) {
+                setNewUserErrors(error.response.data.errors);
+            } else {
+                setNewUserErrors({ name: [t('Something went wrong. Please check your inputs.')] });
+            }
+        } finally {
+            setNewUserProcessing(false);
+        }
+    };
 
     const paymentMethods = [
         { value: 'bank_transfer', label: t('Bank Transfer') },
@@ -457,13 +525,24 @@ export default function Create() {
                             <TabsContent value="employment" className="space-y-6 mt-6">
                                 <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                                     <div>
-                                        <Label htmlFor="user_id" required>{t('User')}</Label>
+                                        <div className="flex items-center justify-between mb-2">
+                                            <Label htmlFor="user_id" required className="mb-0">{t('User')}</Label>
+                                            <Button
+                                                type="button"
+                                                variant="link"
+                                                size="sm"
+                                                className="h-auto p-0 text-blue-600 hover:text-blue-700 font-medium"
+                                                onClick={() => setIsAddUserOpen(true)}
+                                            >
+                                                + {t('Add New User')}
+                                            </Button>
+                                        </div>
                                         <Select value={data.user_id?.toString() || ''} onValueChange={(value) => setData('user_id', value)} required>
                                             <SelectTrigger>
                                                 <SelectValue placeholder={t('Select User')} />
                                             </SelectTrigger>
                                             <SelectContent searchable={true}>
-                                                {users.map((item: any) => (
+                                                {localUsers.map((item: any) => (
                                                     <SelectItem key={item.id} value={item.id.toString()}>
                                                         {item.name}
                                                     </SelectItem>
@@ -1522,6 +1601,118 @@ export default function Create() {
                     </form>
                 </CardContent>
             </Card>
+
+            <Dialog open={isAddUserOpen} onOpenChange={setIsAddUserOpen}>
+                <DialogContent className="sm:max-w-[500px]">
+                    <DialogHeader>
+                        <DialogTitle>{t('Create New User')}</DialogTitle>
+                    </DialogHeader>
+                    <form onSubmit={handleCreateUserSubmit} className="space-y-4 mt-2">
+                        <div>
+                            <Label htmlFor="new_name" required>{t('Name')}</Label>
+                            <Input
+                                id="new_name"
+                                value={newUserForm.name}
+                                onChange={(e) => setNewUserForm(prev => ({ ...prev, name: e.target.value }))}
+                                placeholder={t('Enter full name')}
+                                required
+                                className="mt-1"
+                            />
+                            <InputError message={newUserErrors.name} />
+                        </div>
+                        <div>
+                            <Label htmlFor="new_email" required>{t('Email')}</Label>
+                            <Input
+                                id="new_email"
+                                type="email"
+                                value={newUserForm.email}
+                                onChange={(e) => setNewUserForm(prev => ({ ...prev, email: e.target.value }))}
+                                placeholder={t('Enter email address')}
+                                required
+                                className="mt-1"
+                            />
+                            <InputError message={newUserErrors.email} />
+                        </div>
+                        <div>
+                            <PhoneInputComponent
+                                label={t('Mobile Number')}
+                                value={newUserForm.mobile_no}
+                                onChange={(value) => setNewUserForm(prev => ({ ...prev, mobile_no: value }))}
+                                placeholder="+1234567890"
+                                error={newUserErrors.mobile_no}
+                                className="mt-1"
+                            />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <Label htmlFor="new_password" required>{t('Password')}</Label>
+                                <Input
+                                    id="new_password"
+                                    type="password"
+                                    value={newUserForm.password}
+                                    onChange={(e) => setNewUserForm(prev => ({ ...prev, password: e.target.value }))}
+                                    placeholder={t('Enter password')}
+                                    required
+                                    className="mt-1"
+                                />
+                                <InputError message={newUserErrors.password} />
+                            </div>
+                            <div>
+                                <Label htmlFor="new_password_confirmation" required>{t('Confirm Password')}</Label>
+                                <Input
+                                    id="new_password_confirmation"
+                                    type="password"
+                                    value={newUserForm.password_confirmation}
+                                    onChange={(e) => setNewUserForm(prev => ({ ...prev, password_confirmation: e.target.value }))}
+                                    placeholder={t('Confirm password')}
+                                    required
+                                    className="mt-1"
+                                />
+                                <InputError message={newUserErrors.password_confirmation} />
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <Label htmlFor="new_type" required>{t('Role')}</Label>
+                                <Select value={newUserForm.type} onValueChange={(value) => setNewUserForm(prev => ({ ...prev, type: value }))} required>
+                                    <SelectTrigger className="mt-1">
+                                        <SelectValue placeholder={t('Select Role')} />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {Object.entries(roles).map(([id, label]) => (
+                                            <SelectItem key={id} value={id}>
+                                                {label as string}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <InputError message={newUserErrors.type} />
+                            </div>
+                            <div>
+                                <Label htmlFor="new_is_enable_login" required>{t('Login Status')}</Label>
+                                <Select value={newUserForm.is_enable_login ? "1" : "0"} onValueChange={(value) => setNewUserForm(prev => ({ ...prev, is_enable_login: value === "1" }))}>
+                                    <SelectTrigger className="mt-1">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="1">{t('Enabled')}</SelectItem>
+                                        <SelectItem value="0">{t('Disabled')}</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <InputError message={newUserErrors.is_enable_login} />
+                            </div>
+                        </div>
+                        <div className="flex justify-end gap-2 pt-2">
+                            <Button type="button" variant="outline" onClick={() => setIsAddUserOpen(false)}>
+                                {t('Cancel')}
+                            </Button>
+                            <Button type="submit" disabled={newUserProcessing}>
+                                {newUserProcessing ? t('Creating...') : t('Create')}
+                            </Button>
+                        </div>
+                    </form>
+                </DialogContent>
+            </Dialog>
         </AuthenticatedLayout>
     );
 }
