@@ -4,6 +4,10 @@
  * Accessible via: http://127.0.0.1:8002/deploy.php?debug_deploy_token=deploy_token_7782
  */
 
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
 if (!isset($_GET['debug_deploy_token']) || $_GET['debug_deploy_token'] !== 'deploy_token_7782') {
     header('HTTP/1.0 403 Forbidden');
     echo 'Unauthorized access.';
@@ -11,6 +15,19 @@ if (!isset($_GET['debug_deploy_token']) || $_GET['debug_deploy_token'] !== 'depl
 }
 
 $baseDir = dirname(__DIR__);
+
+// Helper to boot Laravel framework
+function bootLaravel() {
+    global $baseDir;
+    if (!file_exists($baseDir . '/vendor/autoload.php')) {
+        throw new Exception("vendor/autoload.php not found. Please run composer install.");
+    }
+    require_once $baseDir . '/vendor/autoload.php';
+    $app = require_once $baseDir . '/bootstrap/app.php';
+    $kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
+    $kernel->bootstrap();
+    return $app;
+}
 $isLocal = ($_SERVER['REMOTE_ADDR'] === '127.0.0.1' || $_SERVER['REMOTE_ADDR'] === '::1' || $_SERVER['HTTP_HOST'] === '127.0.0.1:8002' || $_SERVER['HTTP_HOST'] === 'localhost:8002');
 
 // Find executable binary utility helper
@@ -191,11 +208,17 @@ if (isset($_GET['action']) && $_GET['action'] === 'clean-dump') {
 if (isset($_GET['action']) && $_GET['action'] === 'migrate') {
     header('Content-Type: text/plain');
     echo "=== RUNNING DATABASE MIGRATIONS (migrate) ===\n";
-    $php = defined('PHP_BINARY') ? PHP_BINARY : findSystemBinary('php');
-    $artisan = $baseDir . '/artisan';
-    exec(sprintf('"%s" "%s" migrate --force 2>&1', $php, $artisan), $output, $status);
-    echo implode("\n", $output) . "\n";
-    echo $status === 0 ? "SUCCESS\n" : "FAILED\n";
+    try {
+        bootLaravel();
+        $exitCode = Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
+        echo "Artisan migrate completed with exit code: $exitCode\n";
+        echo "Output:\n" . Illuminate\Support\Facades\Artisan::output() . "\n";
+        echo "SUCCESS\n";
+    } catch (Exception $e) {
+        echo "Exception caught during migration: " . $e->getMessage() . "\n";
+        echo "Trace:\n" . $e->getTraceAsString() . "\n";
+        echo "FAILED\n";
+    }
     exit;
 }
 
@@ -203,10 +226,15 @@ if (isset($_GET['action']) && $_GET['action'] === 'migrate') {
 if (isset($_GET['action']) && $_GET['action'] === 'migrate-status') {
     header('Content-Type: text/plain');
     echo "=== DATABASE MIGRATION STATUS (migrate:status) ===\n";
-    $php = defined('PHP_BINARY') ? PHP_BINARY : findSystemBinary('php');
-    $artisan = $baseDir . '/artisan';
-    exec(sprintf('"%s" "%s" migrate:status 2>&1', $php, $artisan), $output, $status);
-    echo implode("\n", $output) . "\n";
+    try {
+        bootLaravel();
+        $exitCode = Illuminate\Support\Facades\Artisan::call('migrate:status');
+        echo "Artisan migrate:status completed with exit code: $exitCode\n";
+        echo "Output:\n" . Illuminate\Support\Facades\Artisan::output() . "\n";
+    } catch (Exception $e) {
+        echo "Exception caught: " . $e->getMessage() . "\n";
+        echo "Trace:\n" . $e->getTraceAsString() . "\n";
+    }
     exit;
 }
 
@@ -214,10 +242,15 @@ if (isset($_GET['action']) && $_GET['action'] === 'migrate-status') {
 if (isset($_GET['action']) && $_GET['action'] === 'migrate-rollback') {
     header('Content-Type: text/plain');
     echo "=== DATABASE MIGRATION ROLLBACK (migrate:rollback) ===\n";
-    $php = defined('PHP_BINARY') ? PHP_BINARY : findSystemBinary('php');
-    $artisan = $baseDir . '/artisan';
-    exec(sprintf('"%s" "%s" migrate:rollback --force 2>&1', $php, $artisan), $output, $status);
-    echo implode("\n", $output) . "\n";
+    try {
+        bootLaravel();
+        $exitCode = Illuminate\Support\Facades\Artisan::call('migrate:rollback', ['--force' => true]);
+        echo "Artisan migrate:rollback completed with exit code: $exitCode\n";
+        echo "Output:\n" . Illuminate\Support\Facades\Artisan::output() . "\n";
+    } catch (Exception $e) {
+        echo "Exception caught: " . $e->getMessage() . "\n";
+        echo "Trace:\n" . $e->getTraceAsString() . "\n";
+    }
     exit;
 }
 
@@ -225,11 +258,17 @@ if (isset($_GET['action']) && $_GET['action'] === 'migrate-rollback') {
 if (isset($_GET['action']) && $_GET['action'] === 'db-seed') {
     header('Content-Type: text/plain');
     echo "=== RUNNING DATABASE SEEDERS (db:seed) ===\n";
-    $php = defined('PHP_BINARY') ? PHP_BINARY : findSystemBinary('php');
-    $artisan = $baseDir . '/artisan';
-    exec(sprintf('"%s" "%s" db:seed --force 2>&1', $php, $artisan), $output, $status);
-    echo implode("\n", $output) . "\n";
-    echo $status === 0 ? "SUCCESS\n" : "FAILED\n";
+    try {
+        bootLaravel();
+        $exitCode = Illuminate\Support\Facades\Artisan::call('db:seed', ['--force' => true]);
+        echo "Artisan db:seed completed with exit code: $exitCode\n";
+        echo "Output:\n" . Illuminate\Support\Facades\Artisan::output() . "\n";
+        echo "SUCCESS\n";
+    } catch (Exception $e) {
+        echo "Exception caught: " . $e->getMessage() . "\n";
+        echo "Trace:\n" . $e->getTraceAsString() . "\n";
+        echo "FAILED\n";
+    }
     exit;
 }
 
@@ -528,7 +567,20 @@ if (isset($_GET['action']) && $_GET['action'] === 'clear-cache') {
         echo "Removed bootstrap/cache/routes-v7.php\n";
     }
     
-    echo "All Laravel configuration and routing caches cleared successfully!\n";
+    try {
+        bootLaravel();
+        Illuminate\Support\Facades\Artisan::call('config:clear');
+        echo "Config cache cleared via Artisan.\n";
+        Illuminate\Support\Facades\Artisan::call('route:clear');
+        echo "Route cache cleared via Artisan.\n";
+        Illuminate\Support\Facades\Artisan::call('cache:clear');
+        echo "App cache cleared via Artisan.\n";
+        Illuminate\Support\Facades\Artisan::call('view:clear');
+        echo "View cache cleared via Artisan.\n";
+        echo "All Laravel configuration and routing caches cleared successfully!\n";
+    } catch (Exception $e) {
+        echo "Exception caught during cache clearing: " . $e->getMessage() . "\n";
+    }
     exit;
 }
 
@@ -538,20 +590,44 @@ if (isset($_GET['action']) && $_GET['action'] === 'fix-storage') {
     echo "=== RECREATING STORAGE SYMLINK ===\n";
     
     $publicStorage = $baseDir . '/public/storage';
-    if (file_exists($publicStorage) || is_link($publicStorage)) {
-        if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
-            @rmdir($publicStorage);
-        } else {
-            @unlink($publicStorage);
+    
+    if (!function_exists('deleteDir')) {
+        function deleteDir($dir) {
+            if (!file_exists($dir)) return true;
+            if (!is_dir($dir) || is_link($dir)) return @unlink($dir);
+            foreach (scandir($dir) as $item) {
+                if ($item == '.' || $item == '..') continue;
+                if (!deleteDir($dir . DIRECTORY_SEPARATOR . $item)) return false;
+            }
+            return @rmdir($dir);
         }
-        echo "Removed existing public/storage link.\n";
     }
     
-    $target = $baseDir . '/storage/app/public';
-    if (symlink($target, $publicStorage)) {
-        echo "Successfully recreated symbolic link: public/storage -> storage/app/public\n";
+    if (file_exists($publicStorage) || is_link($publicStorage)) {
+        deleteDir($publicStorage);
+        echo "Removed existing public/storage path.\n";
+    }
+    
+    try {
+        bootLaravel();
+        $exitCode = Illuminate\Support\Facades\Artisan::call('storage:link');
+        echo "Artisan storage:link completed with exit code: $exitCode\n";
+        echo "Output:\n" . Illuminate\Support\Facades\Artisan::output() . "\n";
+    } catch (Exception $e) {
+        echo "Artisan storage:link failed: " . $e->getMessage() . "\n";
+        echo "Attempting raw PHP symlink fallback...\n";
+        $target = $baseDir . '/storage/app/public';
+        if (@symlink($target, $publicStorage)) {
+            echo "Successfully created raw symlink.\n";
+        } else {
+            echo "Failed to create raw symlink: " . error_get_last()['message'] . "\n";
+        }
+    }
+    
+    if (is_link($publicStorage)) {
+        echo "SUCCESS: public/storage is a valid symbolic link.\n";
     } else {
-        echo "Failed to create symbolic link! Please check folder permissions.\n";
+        echo "FAILED: public/storage could not be set up as a symlink.\n";
     }
     exit;
 }
