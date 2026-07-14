@@ -1,6 +1,6 @@
 <?php
 /**
- * Dynime ERP Repair Script
+ * Dynime ERP Minimal Repair Script (No Laravel Boot)
  */
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
@@ -8,10 +8,9 @@ error_reporting(E_ALL);
 
 $baseDir = dirname(__DIR__);
 
-echo "=== DYNIME ERP LIVE REPAIR ===\n<pre>\n";
+echo "=== DYNIME ERP LIVE REPAIR (MINIMAL) ===\n<pre>\n";
 
-// 1. Recreate storage symlink
-$publicStorage = $baseDir . '/public/storage';
+// Helper function to recursively delete files and directories
 if (!function_exists('deleteDir')) {
     function deleteDir($dir) {
         if (!file_exists($dir)) return true;
@@ -23,45 +22,58 @@ if (!function_exists('deleteDir')) {
         return @rmdir($dir);
     }
 }
+
+// 1. Recreate storage symlink
+$publicStorage = $baseDir . '/public/storage';
 if (file_exists($publicStorage) || is_link($publicStorage)) {
-    deleteDir($publicStorage);
-    echo "Removed existing public/storage link.\n";
+    if (deleteDir($publicStorage)) {
+        echo "SUCCESS: Cleaned up existing public/storage path.\n";
+    } else {
+        echo "WARNING: Failed to clean up existing public/storage path.\n";
+    }
 }
+
 $target = $baseDir . '/storage/app/public';
 if (@symlink($target, $publicStorage)) {
     echo "SUCCESS: Recreated symbolic link: public/storage -> storage/app/public\n";
 } else {
-    echo "FAILED to recreate symbolic link: " . json_encode(error_get_last()) . "\n";
+    echo "FAILED to recreate symbolic link. Error: " . json_encode(error_get_last()) . "\n";
 }
 
-// 2. Boot Laravel and clear cache
-if (file_exists($baseDir . '/vendor/autoload.php')) {
-    require_once $baseDir . '/vendor/autoload.php';
-    
-    // Check if routes/api.php is missing, create a placeholder if it is, so Laravel doesn't crash on boot!
-    $apiRoutesFile = $baseDir . '/routes/api.php';
-    if (!file_exists($apiRoutesFile)) {
-        echo "routes/api.php was missing! Creating placeholder...\n";
-        @file_put_contents($apiRoutesFile, "<?php\nuse Illuminate\Support\Facades\Route;\n");
+// 2. Clear bootstrap/cache files
+$bootstrapCacheDir = $baseDir . '/bootstrap/cache';
+if (file_exists($bootstrapCacheDir)) {
+    $files = ['config.php', 'routes-v7.php', 'packages.php', 'services.php'];
+    foreach ($files as $file) {
+        $filePath = $bootstrapCacheDir . '/' . $file;
+        if (file_exists($filePath)) {
+            if (@unlink($filePath)) {
+                echo "SUCCESS: Deleted cached file: bootstrap/cache/$file\n";
+            } else {
+                echo "FAILED to delete: bootstrap/cache/$file\n";
+            }
+        }
     }
-    
-    try {
-        $app = require_once $baseDir . '/bootstrap/app.php';
-        $kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
-        $kernel->bootstrap();
-        
-        Illuminate\Support\Facades\Cache::flush();
-        echo "SUCCESS: Cleared Laravel cache.\n";
-        
-        // Output new logo settings
-        $logoLight = admin_setting('logo_light');
-        $logoDark = admin_setting('logo_dark');
-        echo "Current settings logo_light: $logoLight\n";
-        echo "Current settings logo_dark: $logoDark\n";
-    } catch (Throwable $e) {
-        echo "Exception caught during Laravel boot/cache clear: " . $e->getMessage() . "\n";
+}
+
+// 3. Clear file-based application cache
+$appCacheDir = $baseDir . '/storage/framework/cache/data';
+if (file_exists($appCacheDir)) {
+    // Delete all files and subfolders inside cache/data
+    $success = true;
+    foreach (scandir($appCacheDir) as $item) {
+        if ($item == '.' || $item == '..') continue;
+        if (!deleteDir($appCacheDir . '/' . $item)) {
+            $success = false;
+        }
+    }
+    if ($success) {
+        echo "SUCCESS: Flushed file-based application cache.\n";
+    } else {
+        echo "WARNING: Some cache files could not be cleared.\n";
     }
 } else {
-    echo "vendor/autoload.php not found.\n";
+    echo "INFO: storage/framework/cache/data does not exist or cache is not using file driver.\n";
 }
-echo "</pre>\n";
+
+echo "\n=== REPAIR COMPLETED ===\n</pre>\n";
