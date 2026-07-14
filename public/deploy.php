@@ -48,6 +48,135 @@ function findSystemBinary($name) {
     return $name;
 }
 
+// Pure PHP Database Dumper (independent of mysqldump shell execution)
+function phpDumpDatabase($host, $db, $user, $pass, $outputFile) {
+    try {
+        $dsn = "mysql:host=$host;dbname=$db;charset=utf8mb4";
+        $pdo = new PDO($dsn, $user, $pass, [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4"
+        ]);
+        
+        $fp = fopen($outputFile, 'w');
+        if (!$fp) {
+            throw new Exception("Failed to open output file: $outputFile");
+        }
+        
+        fwrite($fp, "-- Pure PHP Database Dump\n");
+        fwrite($fp, "SET FOREIGN_KEY_CHECKS = 0;\n\n");
+        
+        // Get all tables
+        $stmt = $pdo->query("SHOW TABLES");
+        $tables = $stmt->fetchAll(PDO::FETCH_COLUMN);
+        
+        foreach ($tables as $table) {
+            // Get CREATE TABLE
+            $createStmt = $pdo->query("SHOW CREATE TABLE `$table`")->fetch(PDO::FETCH_ASSOC);
+            $createSql = $createStmt['Create Table'];
+            
+            fwrite($fp, "DROP TABLE IF EXISTS `$table`;\n");
+            fwrite($fp, $createSql . ";\n\n");
+            
+            // Get rows
+            $rowsStmt = $pdo->query("SELECT * FROM `$table`");
+            while ($row = $rowsStmt->fetch(PDO::FETCH_ASSOC)) {
+                $cols = array_keys($row);
+                $escapedCols = array_map(function($c) { return "`$c`"; }, $cols);
+                
+                $values = [];
+                foreach ($row as $val) {
+                    if ($val === null) {
+                        $values[] = 'NULL';
+                    } else {
+                        $values[] = $pdo->quote($val);
+                    }
+                }
+                
+                $insertSql = "INSERT INTO `$table` (" . implode(', ', $escapedCols) . ") VALUES (" . implode(', ', $values) . ");\n";
+                fwrite($fp, $insertSql);
+            }
+            fwrite($fp, "\n");
+        }
+        
+        fwrite($fp, "SET FOREIGN_KEY_CHECKS = 1;\n");
+        fclose($fp);
+        return true;
+    } catch (Exception $e) {
+        if (isset($fp) && is_resource($fp)) fclose($fp);
+        throw $e;
+    }
+}
+
+// Pure PHP Database Importer/Restorer (independent of mysql CLI shell execution)
+function phpImportDatabase($host, $db, $user, $pass, $inputFile) {
+    try {
+        $dsn = "mysql:host=$host;dbname=$db;charset=utf8mb4";
+        $pdo = new PDO($dsn, $user, $pass, [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4"
+        ]);
+        
+        $fp = fopen($inputFile, 'r');
+        if (!$fp) {
+            throw new Exception("Failed to open import file: $inputFile");
+        }
+        
+        $pdo->exec("SET FOREIGN_KEY_CHECKS = 0;");
+        
+        $query = '';
+        $inSingleQuote = false;
+        $inDoubleQuote = false;
+        $escaped = false;
+        
+        while (($line = fgets($fp)) !== false) {
+            $trimmed = trim($line);
+            
+            // Skip comments and empty lines
+            if ($trimmed === '') continue;
+            if (strpos($trimmed, '--') === 0 || strpos($trimmed, '#') === 0 || strpos($trimmed, '/*') === 0) {
+                continue;
+            }
+            
+            $len = strlen($line);
+            for ($i = 0; $i < $len; $i++) {
+                $char = $line[$i];
+                $query .= $char;
+                
+                if ($escaped) {
+                    $escaped = false;
+                    continue;
+                }
+                
+                if ($char === '\\') {
+                    $escaped = true;
+                    continue;
+                }
+                
+                if ($char === "'" && !$inDoubleQuote) {
+                    $inSingleQuote = !$inSingleQuote;
+                } elseif ($char === '"' && !$inSingleQuote) {
+                    $inDoubleQuote = !$inDoubleQuote;
+                }
+                
+                if ($char === ';' && !$inSingleQuote && !$inDoubleQuote) {
+                    $trimmedQuery = trim($query);
+                    if ($trimmedQuery !== '') {
+                        $pdo->exec($query);
+                    }
+                    $query = '';
+                }
+            }
+        }
+        
+        $pdo->exec("SET FOREIGN_KEY_CHECKS = 1;");
+        fclose($fp);
+        return true;
+    } catch (Exception $e) {
+        if (isset($fp) && is_resource($fp)) fclose($fp);
+        throw $e;
+    }
+}
+
 // --------------------------------------------------------------------
 // ACTIONS
 // --------------------------------------------------------------------
@@ -173,12 +302,10 @@ if (isset($_GET['action']) && $_GET['action'] === 'fix-password') {
 if (isset($_GET['action']) && $_GET['action'] === 'dump-db') {
     header('Content-Type: text/plain');
     $dumpFile = $baseDir . '/public/storage/backup_temp.sql';
-    $mysqldump = findSystemBinary('mysqldump');
     
-    // Remote DB details on Hostinger
-    exec(sprintf('"%s" -h 127.0.0.1 -u u740731947_erpapp -p\'Pixel#@!194JkS\' u740731947_erpapp > "%s" 2>&1', $mysqldump, $dumpFile), $output, $status);
-    
-    if ($status === 0) {
+    try {
+        @set_time_limit(300);
+        phpDumpDatabase('127.0.0.1', 'u740731947_erpapp', 'u740731947_erpapp', 'Pixel#@!194JkS', $dumpFile);
         if (file_exists($dumpFile)) {
             $sqlContent = file_get_contents($dumpFile);
             $gzipped = gzencode($sqlContent, 9);
@@ -188,8 +315,8 @@ if (isset($_GET['action']) && $_GET['action'] === 'dump-db') {
         } else {
             echo "FAILED: File not created";
         }
-    } else {
-        echo "FAILED: " . implode("\n", $output);
+    } catch (Throwable $e) {
+        echo "FAILED: " . $e->getMessage() . "\n" . $e->getTraceAsString();
     }
     exit;
 }
@@ -277,6 +404,11 @@ if (isset($_GET['action']) && $_GET['action'] === 'pull-db') {
     header('Content-Type: text/plain');
     echo "=== INITIATING DATABASE PULL: LIVE -> LOCAL ===\n";
     
+    if (!$isLocal) {
+        echo "Error: Pull Database must be initiated from your local XAMPP environment (e.g., http://localhost/deploy.php) to sync the live database down to your local machine.\n";
+        exit;
+    }
+    
     $remoteHost = 'srv2141.hstgr.io';
     $remoteDB = 'u740731947_erpapp';
     $remoteUser = 'u740731947_erpapp';
@@ -307,21 +439,22 @@ if (isset($_GET['action']) && $_GET['action'] === 'pull-db') {
         }
     }
 
-    $mysql = findSystemBinary('mysql');
-    $mysqldump = findSystemBinary('mysqldump');
-
     echo "Source Live DB:  $remoteDB on $remoteHost\n";
     echo "Target Local DB: $localDB on $localHost:$localPort\n";
     echo "--------------------------------------------------\n";
 
     // Step 1: Ensure Local DB Exists
     echo "Step 1/3: Ensuring local database exists...\n";
-    $createDBCmd = sprintf('"%s" --host="%s" --port="%s" --user="%s" -e "CREATE DATABASE IF NOT EXISTS %s;" 2>&1', $mysql, $localHost, $localPort, $localUser, $localDB);
-    if ($localPass !== '') {
-        $createDBCmd = sprintf('"%s" --host="%s" --port="%s" --user="%s" --password="%s" -e "CREATE DATABASE IF NOT EXISTS %s;" 2>&1', $mysql, $localHost, $localPort, $localUser, $localPass, $localDB);
+    try {
+        $dsnNoDb = "mysql:host=$localHost;port=$localPort;charset=utf8mb4";
+        $localPdo = new PDO($dsnNoDb, $localUser, $localPass, [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
+        ]);
+        $localPdo->exec("CREATE DATABASE IF NOT EXISTS `$localDB`;");
+        echo "Local database is ready.\n";
+    } catch (Throwable $e) {
+        echo "Warning: Failed to ensure local database exists via PDO: " . $e->getMessage() . "\n";
     }
-    exec($createDBCmd, $out, $status);
-    echo "Local database is ready.\n";
 
     $tempFile = $baseDir . '/storage/remote_db_dump.sql';
     $useHttp = false;
@@ -353,30 +486,29 @@ if (isset($_GET['action']) && $_GET['action'] === 'pull-db') {
     }
 
     if (!$useHttp) {
-        echo "Fallback: Downloading via direct CLI dump over WAN...\n";
-        $dumpCmd = sprintf('"%s" --host="%s" --user="%s" --password="%s" --add-drop-table --quick --single-transaction "%s" > "%s" 2>&1', $mysqldump, $remoteHost, $remoteUser, $remotePass, $remoteDB, $tempFile);
-        exec($dumpCmd, $dumpOutput, $dumpStatus);
-        if ($dumpStatus !== 0) {
-            echo "Error: Remote dump failed! Output: " . implode("\n", $dumpOutput) . "\n";
+        echo "Fallback: Downloading via pure PHP connection over WAN...\n";
+        try {
+            @set_time_limit(300);
+            phpDumpDatabase($remoteHost, $remoteDB, $remoteUser, $remotePass, $tempFile);
+            echo "Pure PHP remote dump completed successfully.\n";
+        } catch (Throwable $e) {
+            echo "Error: Remote dump failed! Message: " . $e->getMessage() . "\n";
             exit;
         }
-        echo "Direct remote dump completed successfully.\n";
     }
 
     // Step 3: Import locally
     echo "\nStep 3/3: Importing dump into local database...\n";
-    $importCmd = sprintf('"%s" --host="%s" --port="%s" --user="%s" "%s" < "%s" 2>&1', $mysql, $localHost, $localPort, $localUser, $localDB, $tempFile);
-    if ($localPass !== '') {
-        $importCmd = sprintf('"%s" --host="%s" --port="%s" --user="%s" --password="%s" "%s" < "%s" 2>&1', $mysql, $localHost, $localPort, $localUser, $localPass, $localDB, $tempFile);
-    }
-    exec($importCmd, $importOutput, $importStatus);
-    @unlink($tempFile);
-
-    if ($importStatus !== 0) {
-        echo "Error: Importing to Local Database failed! Status: $importStatus\n";
-        echo "Output: " . implode("\n", $importOutput) . "\n";
+    try {
+        @set_time_limit(300);
+        phpImportDatabase($localHost, $localDB, $localUser, $localPass, $tempFile);
+        echo "Import successful!\n";
+    } catch (Throwable $e) {
+        echo "Error: Importing to Local Database failed! Message: " . $e->getMessage() . "\n";
+        @unlink($tempFile);
         exit;
     }
+    @unlink($tempFile);
 
     // Step 4: Update local .env
     echo "\nStep 4: Updating local .env connection...\n";
@@ -430,16 +562,14 @@ if (isset($_GET['action']) && $_GET['action'] === 'import-db') {
         exit;
     }
     
-    $mysql = findSystemBinary('mysql');
-    
-    // Import the file locally on Hostinger
-    exec(sprintf('"%s" -h 127.0.0.1 -u u740731947_erpapp -p\'Pixel#@!194JkS\' u740731947_erpapp < "%s" 2>&1', $mysql, $tempFile), $output, $status);
-    @unlink($tempFile);
-    
-    if ($status === 0) {
+    try {
+        @set_time_limit(300);
+        phpImportDatabase('127.0.0.1', 'u740731947_erpapp', 'u740731947_erpapp', 'Pixel#@!194JkS', $tempFile);
+        @unlink($tempFile);
         echo "IMPORT_SUCCESS";
-    } else {
-        echo "IMPORT_FAILED: " . implode("\n", $output);
+    } catch (Throwable $e) {
+        @unlink($tempFile);
+        echo "IMPORT_FAILED: " . $e->getMessage() . "\n" . $e->getTraceAsString();
     }
     exit;
 }
@@ -448,6 +578,11 @@ if (isset($_GET['action']) && $_GET['action'] === 'import-db') {
 if (isset($_GET['action']) && $_GET['action'] === 'push-db') {
     header('Content-Type: text/plain');
     echo "=== INITIATING DATABASE PUSH: LOCAL -> LIVE ===\n";
+    
+    if (!$isLocal) {
+        echo "Error: Push Database must be initiated from your local XAMPP environment (e.g., http://localhost/deploy.php) to push your local changes up to the live server.\n";
+        exit;
+    }
     
     $remoteHost = 'srv2141.hstgr.io';
     $remoteDB = 'u740731947_erpapp';
@@ -479,9 +614,6 @@ if (isset($_GET['action']) && $_GET['action'] === 'push-db') {
         }
     }
 
-    $mysql = findSystemBinary('mysql');
-    $mysqldump = findSystemBinary('mysqldump');
-
     echo "Source Local DB: $localDB on $localHost:$localPort\n";
     echo "Target Live DB:  $remoteDB on $remoteHost\n";
     echo "--------------------------------------------------\n";
@@ -490,17 +622,14 @@ if (isset($_GET['action']) && $_GET['action'] === 'push-db') {
     
     // Dump local DB
     echo "Step 1/2: Dumping local database...\n";
-    $dumpCmd = sprintf('"%s" --host="%s" --port="%s" --user="%s" --add-drop-table --quick --single-transaction "%s" > "%s" 2>&1', $mysqldump, $localHost, $localPort, $localUser, $localDB, $tempFile);
-    if ($localPass !== '') {
-        $dumpCmd = sprintf('"%s" --host="%s" --port="%s" --user="%s" --password="%s" --add-drop-table --quick --single-transaction "%s" > "%s" 2>&1', $mysqldump, $localHost, $localPort, $localUser, $localPass, $localDB, $tempFile);
-    }
-    exec($dumpCmd, $dumpOutput, $dumpStatus);
-
-    if ($dumpStatus !== 0) {
-        echo "Error: Local dump failed! Output: " . implode("\n", $dumpOutput) . "\n";
+    try {
+        @set_time_limit(300);
+        phpDumpDatabase($localHost, $localDB, $localUser, $localPass, $tempFile);
+        echo "Local dump successful! Size: " . round(filesize($tempFile) / 1024, 2) . " KB\n";
+    } catch (Throwable $e) {
+        echo "Error: Local dump failed! Message: " . $e->getMessage() . "\n";
         exit;
     }
-    echo "Local dump successful! Size: " . round(filesize($tempFile) / 1024, 2) . " KB\n";
 
     // Restore to Live DB via HTTP upload + import
     echo "\nStep 2/2: Pushing dump to Remote Hostinger Database...\n";
@@ -1105,6 +1234,7 @@ try {
     </footer>
 
     <script>
+        const isLocalServer = <?php echo $isLocal ? 'true' : 'false'; ?>;
         const actionTimes = {
             'pull-db': 12,
             'push-db': 15,
@@ -1121,6 +1251,11 @@ try {
         let timeInterval = null;
 
         function runAction(action) {
+            if ((action === 'pull-db' || action === 'push-db') && !isLocalServer) {
+                alert("⚠️ Database Sync actions must be run from your local XAMPP environment (e.g., http://localhost:8002/deploy.php) to sync with the live server. You cannot run them directly on the live website.");
+                return;
+            }
+
             const consoleOutput = document.getElementById('console-output');
             const overlay = document.getElementById('loading-overlay');
             const loadingText = document.getElementById('loading-text');
