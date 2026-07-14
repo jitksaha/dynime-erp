@@ -641,6 +641,7 @@ $checks = [
     'vendor/autoload.php' => $baseDir . '/vendor/autoload.php',
     'public/index.php' => $baseDir . '/public/index.php',
     'public/build/manifest.json' => $baseDir . '/public/build/manifest.json',
+    'public/repair.php' => $baseDir . '/public/repair.php',
 ];
 
 $checkResults = [];
