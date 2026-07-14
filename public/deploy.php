@@ -35,6 +35,123 @@ function findSystemBinary($name) {
 // ACTIONS
 // --------------------------------------------------------------------
 
+// Action: Setup .env file
+if (isset($_GET['action']) && $_GET['action'] === 'setup-env') {
+    header('Content-Type: text/plain');
+    echo "=== SETTING UP .ENV FILE ===\n";
+    $envPath = $baseDir . '/.env';
+    $examplePath = $baseDir . '/.env.example';
+    
+    if (file_exists($envPath) && !isset($_GET['overwrite'])) {
+        echo "Error: .env file already exists! Pass &overwrite=1 to overwrite.\n";
+        exit;
+    }
+    
+    if (!file_exists($examplePath)) {
+        echo "Error: .env.example not found!\n";
+        exit;
+    }
+    
+    $envContent = file_get_contents($examplePath);
+    
+    // Generate secure APP_KEY
+    $secureKey = 'base64:' . base64_encode(random_bytes(32));
+    $envContent = preg_replace('/^APP_KEY=.*$/m', 'APP_KEY=' . $secureKey, $envContent);
+    
+    // Update URL
+    $envContent = preg_replace('/^APP_URL=.*$/m', 'APP_URL=https://app.dynime.com', $envContent);
+    
+    // Update DB credentials if provided
+    if (isset($_GET['db_name'])) {
+        $envContent = preg_replace('/^DB_DATABASE=.*$/m', 'DB_DATABASE=' . trim($_GET['db_name']), $envContent);
+    }
+    if (isset($_GET['db_user'])) {
+        $envContent = preg_replace('/^DB_USERNAME=.*$/m', 'DB_USERNAME=' . trim($_GET['db_user']), $envContent);
+    }
+    if (isset($_GET['db_pass'])) {
+        $envContent = preg_replace('/^DB_PASSWORD=.*$/m', 'DB_PASSWORD=' . trim($_GET['db_pass']), $envContent);
+    }
+    
+    if (file_put_contents($envPath, $envContent) !== false) {
+        echo "Success: .env file created successfully!\n";
+        echo "Generated APP_KEY: $secureKey\n";
+        if (isset($_GET['db_name'])) echo "DB_DATABASE updated to: " . $_GET['db_name'] . "\n";
+        if (isset($_GET['db_user'])) echo "DB_USERNAME updated to: " . $_GET['db_user'] . "\n";
+        if (isset($_GET['db_pass'])) echo "DB_PASSWORD updated\n";
+    } else {
+        echo "Error: Failed to write .env file. Check folder permissions!\n";
+    }
+    exit;
+}
+
+// Action: Mark as installed
+if (isset($_GET['action']) && $_GET['action'] === 'mark-installed') {
+    header('Content-Type: text/plain');
+    echo "=== MARKING AS INSTALLED ===\n";
+    $installedFile = $baseDir . '/storage/installed';
+    $content = "install " . date('Y-m-d H:i:s');
+    if (file_put_contents($installedFile, $content) !== false) {
+        echo "Success: storage/installed file created successfully!\n";
+        echo "Content: $content\n";
+    } else {
+        echo "Error: Failed to create storage/installed file. Check storage folder permissions!\n";
+    }
+    exit;
+}
+
+// Action: Read raw log
+if (isset($_GET['action']) && $_GET['action'] === 'read-raw-log') {
+    header('Content-Type: text/plain');
+    echo "=== LAST ERROR DETAILS ===\n";
+    $logFile = $baseDir . '/storage/logs/laravel.log';
+    if (file_exists($logFile)) {
+        $content = file_get_contents($logFile);
+        $errors = explode('production.ERROR:', $content);
+        if (count($errors) > 1) {
+            $lastError = end($errors);
+            $lines = explode("\n", $lastError);
+            // Print error message
+            echo "ERROR MESSAGE:\n" . trim($lines[0]) . "\n\n";
+            // Print top 20 stack trace lines
+            echo "=== STACK TRACE ===\n";
+            for ($i = 1; $i <= min(20, count($lines) - 1); $i++) {
+                echo $lines[$i] . "\n";
+            }
+        } else {
+            echo "No production.ERROR found in log.\n";
+        }
+    } else {
+        echo "No laravel.log found.\n";
+    }
+    exit;
+}
+
+// Action: Fix password
+if (isset($_GET['action']) && $_GET['action'] === 'fix-password') {
+    header('Content-Type: text/plain');
+    echo "=== FIXING DB PASSWORD ===\n";
+    $envPath = $baseDir . '/.env';
+    if (file_exists($envPath)) {
+        $envContent = file_get_contents($envPath);
+        $envContent = preg_replace('/^DB_PASSWORD=.*$/m', 'DB_PASSWORD="Pixel#@!194JkS"', $envContent);
+        if (file_put_contents($envPath, $envContent) !== false) {
+            echo "Success: DB_PASSWORD updated in .env successfully!\n";
+            
+            // Automatically clear Laravel cache
+            $configFile = $baseDir . '/bootstrap/cache/config.php';
+            if (file_exists($configFile)) {
+                @unlink($configFile);
+                echo "Success: Cleared configuration cache.\n";
+            }
+        } else {
+            echo "Error: Failed to update DB_PASSWORD. Check folder permissions!\n";
+        }
+    } else {
+        echo "Error: .env file not found!\n";
+    }
+    exit;
+}
+
 // Action: Dump DB (Only runs on live remote server to create fast dump)
 if (isset($_GET['action']) && $_GET['action'] === 'dump-db') {
     header('Content-Type: text/plain');
