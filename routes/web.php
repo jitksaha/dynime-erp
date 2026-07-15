@@ -136,6 +136,8 @@ Route::middleware(['auth', 'verified', 'PlanModuleCheck'])->group(function () {
     Route::post('settings/cookie', [SettingController::class, 'updateCookieSettings'])->name('settings.cookie.update');
     Route::post('settings/seo', [SettingController::class, 'updateSeoSettings'])->name('settings.seo.update');
     Route::post('settings/storage', [SettingController::class, 'updateStorageSettings'])->name('settings.storage.update');
+    Route::get('settings/storage/sync/files', [SettingController::class, 'getStorageSyncFiles'])->name('settings.storage.sync.files');
+    Route::post('settings/storage/sync/migrate-file', [SettingController::class, 'migrateStorageFile'])->name('settings.storage.sync.migrate-file');
     Route::get('settings/cookie/download', [SettingController::class, 'downloadCookieData'])->name('settings.cookie.download');
     Route::post('settings/email', [SettingController::class, 'updateEmailSettings'])->name('settings.email.update');
     Route::post('settings/email/test', [SettingController::class, 'testEmail'])->name('settings.email.test');

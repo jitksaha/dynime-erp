@@ -620,6 +620,85 @@ class SettingController extends Controller
         }
     }
 
+    public function getStorageSyncFiles(Request $request)
+    {
+        if (\Auth::user()->can('edit-storage-settings') || \Auth::user()->can('manage-company-settings')) {
+            $localMedia = \DB::table('media')
+                ->where('disk', '!=', 's3')
+                ->get()
+                ->map(function ($m) {
+                    return [
+                        'id' => $m->id,
+                        'name' => $m->name,
+                        'file_name' => $m->file_name,
+                        'size' => $m->size,
+                    ];
+                });
+            return response()->json(['files' => $localMedia]);
+        }
+        return response()->json(['error' => 'Permission denied'], 403);
+    }
+
+    public function migrateStorageFile(Request $request)
+    {
+        if (\Auth::user()->can('edit-storage-settings') || \Auth::user()->can('manage-company-settings')) {
+            $request->validate([
+                'id' => 'required|integer',
+            ]);
+
+            $media = \DB::table('media')->where('id', $request->id)->first();
+            if (!$media) {
+                return response()->json(['error' => 'File not found'], 404);
+            }
+
+            try {
+                \App\Services\StorageConfigService::clearCache();
+                \App\Services\DynamicStorageService::configureDynamicDisks();
+
+                $publicDisk = \Storage::disk('public');
+                $s3Disk = \Storage::disk('s3');
+
+                $filePath = 'media/' . $media->file_name;
+
+                if (!$publicDisk->exists($filePath)) {
+                    if ($s3Disk->exists($filePath)) {
+                        \DB::table('media')->where('id', $media->id)->update(['disk' => 's3']);
+                        return response()->json(['success' => true, 'msg' => 'Disk updated (already on R2)']);
+                    }
+                    return response()->json(['error' => 'File does not exist on local storage'], 400);
+                }
+
+                $content = $publicDisk->get($filePath);
+                $s3Disk->put($filePath, $content, 'public');
+
+                // Update media table disk to s3
+                \DB::table('media')->where('id', $media->id)->update(['disk' => 's3']);
+
+                // Scan settings table for any occurrences of local URL and rewrite to R2 URL
+                $localUrl = url('/storage/media');
+                $companySettings = getCompanyAllSetting();
+                $awsUrl = $companySettings['awsUrl'] ?? null;
+
+                if ($awsUrl) {
+                    $cdnUrl = rtrim($awsUrl, '/') . '/media';
+                    \DB::table('settings')
+                        ->where('created_by', creatorId())
+                        ->where('value', 'LIKE', '%' . $localUrl . '%')
+                        ->get()
+                        ->each(function($row) use ($localUrl, $cdnUrl) {
+                            $newValue = str_replace($localUrl, $cdnUrl, $row->value);
+                            \DB::table('settings')->where('id', $row->id)->update(['value' => $newValue]);
+                        });
+                }
+
+                return response()->json(['success' => true]);
+            } catch (\Exception $e) {
+                return response()->json(['error' => $e->getMessage()], 500);
+            }
+        }
+        return response()->json(['error' => 'Permission denied'], 403);
+    }
+
     public function downloadCookieData()
     {
         if(Auth::user()->can('manage-cookie-settings'))
