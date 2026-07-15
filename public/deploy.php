@@ -695,6 +695,48 @@ if (isset($_GET['action']) && $_GET['action'] === 'push-db') {
     exit;
 }
 
+// Action: Clean Legacy Encoding Characters in Database Documents
+if (isset($_GET['action']) && $_GET['action'] === 'clean-legacy-chars') {
+    header('Content-Type: text/plain');
+    echo "=== CLEANING LEGACY ENCODING CHARACTERS IN DATABASE ===\n";
+    try {
+        bootLaravel();
+        $docs = \Workdo\Hrm\Models\IssuedDocument::all();
+        $count = 0;
+        $replacements = [
+            'â€”' => '—',
+            'Â·' => '·',
+            'Â©' => '©',
+            'Â¢' => '¢',
+            'Â' => '',
+        ];
+        foreach ($docs as $doc) {
+            $payload = $doc->payload;
+            if (!is_array($payload)) {
+                continue;
+            }
+            $jsonStr = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            $replaced = false;
+            foreach ($replacements as $search => $replace) {
+                if (strpos($jsonStr, $search) !== false) {
+                    $jsonStr = str_replace($search, $replace, $jsonStr);
+                    $replaced = true;
+                }
+            }
+            if ($replaced) {
+                $doc->payload = json_decode($jsonStr, true);
+                $doc->save();
+                $count++;
+                echo "Cleaned document ID: {$doc->id}\n";
+            }
+        }
+        echo "SUCCESS: Cleaned {$count} document entries successfully.\n";
+    } catch (Throwable $e) {
+        echo "Exception caught: " . $e->getMessage() . "\n";
+    }
+    exit;
+}
+
 // Action: Clear Cache
 if (isset($_GET['action']) && $_GET['action'] === 'clear-cache') {
     header('Content-Type: text/plain');
