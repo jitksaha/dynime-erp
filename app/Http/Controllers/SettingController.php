@@ -549,7 +549,7 @@ class SettingController extends Controller
 
     public function updateStorageSettings(Request $request)
     {
-        if(Auth::user()->can('edit-storage-settings'))
+        if(Auth::user()->can('edit-storage-settings') || Auth::user()->can('manage-company-settings') || Auth::user()->can('edit-brand-settings'))
         {
             $request->validate([
                 'settings.storageType' => 'required|string|in:local,aws_s3,wasabi',

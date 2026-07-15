@@ -41,8 +41,11 @@ interface StorageSettingsProps {
 export default function StorageSettings({ userSettings, auth }: StorageSettingsProps) {
   const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
-  const canEdit = auth?.user?.permissions?.includes('edit-storage-settings');
+  const canEdit = auth?.user?.permissions?.includes('edit-storage-settings') || 
+                  auth?.user?.permissions?.includes('manage-company-settings') ||
+                  auth?.user?.permissions?.includes('edit-brand-settings');
   const [searchTerm, setSearchTerm] = useState('');
+  const [showR2Guide, setShowR2Guide] = useState(false);
   
   const initializeSettings = (userSettings?: Record<string, string>): StorageSettings => ({
     storageType: (userSettings?.storageType as StorageType) || 'local',
@@ -192,6 +195,87 @@ export default function StorageSettings({ userSettings, auth }: StorageSettingsP
 
   const renderAwsS3Fields = () => (
     <div className="space-y-6">
+      {/* R2 Collapsible Setup Guide */}
+      <div className="border border-indigo-150 rounded-lg p-4 bg-indigo-50/20 mb-6">
+        <button
+          type="button"
+          onClick={() => setShowR2Guide(!showR2Guide)}
+          className="flex items-center justify-between w-full font-semibold text-indigo-900 text-sm focus:outline-none"
+        >
+          <span className="flex items-center gap-2">
+            📚 Cloudflare R2 Storage Setup Guide (ক্লাউডফ্লেয়ার R2 সেটআপ গাইড)
+          </span>
+          <span>{showR2Guide ? '▲ Close (বন্ধ করুন)' : '▼ Open (খুলুন)'}</span>
+        </button>
+        
+        {showR2Guide && (
+          <div className="mt-4 pt-4 border-t border-indigo-100 space-y-4 text-xs text-indigo-950 leading-relaxed">
+            <p>
+              Dynime ERP-এর ফাইল স্টোরেজ ক্লাউডফ্লেয়ার R2-তে সিঙ্ক করতে নিচের নির্দেশিকাটি অনুসরণ করুন:
+            </p>
+            
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr className="border-b border-indigo-200 font-bold">
+                    <th className="pb-2 w-1/3">ERP Settings Field</th>
+                    <th className="pb-2">Cloudflare R2 Value</th>
+                    <th className="pb-2">Format / Example</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-indigo-100">
+                  <tr>
+                    <td className="py-2 font-medium">AWS Access Key ID</td>
+                    <td className="py-2">Cloudflare R2 Token Access Key ID</td>
+                    <td className="py-2"><code>46ebfc7279cc491d9658d5407702e736</code></td>
+                  </tr>
+                  <tr>
+                    <td className="py-2 font-medium">AWS Secret Access Key</td>
+                    <td className="py-2">Cloudflare R2 Token Secret Access Key</td>
+                    <td className="py-2"><code>9658d5407702e736a4f8cf...</code></td>
+                  </tr>
+                  <tr>
+                    <td className="py-2 font-medium">AWS Default Region</td>
+                    <td className="py-2">R2 Default Region (set to auto)</td>
+                    <td className="py-2"><code>auto</code></td>
+                  </tr>
+                  <tr>
+                    <td className="py-2 font-medium">AWS Bucket</td>
+                    <td className="py-2">R2 Bucket Name</td>
+                    <td className="py-2"><code>dynime</code></td>
+                  </tr>
+                  <tr>
+                    <td className="py-2 font-medium">AWS URL</td>
+                    <td className="py-2">Cloudflare CDN Custom Domain Link</td>
+                    <td className="py-2"><strong><code>https://cdn.dynime.com/</code></strong> (অবশ্যই শেষে <code>/</code> থাকতে হবে)</td>
+                  </tr>
+                  <tr>
+                    <td className="py-2 font-medium">AWS Endpoint</td>
+                    <td className="py-2">Cloudflare R2 S3 API Endpoint URL</td>
+                    <td className="py-2"><code>https://&lt;your_account_id&gt;.r2.cloudflarestorage.com</code></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div className="bg-indigo-100/40 p-3 rounded border border-indigo-200 mt-2">
+              <strong className="block text-xs mb-1 font-bold text-indigo-900">⚠️ Cloudflare Bucket CORS Configuration (CORS পলিসি):</strong>
+              <p className="mb-2">ইমেজ ও ফাইল সঠিকভাবে ড্যাশবোর্ডে ও ডকুমেন্টে লোড হওয়ার জন্য আপনার Cloudflare R2 বাকেটে নিচের CORS Policy যুক্ত করুন:</p>
+              <pre className="bg-white p-2 rounded border text-[10px] font-mono select-all overflow-x-auto text-gray-800">
+{`[
+  {
+    "AllowedHeaders": ["*"],
+    "AllowedMethods": ["GET", "POST", "PUT", "HEAD"],
+    "AllowedOrigins": ["https://app.dynime.com", "http://localhost:8000"],
+    "ExposeHeaders": []
+  }
+]`}
+              </pre>
+            </div>
+          </div>
+        )}
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-2">
           <Label htmlFor="awsAccessKeyId">{t("AWS Access Key ID")}</Label>
@@ -202,6 +286,9 @@ export default function StorageSettings({ userSettings, auth }: StorageSettingsP
             placeholder="AKIAIOSFODNN7EXAMPLE"
             disabled={!canEdit}
           />
+          <p className="text-[11px] text-muted-foreground">
+            {t("Enter your Cloudflare R2 Token Access Key ID.")}
+          </p>
         </div>
         
         <div className="space-y-2">
@@ -214,6 +301,9 @@ export default function StorageSettings({ userSettings, auth }: StorageSettingsP
             placeholder="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
             disabled={!canEdit}
           />
+          <p className="text-[11px] text-muted-foreground">
+            {t("Enter your Cloudflare R2 Token Secret Access Key.")}
+          </p>
         </div>
         
         <div className="space-y-2">
@@ -225,6 +315,9 @@ export default function StorageSettings({ userSettings, auth }: StorageSettingsP
             placeholder="us-east-1"
             disabled={!canEdit}
           />
+          <p className="text-[11px] text-muted-foreground">
+            {t("Enter region. Set to 'auto' for Cloudflare R2.")}
+          </p>
         </div>
         
         <div className="space-y-2">
@@ -236,6 +329,9 @@ export default function StorageSettings({ userSettings, auth }: StorageSettingsP
             placeholder="my-bucket-name"
             disabled={!canEdit}
           />
+          <p className="text-[11px] text-muted-foreground">
+            {t("Enter the name of your Cloudflare R2 Bucket (e.g. dynime).")}
+          </p>
         </div>
         
         <div className="space-y-2">
@@ -247,6 +343,9 @@ export default function StorageSettings({ userSettings, auth }: StorageSettingsP
             placeholder="https://s3.amazonaws.com"
             disabled={!canEdit}
           />
+          <p className="text-[11px] text-muted-foreground">
+            {t("Enter custom CDN domain (must end with a slash, e.g. https://cdn.dynime.com/).")}
+          </p>
         </div>
         
         <div className="space-y-2">
@@ -258,6 +357,9 @@ export default function StorageSettings({ userSettings, auth }: StorageSettingsP
             placeholder="https://s3.us-east-1.amazonaws.com"
             disabled={!canEdit}
           />
+          <p className="text-[11px] text-muted-foreground">
+            {t("Enter R2 Endpoint (e.g. https://<account_id>.r2.cloudflarestorage.com).")}
+          </p>
         </div>
       </div>
       
