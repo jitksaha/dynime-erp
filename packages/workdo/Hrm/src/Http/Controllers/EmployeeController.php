@@ -146,19 +146,28 @@ class EmployeeController extends Controller
             $employee->save();
 
             // Store avatar if provided
-            if ($request->hasFile('avatar')) {
-                $file = $request->file('avatar');
-                $filename = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
-                $extension = $file->getClientOriginalExtension();
-                $fileNameToStore = 'avatar_' . time() . '.' . $extension;
-                
-                $upload = upload_file($request, 'avatar', $fileNameToStore, 'avatars');
-                if (isset($upload['flag']) && $upload['flag'] == 1 && isset($upload['url'])) {
-                    $user = User::find($employee->user_id);
-                    if ($user) {
+            $user = User::find($employee->user_id);
+            if ($user) {
+                if ($request->hasFile('avatar')) {
+                    $file = $request->file('avatar');
+                    $filename = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+                    $extension = $file->getClientOriginalExtension();
+                    $fileNameToStore = 'avatar_' . time() . '.' . $extension;
+                    
+                    $upload = upload_file($request, 'avatar', $fileNameToStore, 'avatars');
+                    if (isset($upload['flag']) && $upload['flag'] == 1 && isset($upload['url'])) {
                         $user->avatar = $upload['url'];
                         $user->save();
                     }
+                } elseif ($request->has('avatar') && is_string($request->avatar) && !empty($request->avatar)) {
+                    $avatarPath = parse_url($request->avatar, PHP_URL_PATH);
+                    if (strpos($avatarPath, 'avatars/') !== false) {
+                        $fileName = 'avatars/' . basename($avatarPath);
+                    } else {
+                        $fileName = basename($avatarPath);
+                    }
+                    $user->avatar = $fileName;
+                    $user->save();
                 }
             }
 
@@ -277,21 +286,32 @@ class EmployeeController extends Controller
             $employee->save();
 
             // Update avatar if provided
-            if ($request->hasFile('avatar')) {
-                $file = $request->file('avatar');
-                $filename = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
-                $extension = $file->getClientOriginalExtension();
-                $fileNameToStore = 'avatar_' . time() . '.' . $extension;
-                
-                $upload = upload_file($request, 'avatar', $fileNameToStore, 'avatars');
-                if (isset($upload['flag']) && $upload['flag'] == 1 && isset($upload['url'])) {
-                    $user = User::find($employee->user_id);
-                    if ($user) {
+            $user = User::find($employee->user_id);
+            if ($user) {
+                if ($request->hasFile('avatar')) {
+                    $file = $request->file('avatar');
+                    $filename = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+                    $extension = $file->getClientOriginalExtension();
+                    $fileNameToStore = 'avatar_' . time() . '.' . $extension;
+                    
+                    $upload = upload_file($request, 'avatar', $fileNameToStore, 'avatars');
+                    if (isset($upload['flag']) && $upload['flag'] == 1 && isset($upload['url'])) {
                         // Delete old avatar if exists and is not default
                         if ($user->avatar && $user->avatar != 'avatar.png') {
                             delete_file($user->avatar);
                         }
                         $user->avatar = $upload['url'];
+                        $user->save();
+                    }
+                } elseif ($request->has('avatar') && is_string($request->avatar) && !empty($request->avatar)) {
+                    $avatarPath = parse_url($request->avatar, PHP_URL_PATH);
+                    if (strpos($avatarPath, 'avatars/') !== false) {
+                        $fileName = 'avatars/' . basename($avatarPath);
+                    } else {
+                        $fileName = basename($avatarPath);
+                    }
+                    if ($user->avatar !== $fileName) {
+                        $user->avatar = $fileName;
                         $user->save();
                     }
                 }

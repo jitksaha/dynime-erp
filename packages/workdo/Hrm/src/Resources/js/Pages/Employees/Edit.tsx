@@ -17,6 +17,7 @@ import { Eye, Trash2 } from 'lucide-react';
 import { router } from '@inertiajs/react';
 import { getImagePath } from '@/utils/helpers';
 import { useFormFields } from '@/hooks/useFormFields';
+import MediaLibraryModal from "@/components/MediaLibraryModal";
 
 export default function Edit() {
     const { employee, users, branches, departments, designations, shifts, existingDocuments, documentTypes, companyAllSetting = {} } = usePage<any>().props;
@@ -25,6 +26,7 @@ export default function Edit() {
     const [filteredDepartments, setFilteredDepartments] = useState(departments || []);
     const [filteredDesignations, setFilteredDesignations] = useState(designations || []);
     const [avatarPreview, setAvatarPreview] = useState<string | null>(employee.user?.avatar ? getImagePath(employee.user.avatar) : null);
+    const [isMediaModalOpen, setIsMediaModalOpen] = useState(false);
     const { t } = useTranslation();
 
     const paymentMethods = [
@@ -380,34 +382,44 @@ export default function Edit() {
                             <TabsContent value="personal" className="space-y-6 mt-6">
                                 <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                                     <div className="md:col-span-2 flex flex-col items-center justify-center p-4 border border-dashed border-slate-200 rounded-xl bg-slate-50/50 gap-3">
-                                        <div className="relative">
+                                        <div className="relative cursor-pointer group" onClick={() => setIsMediaModalOpen(true)}>
                                             <img
                                                 src={avatarPreview || (employee.user?.avatar ? getImagePath(employee.user.avatar) : '/default-avatar.png')}
                                                 alt="Avatar Preview"
-                                                className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-md"
+                                                className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-md group-hover:opacity-85 transition-opacity"
                                                 onError={(e) => { e.currentTarget.src = '/default-avatar.png'; }}
                                             />
+                                            <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <span className="text-white text-xs font-semibold">{t('Browse')}</span>
+                                            </div>
                                         </div>
                                         <div className="flex flex-col items-center gap-1">
-                                            <Label htmlFor="avatar" className="cursor-pointer bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold px-4 py-2 rounded-lg shadow-sm transition-colors">
-                                                {t('Upload Profile Picture')}
-                                            </Label>
-                                            <input
-                                                id="avatar"
-                                                type="file"
-                                                accept="image/*"
-                                                className="hidden"
-                                                onChange={(e) => {
-                                                    const file = e.target.files?.[0];
-                                                    if (file) {
-                                                        setData('avatar', file);
-                                                        setAvatarPreview(URL.createObjectURL(file));
-                                                    }
-                                                }}
-                                            />
-                                            <p className="text-[10px] text-slate-400">{t('Allowed formats: JPG, PNG, JPEG. Max 2MB')}</p>
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => setIsMediaModalOpen(true)}
+                                                className="font-semibold text-xs"
+                                            >
+                                                {t('Select Profile Picture')}
+                                            </Button>
+                                            <p className="text-[10px] text-slate-400">{t('Select from Media Library')}</p>
                                         </div>
                                         <InputError message={errors.avatar} />
+
+                                        <MediaLibraryModal
+                                            isOpen={isMediaModalOpen}
+                                            onClose={() => setIsMediaModalOpen(false)}
+                                            onSelect={(selected) => {
+                                                const selectedUrl = Array.isArray(selected) ? selected[0] : selected;
+                                                if (selectedUrl) {
+                                                    setData('avatar', selectedUrl);
+                                                    setAvatarPreview(getImagePath(selectedUrl));
+                                                }
+                                                setIsMediaModalOpen(false);
+                                            }}
+                                            multiple={false}
+                                        />
                                     </div>
 
                                     <div>

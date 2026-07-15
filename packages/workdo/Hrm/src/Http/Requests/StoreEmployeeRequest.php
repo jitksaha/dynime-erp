@@ -13,9 +13,9 @@ class StoreEmployeeRequest extends FormRequest
 
     public function rules(): array
     {
-        return [
+        $rules = [
             'employee_id' => 'required|max:50',
-            'avatar' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+            'avatar' => 'nullable',
             'date_of_birth' => 'required|date',
             'gender' => 'required',
             'shift_id' => 'required|exists:shifts,id',
@@ -58,5 +58,11 @@ class StoreEmployeeRequest extends FormRequest
             'documents.*.document_type_id' => 'required_with:documents.*.file|nullable|exists:employee_document_types,id',
             'documents.*.file' => 'nullable|file|mimes:pdf,doc,docx,jpg,jpeg,png|max:2048'
         ];
+        
+        if ($this->hasFile('avatar')) {
+            $rules['avatar'] = 'nullable|image|mimes:jpeg,png,jpg|max:2048';
+        }
+
+        return $rules;
     }
 }
