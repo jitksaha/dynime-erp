@@ -189,26 +189,31 @@ if (!function_exists('company_setting')) {
 if (!function_exists('getImageUrlPrefix')) {
     function getImageUrlPrefix(): string
     {
-        $storageType = admin_setting('storageType') ?: 'local';
+        $settings = getCompanyAllSetting();
+        if (empty($settings['storageType'])) {
+            $settings = getAdminAllSetting();
+        }
+
+        $storageType = $settings['storageType'] ?? 'local';
 
         switch ($storageType) {
             case 's3':
             case 'aws_s3':
-                $url = admin_setting('awsUrl');
+                $url = $settings['awsUrl'] ?? null;
                 if ($url) {
                     return rtrim($url, '/') . '/media/';
                 }
-                $endpoint = admin_setting('awsEndpoint');
+                $endpoint = $settings['awsEndpoint'] ?? null;
                 if ($endpoint && strpos($endpoint, 'amazonaws.com') === false) {
                     return rtrim($endpoint, '/') . '/media/';
                 }
-                $bucket = admin_setting('awsBucket');
-                $region = admin_setting('awsDefaultRegion');
+                $bucket = $settings['awsBucket'] ?? '';
+                $region = $settings['awsDefaultRegion'] ?? 'us-east-1';
                 return "https://{$bucket}.s3.{$region}.amazonaws.com/media";
 
             case 'wasabi':
-                $url = admin_setting('wasabiUrl');
-                $bucket = admin_setting('wasabiBucket');
+                $url = $settings['wasabiUrl'] ?? null;
+                $bucket = $settings['wasabiBucket'] ?? '';
                 return $url ? rtrim($url, '/') . '/' . $bucket . '/media' : url('/storage/media/');
 
             case 'local':
