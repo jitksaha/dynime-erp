@@ -13,8 +13,8 @@ class UpdateEmployeeRequest extends FormRequest
 
     public function rules(): array
     {
-        return [
-            'avatar' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+        $rules = [
+            'avatar' => 'nullable',
             'date_of_birth' => 'required|date',
             'gender' => 'required',
             'shift_id' => 'required|exists:shifts,id',
@@ -56,5 +56,11 @@ class UpdateEmployeeRequest extends FormRequest
             'documents.*.document_type_id' => 'nullable|exists:employee_document_types,id',
             'documents.*.file' => 'nullable|file|mimes:pdf,doc,docx,jpg,jpeg,png|max:2048',
         ];
+
+        if ($this->hasFile('avatar')) {
+            $rules['avatar'] = 'nullable|image|mimes:jpeg,png,jpg|max:2048';
+        }
+
+        return $rules;
     }
 }
