@@ -201,11 +201,11 @@ if (!function_exists('getImageUrlPrefix')) {
             case 'aws_s3':
                 $url = $settings['awsUrl'] ?? null;
                 if ($url) {
-                    return rtrim($url, '/') . '/media/';
+                    return rtrim($url, '/') . '/media';
                 }
                 $endpoint = $settings['awsEndpoint'] ?? null;
                 if ($endpoint && strpos($endpoint, 'amazonaws.com') === false) {
-                    return rtrim($endpoint, '/') . '/media/';
+                    return rtrim($endpoint, '/') . '/media';
                 }
                 $bucket = $settings['awsBucket'] ?? '';
                 $region = $settings['awsDefaultRegion'] ?? 'us-east-1';
@@ -214,12 +214,11 @@ if (!function_exists('getImageUrlPrefix')) {
             case 'wasabi':
                 $url = $settings['wasabiUrl'] ?? null;
                 $bucket = $settings['wasabiBucket'] ?? '';
-                return $url ? rtrim($url, '/') . '/' . $bucket . '/media' : url('/storage/media/');
+                return $url ? rtrim($url, '/') . '/' . $bucket . '/media' : rtrim(url('/storage/media'), '/');
 
             case 'local':
-                return url('/storage/media/');
             default:
-                return url('/storage/media/');
+                return rtrim(url('/storage/media'), '/');
         }
     }
 }
