@@ -13,6 +13,45 @@ class HomeController extends Controller
 {
     public function Dashboard(Request $request)
     {
+        $user = Auth::user();
+        if ($user && $user->type !== 'company' && $user->type !== 'superadmin') {
+            if (Module_is_active('Hrm') && $user->can('manage-hrm-dashboard') && \Route::has('hrm.index')) {
+                return redirect()->route('hrm.index');
+            }
+            if (Module_is_active('Taskly') && $user->can('manage-project-dashboard') && \Route::has('project.dashboard.index')) {
+                return redirect()->route('project.dashboard.index');
+            }
+            if (Module_is_active('Lead') && $user->can('manage-crm-dashboard') && \Route::has('lead.index')) {
+                return redirect()->route('lead.index');
+            }
+            if (Module_is_active('Account') && $user->can('manage-account-dashboard') && \Route::has('account.index')) {
+                return redirect()->route('account.index');
+            }
+            if (Module_is_active('Recruitment') && $user->can('manage-recruitment-dashboard') && \Route::has('recruitment.index')) {
+                return redirect()->route('recruitment.index');
+            }
+            if (Module_is_active('Pos') && $user->can('manage-pos-dashboard') && \Route::has('pos.index')) {
+                return redirect()->route('pos.index');
+            }
+            if (Module_is_active('SupportTicket') && \Route::has('dashboard.support-tickets')) {
+                return redirect()->route('dashboard.support-tickets');
+            }
+
+            // General fallbacks
+            if (Module_is_active('Hrm') && \Route::has('hrm.index')) {
+                return redirect()->route('hrm.index');
+            }
+            if (Module_is_active('Taskly') && \Route::has('project.dashboard.index')) {
+                return redirect()->route('project.dashboard.index');
+            }
+            if (Module_is_active('Account') && \Route::has('account.index')) {
+                return redirect()->route('account.index');
+            }
+            if (Module_is_active('Lead') && \Route::has('lead.index')) {
+                return redirect()->route('lead.index');
+            }
+        }
+
         $creatorId = creatorId();
         $isDemo = config('app.is_demo');
 

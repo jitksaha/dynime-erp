@@ -54,9 +54,9 @@ class StoreEmployeeRequest extends FormRequest
             'branch_id' => 'required|exists:branches,id',
             'department_id' => 'required|exists:departments,id',
             'designation_id' => 'required|exists:designations,id',
-            'documents' => 'required|array|min:1',
-            'documents.*.document_type_id' => 'required|exists:employee_document_types,id',
-            'documents.*.file' => 'required|file|mimes:pdf,doc,docx,jpg,jpeg,png|max:2048'
+            'documents' => 'nullable|array',
+            'documents.*.document_type_id' => 'required_with:documents.*.file|nullable|exists:employee_document_types,id',
+            'documents.*.file' => 'nullable|file|mimes:pdf,doc,docx,jpg,jpeg,png|max:2048'
         ];
     }
 }

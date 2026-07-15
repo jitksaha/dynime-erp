@@ -26,6 +26,11 @@ export const getCompanyMenu = (t: (key: string) => string): NavItem[] => [
                 href: route('users.index'),
                 permission: 'manage-users',
             },
+            {
+                title: t('User Requests'),
+                href: route('user-requests.index'),
+                permission: 'manage-users',
+            },
         ],
     },
     {

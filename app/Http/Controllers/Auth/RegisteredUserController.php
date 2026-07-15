@@ -13,6 +13,7 @@ use Illuminate\Validation\Rules;
 use Inertia\Inertia;
 use Inertia\Response;
 use App\Models\EmailTemplate;
+use App\Models\UserRequest;
 
 class RegisteredUserController extends Controller
 {
@@ -28,7 +29,80 @@ class RegisteredUserController extends Controller
             return redirect()->route('login');
         }
 
-        return Inertia::render('auth/register');
+        $companies = User::where('type', 'company')->select('id', 'name')->get();
+
+        // Get Spatie roles excluding company and superadmin
+        $roles = \Spatie\Permission\Models\Role::whereNotIn('name', ['company', 'superadmin'])
+            ->select('id', 'name')
+            ->get()
+            ->map(function($role) {
+                return [
+                    'value' => $role->name,
+                    'label' => ucwords(str_replace('_', ' ', $role->name))
+                ];
+            });
+
+        return Inertia::render('auth/register', [
+            'companies' => $companies,
+            'roles' => $roles
+        ]);
+    }
+
+    /**
+     * Handle a public staff or client registration request.
+     */
+    public function storeRequest(Request $request): RedirectResponse
+    {
+        $allowedRoles = \Spatie\Permission\Models\Role::whereNotIn('name', ['company', 'superadmin'])
+            ->pluck('name')
+            ->toArray();
+
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|lowercase|email|max:255|unique:users,email|unique:user_requests,email',
+            'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            'role' => 'required|string|in:' . implode(',', $allowedRoles),
+            'company_id' => 'required|exists:users,id',
+        ]);
+
+        $role = $request->role;
+        $roleLower = strtolower($role);
+        $isClient = in_array($roleLower, ['client', 'vendor', 'customer', 'buyer']) || 
+                    str_contains($roleLower, 'client') || 
+                    str_contains($roleLower, 'vendor');
+
+        $questions = [];
+        if (!$isClient) {
+            $request->validate([
+                'date_of_birth' => 'required|date',
+                'gender' => 'required|string|in:Male,Female,Other',
+            ]);
+            $questions = [
+                'date_of_birth' => $request->date_of_birth,
+                'gender' => $request->gender,
+            ];
+        } else {
+            $request->validate([
+                'phone' => 'required|string|max:20',
+                'business_name' => 'required|string|max:255',
+            ]);
+            $questions = [
+                'phone' => $request->phone,
+                'business_name' => $request->business_name,
+            ];
+        }
+
+        UserRequest::create([
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => Hash::make($request->password),
+            'role' => $role,
+            'company_id' => $request->company_id,
+            'questions' => $questions,
+            'status' => 'pending',
+        ]);
+
+        return redirect()->route('login')->with('success', __('Your registration request has been submitted. The company will review and approve your account shortly.'));
     }
 
     /**

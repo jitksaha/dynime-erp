@@ -8,6 +8,13 @@ import { useTranslation } from 'react-i18next';
 import { router } from '@inertiajs/react';
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface PayrollSettingsProps {
   userSettings?: Record<string, string>;
@@ -37,7 +44,13 @@ export default function PayrollSettings({ userSettings = {}, auth }: PayrollSett
       initial[`payroll_method_enabled_${opt.key}`] = enabledVal === undefined 
         ? opt.key === 'bank_transfer' 
         : enabledVal === 'on';
-      initial[`payroll_method_fee_${opt.key}`] = userSettings[`payroll_method_fee_${opt.key}`] || '0';
+      
+      const feeType = userSettings[`payroll_method_fee_type_${opt.key}`] || 'percentage';
+      initial[`payroll_method_fee_type_${opt.key}`] = feeType;
+
+      const legacyFee = userSettings[`payroll_method_fee_${opt.key}`] || '0';
+      initial[`payroll_method_fee_percentage_${opt.key}`] = userSettings[`payroll_method_fee_percentage_${opt.key}`] || legacyFee;
+      initial[`payroll_method_fee_fixed_${opt.key}`] = userSettings[`payroll_method_fee_fixed_${opt.key}`] || '0';
     });
     return initial;
   });
@@ -49,7 +62,13 @@ export default function PayrollSettings({ userSettings = {}, auth }: PayrollSett
       updated[`payroll_method_enabled_${opt.key}`] = enabledVal === undefined 
         ? opt.key === 'bank_transfer' 
         : enabledVal === 'on';
-      updated[`payroll_method_fee_${opt.key}`] = userSettings[`payroll_method_fee_${opt.key}`] || '0';
+      
+      const feeType = userSettings[`payroll_method_fee_type_${opt.key}`] || 'percentage';
+      updated[`payroll_method_fee_type_${opt.key}`] = feeType;
+
+      const legacyFee = userSettings[`payroll_method_fee_${opt.key}`] || '0';
+      updated[`payroll_method_fee_percentage_${opt.key}`] = userSettings[`payroll_method_fee_percentage_${opt.key}`] || legacyFee;
+      updated[`payroll_method_fee_fixed_${opt.key}`] = userSettings[`payroll_method_fee_fixed_${opt.key}`] || '0';
     });
     setSettings(updated);
   }, [userSettings]);
@@ -61,10 +80,24 @@ export default function PayrollSettings({ userSettings = {}, auth }: PayrollSett
     }));
   };
 
-  const handleFeeChange = (key: string, value: string) => {
+  const handleFeeTypeChange = (key: string, value: string) => {
     setSettings(prev => ({
       ...prev,
-      [`payroll_method_fee_${key}`]: value
+      [`payroll_method_fee_type_${key}`]: value
+    }));
+  };
+
+  const handleFeePercentageChange = (key: string, value: string) => {
+    setSettings(prev => ({
+      ...prev,
+      [`payroll_method_fee_percentage_${key}`]: value
+    }));
+  };
+
+  const handleFeeFixedChange = (key: string, value: string) => {
+    setSettings(prev => ({
+      ...prev,
+      [`payroll_method_fee_fixed_${key}`]: value
     }));
   };
 
@@ -78,8 +111,21 @@ export default function PayrollSettings({ userSettings = {}, auth }: PayrollSett
         settings[`payroll_method_enabled_${opt.key}`] ? 'on' : 'off'
       );
       formData.append(
+        `settings[payroll_method_fee_type_${opt.key}]`, 
+        settings[`payroll_method_fee_type_${opt.key}`] || 'percentage'
+      );
+      formData.append(
+        `settings[payroll_method_fee_percentage_${opt.key}]`, 
+        settings[`payroll_method_fee_percentage_${opt.key}`] || '0'
+      );
+      formData.append(
+        `settings[payroll_method_fee_fixed_${opt.key}]`, 
+        settings[`payroll_method_fee_fixed_${opt.key}`] || '0'
+      );
+      // Legacy compatibility:
+      formData.append(
         `settings[payroll_method_fee_${opt.key}]`, 
-        settings[`payroll_method_fee_${opt.key}`] || '0'
+        settings[`payroll_method_fee_percentage_${opt.key}`] || '0'
       );
     });
 
@@ -129,12 +175,11 @@ export default function PayrollSettings({ userSettings = {}, auth }: PayrollSett
           <div className="grid grid-cols-1 gap-4">
             {paymentOptions.map((opt) => {
               const isEnabled = settings[`payroll_method_enabled_${opt.key}`];
-              const fee = settings[`payroll_method_fee_${opt.key}`];
 
               return (
                 <div 
                   key={opt.key} 
-                  className={`flex flex-col md:flex-row md:items-center justify-between p-4 border rounded-xl gap-4 transition-all duration-200 ${
+                  className={`flex flex-col lg:flex-row lg:items-center justify-between p-4 border rounded-xl gap-4 transition-all duration-200 ${
                     isEnabled 
                       ? 'border-slate-200 bg-white shadow-sm' 
                       : 'border-slate-100 bg-slate-50/50 opacity-75'
@@ -163,32 +208,83 @@ export default function PayrollSettings({ userSettings = {}, auth }: PayrollSett
                     </p>
                   </div>
 
-                  <div className="flex items-center gap-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-4 mt-2 lg:mt-0">
                     {isEnabled && (
-                      <div className="flex items-center gap-2">
-                        <Label htmlFor={`fee_${opt.key}`} className="text-sm font-medium text-slate-700">
-                          {t('Transfer Fee (%)')}
-                        </Label>
-                        <Input
-                          id={`fee_${opt.key}`}
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          max="100"
-                          value={fee}
-                          onChange={(e) => handleFeeChange(opt.key, e.target.value)}
-                          placeholder="0.00"
-                          className="w-24 h-9 text-center font-medium"
-                          disabled={!canEdit}
-                        />
+                      <div className="flex flex-wrap items-center gap-3">
+                        {/* Fee Type Dropdown */}
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`fee_type_${opt.key}`} className="text-sm font-medium text-slate-700 whitespace-nowrap">
+                            {t('Fee Type')}
+                          </Label>
+                          <Select
+                            value={settings[`payroll_method_fee_type_${opt.key}`]}
+                            onValueChange={(val) => handleFeeTypeChange(opt.key, val)}
+                            disabled={!canEdit}
+                          >
+                            <SelectTrigger id={`fee_type_${opt.key}`} className="w-40 h-9">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="percentage">{t('Percentage')}</SelectItem>
+                              <SelectItem value="fixed">{t('Fixed Fee')}</SelectItem>
+                              <SelectItem value="both">{t('Percentage + Fixed')}</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        {/* Percentage Fee Input (Visible if percentage or both) */}
+                        {(settings[`payroll_method_fee_type_${opt.key}`] === 'percentage' || 
+                          settings[`payroll_method_fee_type_${opt.key}`] === 'both') && (
+                          <div className="flex items-center gap-2">
+                            <Label htmlFor={`fee_pct_${opt.key}`} className="text-sm font-medium text-slate-700 whitespace-nowrap">
+                              {t('Fee (%)')}
+                            </Label>
+                            <Input
+                              id={`fee_pct_${opt.key}`}
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              max="100"
+                              value={settings[`payroll_method_fee_percentage_${opt.key}`]}
+                              onChange={(e) => handleFeePercentageChange(opt.key, e.target.value)}
+                              placeholder="0.00"
+                              className="w-20 h-9 text-center font-medium"
+                              disabled={!canEdit}
+                            />
+                          </div>
+                        )}
+
+                        {/* Fixed Fee Input (Visible if fixed or both) */}
+                        {(settings[`payroll_method_fee_type_${opt.key}`] === 'fixed' || 
+                          settings[`payroll_method_fee_type_${opt.key}`] === 'both') && (
+                          <div className="flex items-center gap-2">
+                            <Label htmlFor={`fee_fixed_${opt.key}`} className="text-sm font-medium text-slate-700 whitespace-nowrap">
+                              {t('Fixed Fee')}
+                            </Label>
+                            <Input
+                              id={`fee_fixed_${opt.key}`}
+                              type="number"
+                              step="0.01;0.1;1"
+                              min="0"
+                              value={settings[`payroll_method_fee_fixed_${opt.key}`]}
+                              onChange={(e) => handleFeeFixedChange(opt.key, e.target.value)}
+                              placeholder="0.00"
+                              className="w-24 h-9 text-center font-medium"
+                              disabled={!canEdit}
+                            />
+                          </div>
+                        )}
                       </div>
                     )}
-                    <Switch
-                      id={`enable_${opt.key}`}
-                      checked={isEnabled}
-                      onCheckedChange={(checked) => handleToggleChange(opt.key, checked)}
-                      disabled={!canEdit}
-                    />
+                    
+                    <div className="flex items-center self-end sm:self-auto">
+                      <Switch
+                        id={`enable_${opt.key}`}
+                        checked={isEnabled}
+                        onCheckedChange={(checked) => handleToggleChange(opt.key, checked)}
+                        disabled={!canEdit}
+                      />
+                    </div>
                   </div>
                 </div>
               );

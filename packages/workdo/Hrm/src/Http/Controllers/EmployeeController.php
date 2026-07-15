@@ -172,7 +172,7 @@ class EmployeeController extends Controller
 
                         $filename = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
                         $extension = $file->getClientOriginalExtension();
-                        $fileNameToStore = $filename . '_' . time() . '.' . $extension;
+                        $fileNameToStore = $filename . '_' . time() . '_' . $index . '.' . $extension;
 
                         $upload = upload_file($request, "documents.{$index}.file", $fileNameToStore, 'employee_documents');
 
@@ -307,7 +307,7 @@ class EmployeeController extends Controller
 
                         $filename = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
                         $extension = $file->getClientOriginalExtension();
-                        $fileNameToStore = $filename . '_' . time() . '.' . $extension;
+                        $fileNameToStore = $filename . '_' . time() . '_' . $index . '.' . $extension;
 
                         $upload = upload_file($request, "documents.{$index}.file", $fileNameToStore, 'employee_documents');
 

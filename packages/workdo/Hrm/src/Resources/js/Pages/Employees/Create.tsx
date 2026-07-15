@@ -1,4 +1,4 @@
-import { Head, useForm, usePage } from "@inertiajs/react";
+import { Head, useForm, usePage, router } from "@inertiajs/react";
 import { useTranslation } from 'react-i18next';
 import AuthenticatedLayout from "@/layouts/authenticated-layout";
 import { Button } from "@/components/ui/button";
@@ -64,26 +64,18 @@ export default function Create() {
         setNewUserProcessing(true);
         setNewUserErrors({});
         try {
-            await axios.post(route('users.store'), newUserForm);
+            // Store current users so we can detect the new one after reload
+            const prevLocalUsers = [...localUsers];
 
-            const getRes = await axios.get(route('hrm.employees.create'), {
+            await axios.post(route('users.store'), newUserForm, {
                 headers: {
-                    'X-Inertia': 'true',
-                }
+                    'Accept': 'application/json',
+                },
+                maxRedirects: 0,
+                validateStatus: (status) => status < 400,
             });
 
-            const updatedUsers = getRes.data.props.users || [];
-            
-            const newlyAddedUser = updatedUsers.find(
-                (u: any) => !localUsers.some((oldU: any) => oldU.id === u.id)
-            );
-
-            setLocalUsers(updatedUsers);
-
-            if (newlyAddedUser) {
-                setData('user_id', newlyAddedUser.id.toString());
-            }
-
+            // Reset form and close dialog immediately on success
             setNewUserForm({
                 name: '',
                 email: '',
@@ -94,10 +86,27 @@ export default function Create() {
                 is_enable_login: true,
             });
             setIsAddUserOpen(false);
+
+            // Reload only the users prop via Inertia to get the updated list
+            router.reload({
+                only: ['users'],
+                onSuccess: (page: any) => {
+                    const updatedUsers: any[] = page.props.users || [];
+                    setLocalUsers(updatedUsers);
+                    const newlyAddedUser = updatedUsers.find(
+                        (u: any) => !prevLocalUsers.some((oldU: any) => oldU.id === u.id)
+                    );
+                    if (newlyAddedUser) {
+                        setData('user_id', newlyAddedUser.id.toString());
+                    }
+                },
+            });
         } catch (error: any) {
             console.error(error);
             if (error.response?.data?.errors) {
                 setNewUserErrors(error.response.data.errors);
+            } else if (error.response?.data?.message) {
+                setNewUserErrors({ name: [error.response.data.message] });
             } else {
                 setNewUserErrors({ name: [t('Something went wrong. Please check your inputs.')] });
             }
@@ -171,7 +180,7 @@ export default function Create() {
     };
 
 
-    const { data, setData, post, processing, errors, clearStorage } = usePersistentForm<CreateEmployeeFormData>('employee_create_form', {
+    const { data, setData, post, setError, processing, errors, clearStorage } = usePersistentForm<CreateEmployeeFormData>('employee_create_form', {
         employee_id: generatedEmployeeId,
         avatar: null,
         date_of_birth: '',
@@ -221,8 +230,20 @@ export default function Create() {
         branch_id: '',
         department_id: '',
         designation_id: '',
-        documents: [{ document_type_id: '', file: '' }],
+        documents: [],
     });
+
+    // On mount: clean up any document rows restored from localStorage that have no valid File object
+    // (File objects can't survive localStorage serialization and are saved as null)
+    useEffect(() => {
+        if (data.documents && data.documents.length > 0) {
+            const validDocs = data.documents.filter((doc: any) => doc.file instanceof File);
+            if (validDocs.length !== data.documents.length) {
+                setData('documents', validDocs);
+            }
+        }
+    }, []); // run once on mount
+
 
     useEffect(() => {
         setFilteredBranches(branches || []);
@@ -385,39 +406,33 @@ export default function Create() {
     const biometricFields = useFormFields('biometricEmployeeIdFields', data, setData, errors, 'create');
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
-        
-        const formData = new FormData();
-        
-        // Add all form fields
-        Object.keys(data).forEach(key => {
-            if (key !== 'documents') {
-                if (key === 'payment_details' && typeof data[key] === 'object' && data[key] !== null) {
-                    formData.append(key, JSON.stringify(data[key]));
-                } else {
-                    formData.append(key, data[key]);
-                }
-            }
-        });
-        
-        // Add documents with files
-        data.documents.forEach((document, index) => {
-            if (document.document_type_id) {
-                formData.append(`documents[${index}][document_type_id]`, document.document_type_id);
-            }
-            if (document.file) {
-                formData.append(`documents[${index}][file]`, document.file);
-            }
-        });
-        
+
         post(route('hrm.employees.store'), {
-            data: formData,
             forceFormData: true,
             onSuccess: () => {
                 clearStorage();
                 try {
                     localStorage.removeItem('employee_create_active_tab');
                 } catch (e) {}
-            }
+            },
+            onError: (errs) => {
+                // Switch to the first tab that has an error so the user can see it
+                const tabFieldMap: Record<string, string[]> = {
+                    personal: ['employee_id', 'date_of_birth', 'gender', 'avatar'],
+                    employment: ['user_id', 'shift_id', 'date_of_joining', 'employment_type', 'employment_status', 'probation_percentage', 'probation_period', 'work_mode', 'work_location_country', 'branch_id', 'department_id', 'designation_id'],
+                    contact: ['address_line_1', 'address_line_2', 'city', 'state', 'country', 'postal_code', 'emergency_contact_name', 'emergency_contact_relationship', 'emergency_contact_number'],
+                    payroll: ['payment_method'],
+                    hours: ['basic_salary', 'salary_type', 'hours_per_day', 'days_per_week', 'rate_per_hour'],
+                    documents: [],
+                };
+                for (const [tab, fields] of Object.entries(tabFieldMap)) {
+                    const hasError = fields.some(f => errs[f]) || (tab === 'documents' && Object.keys(errs).some(k => k.startsWith('documents')));
+                    if (hasError) {
+                        setActiveTab(tab);
+                        break;
+                    }
+                }
+            },
         });
     };
 
