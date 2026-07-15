@@ -4,11 +4,8 @@
 require __DIR__.'/../vendor/autoload.php';
 $app = require_once __DIR__.'/../bootstrap/app.php';
 
-// Handle request to bootstrap session
-$kernel = $app->make(Illuminate\Contracts\Http\Kernel::class);
-$kernel->handle(
-    $request = Illuminate\Http\Request::capture()
-);
+// Bootstrap service providers without dispatching HTTP routing
+$app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 
 header('Content-Type: application/json');
 
