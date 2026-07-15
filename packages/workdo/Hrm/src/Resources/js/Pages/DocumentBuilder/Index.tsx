@@ -1455,7 +1455,7 @@ export default function Index({ employees, companySettings, prefill }: IndexProp
                                         {/* Official Circular Seal Image */}
                                         {hasSignature && (
                                             <div className="relative h-24 w-24">
-                                                <img src="/seal_dynime.png" alt="Dynime Seal" className="h-24 w-24 object-contain" />
+                                                <img src="https://cdn.dynime.com/Dynime%20Logo/Seal/seal.png" alt="Dynime Seal" className="h-24 w-24 object-contain" />
                                             </div>
                                         )}
                                         <div className="text-[11px] space-y-0.5">
