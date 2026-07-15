@@ -397,7 +397,7 @@ export default function Index({ employees, companySettings, prefill }: IndexProp
                 if (p.overrideDesignation !== undefined) setOverrideDesignation(p.overrideDesignation || '');
                 if (p.overrideDepartment !== undefined) setOverrideDepartment(p.overrideDepartment || '');
                 if (p.overrideEmploymentType !== undefined) setOverrideEmploymentType(p.overrideEmploymentType || 'Full-Time');
-                if (p.overrideJobType !== undefined) setOverrideJobType(p.overrideJobType || 'â');
+                if (p.overrideJobType !== undefined) setOverrideJobType(p.overrideJobType || '-');
                 if (p.typedSignatoryName !== undefined) setTypedSignatoryName(p.typedSignatoryName || '');
                 if (p.signatureImage !== undefined) setSignatureImage(p.signatureImage || null);
                 if (p.newDesignation !== undefined) setNewDesignation(p.newDesignation || '');
@@ -449,7 +449,7 @@ export default function Index({ employees, companySettings, prefill }: IndexProp
     const [overrideDesignation, setOverrideDesignation] = useState<string>('');
     const [overrideDepartment, setOverrideDepartment] = useState<string>('');
     const [overrideEmploymentType, setOverrideEmploymentType] = useState<string>('Full-Time');
-    const [overrideJobType, setOverrideJobType] = useState<string>('â');
+    const [overrideJobType, setOverrideJobType] = useState<string>('-');
 
     // Authorised signatory options
     const [typedSignatoryName, setTypedSignatoryName] = useState<string>('');
@@ -808,7 +808,7 @@ export default function Index({ employees, companySettings, prefill }: IndexProp
                                                 disabled 
                                                 className="font-bold text-primary bg-muted/40 text-xs py-1.5 border-y select-none"
                                             >
-                                                ð {category.name.toUpperCase()}
+                                                📂 {category.name.toUpperCase()}
                                             </SelectItem>,
                                             ...category.types.map(type => (
                                                 <SelectItem key={type.id} value={type.id} className="pl-6 text-xs">
@@ -1110,9 +1110,9 @@ export default function Index({ employees, companySettings, prefill }: IndexProp
                                             <h2 className="font-bold text-[#1c1c1e] text-sm tracking-wide">{customCompanyName || 'Dynime LLC.'}</h2>
                                             <p className="text-[10px] text-[#8e8e93] mt-1 flex items-center gap-2">
                                                 <span className="flex items-center gap-1"><Mail className="h-3 w-3 text-[#8e8e93]" /> {companySettings.company_email || 'contact@dynime.com'}</span>
-                                                <span>Â·</span>
+                                                <span>•</span>
                                                 <span className="flex items-center gap-1"><Globe className="h-3 w-3 text-[#8e8e93]" /> {companySettings.company_website || 'dynime.com'}</span>
-                                                <span>Â·</span>
+                                                <span>•</span>
                                                 <span className="flex items-center gap-1"><Phone className="h-3 w-3 text-[#8e8e93]" /> {companySettings.company_telephone || '+16468840271'}</span>
                                             </p>
                                         </div>
@@ -1185,7 +1185,7 @@ export default function Index({ employees, companySettings, prefill }: IndexProp
                                                             <span className="font-semibold text-[#1c1c1e]">{formatCurrency(currentEmployee.basic_salary)}</span>
                                                         </div>
                                                         <div className="text-[#8e8e93] italic text-[11px]">
-                                                            {t('N/A â no allowances configured')}
+                                                            {t('N/A - no allowances configured')}
                                                         </div>
                                                         <div className="flex justify-between items-center border-t border-[#e5e5ea] pt-2 font-bold text-[#1c1c1e] mt-4">
                                                             <span>{t('Gross (CTC)')}</span>
@@ -1197,7 +1197,7 @@ export default function Index({ employees, companySettings, prefill }: IndexProp
                                                     <div className="bg-[#f4f4f5] border-b border-[#e5e5ea] px-4 py-2 font-semibold text-[#1c1c1e] text-xs uppercase tracking-wider">{isYearlySalary ? t('DEDUCTIONS (YEARLY)') : t('DEDUCTIONS (MONTHLY)')}</div>
                                                     <div className="p-4 space-y-2 text-xs flex flex-col justify-between h-[104px]">
                                                         <div className="text-[#8e8e93] italic text-[11px]">
-                                                            {t('N/A â no deductions configured')}
+                                                            {t('N/A - no deductions configured')}
                                                         </div>
                                                         <div className="flex justify-between items-center border-t border-[#e5e5ea] pt-2 font-bold text-[#1c1c1e]">
                                                             <span>{t('Net take-home')}</span>
@@ -1236,7 +1236,7 @@ export default function Index({ employees, companySettings, prefill }: IndexProp
                                                             <span>{formatCurrency(currentEmployee.basic_salary)}</span>
                                                         </div>
                                                         <div className="text-[#8e8e93] italic">
-                                                            {t('N/A â no allowances configured')}
+                                                            {t('N/A - no allowances configured')}
                                                         </div>
                                                         <div className="flex justify-between border-t border-[#e5e5ea] pt-2 font-bold text-[#1c1c1e]">
                                                             <span>{t('Gross (CTC)')}</span>
@@ -1248,7 +1248,7 @@ export default function Index({ employees, companySettings, prefill }: IndexProp
                                                     <div className="bg-[#f4f4f5] border-b border-[#e5e5ea] px-4 py-2 font-semibold text-[#1c1c1e] text-xs uppercase tracking-wider">{isYearlySalary ? t('DEDUCTIONS (YEARLY)') : t('DEDUCTIONS (MONTHLY)')}</div>
                                                     <div className="p-4 space-y-2 text-xs flex flex-col justify-between h-[104px]">
                                                         <div className="text-[#8e8e93] italic">
-                                                            {t('N/A â no deductions configured')}
+                                                            {t('N/A - no deductions configured')}
                                                         </div>
                                                         <div className="flex justify-between border-t border-[#e5e5ea] pt-2 font-bold text-[#1c1c1e]">
                                                             <span>{t('Net take-home')}</span>
@@ -1459,7 +1459,7 @@ export default function Index({ employees, companySettings, prefill }: IndexProp
                                             </div>
                                         )}
                                         <div className="text-[11px] space-y-0.5">
-                                            <p className="text-[#8e8e93] uppercase font-bold text-[9px] tracking-wider mb-1">{t('SYSTEM GENERATED â NO SIGNATURE REQUIRED')}</p>
+                                            <p className="text-[#8e8e93] uppercase font-bold text-[9px] tracking-wider mb-1">{t('SYSTEM GENERATED - NO SIGNATURE REQUIRED')}</p>
                                             <p className="font-bold text-[#1c1c1e]">{t('Authorised Signatory')}</p>
                                             <p className="text-[#787880]">Director, {customCompanyName}</p>
                                             <p className="text-[#787880]">{t('Date')}: {formatDocumentDate(activeDate)}</p>
@@ -1500,7 +1500,7 @@ export default function Index({ employees, companySettings, prefill }: IndexProp
                                             <div className="text-[#787880] flex flex-col items-center justify-center gap-0.5">
                                                 <span className="flex items-center gap-1">
                                                     <Mail className="h-3 w-3 text-[#8e8e93]" /> {companySettings.company_email || 'contact@dynime.com'}
-                                                    <span className="text-[#e5e5ea]">Â·</span>
+                                                    <span className="text-[#e5e5ea]">•</span>
                                                     <Globe className="h-3 w-3 text-[#8e8e93]" /> {companySettings.company_website || 'dynime.com'}
                                                 </span>
                                                 <span className="flex items-center gap-1 text-[9px]">
@@ -1510,12 +1510,12 @@ export default function Index({ employees, companySettings, prefill }: IndexProp
                                         </div>
                                         <div className="text-right space-y-1">
                                             <span className="block text-[9px] text-[#8e8e93] font-bold uppercase tracking-wider">{t('REFERENCE')}</span>
-                                            <span className="text-[#1c1c1e] font-semibold">{getDocumentTitle()} Â· {formatDocumentDate(issuedDate)}</span>
+                                            <span className="text-[#1c1c1e] font-semibold">{getDocumentTitle()} • {formatDocumentDate(issuedDate)}</span>
                                         </div>
                                     </div>
                                     <div className="mt-4 flex justify-between items-center text-[9px] text-[#8e8e93] border-t border-dashed border-[#e5e5ea] pt-2">
                                         <p>{t('This is an electronically generated document and is valid without a physical signature.')}</p>
-                                        <p>Â© {new Date().getFullYear()} {customCompanyName}</p>
+                                        <p>© {new Date().getFullYear()} {customCompanyName}</p>
                                     </div>
                                 </div>
                             </div>
