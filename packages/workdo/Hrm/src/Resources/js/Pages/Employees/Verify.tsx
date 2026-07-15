@@ -40,16 +40,14 @@ export default function Verify({ employee, status, error }: VerifyProps) {
             <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-100 rounded-full blur-3xl opacity-60" />
             <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-indigo-100 rounded-full blur-3xl opacity-60" />
 
-            <Head title={t('Employee Verification Portal')} />
-
             <div className="w-full max-w-lg z-10 space-y-6">
-                {/* Branding / Header with Dynime Logo (no text name) */}
+                <Head title={t('Employee Verification Portal')} />
+
                 <div className="text-center space-y-4">
                     <img 
-                        src="/logo_dynime.png" 
+                        src="https://cdn.dynime.com/Dynime%20Logo/LOGO%20PNG/logo%20SVG/dynime-logo.svg" 
                         alt="Dynime Logo" 
                         className="h-12 object-contain mx-auto" 
-                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
                     />
                     <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-blue-200 bg-blue-50 text-blue-600 text-xs font-semibold uppercase tracking-wider">
                         <ShieldCheck className="w-3.5 h-3.5" />

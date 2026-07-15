@@ -588,7 +588,7 @@ export default function Sign({ document: docModel, employee: currentEmployee, co
                             <div className="flex items-start justify-between border-b border-[#e5e5ea] pb-4 mb-8 text-left">
                                 <div className="flex items-center gap-4">
                                     {/* Official Dynime Logo Image */}
-                                    <img src="/logo_dynime.png" alt="Dynime" className="h-10 object-contain" />
+                                    <img src="https://cdn.dynime.com/Dynime%20Logo/LOGO%20PNG/logo%20SVG/dynime-logo.svg" alt="Dynime" className="h-10 object-contain" />
                                     <div className="border-l border-[#e5e5ea] pl-4">
                                         <h2 className="font-bold text-[#1c1c1e] text-sm tracking-wide text-left">{customCompanyName || 'Dynime LLC.'}</h2>
                                         <p className="text-[10px] text-[#8e8e93] mt-1 flex items-center gap-2">
