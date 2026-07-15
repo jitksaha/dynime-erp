@@ -4,41 +4,67 @@ import AuthenticatedLayout from "@/layouts/authenticated-layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Eye, Trash2, FileText, ExternalLink, Copy, Check, PenTool } from 'lucide-react';
+import { Eye, Trash2, FileText, ExternalLink, Copy, Check, PenTool, Mail, Phone, MapPin, Calendar, Briefcase, User, Flag } from 'lucide-react';
 import { formatDate, getImagePath, getCurrencySymbol } from '@/utils/helpers';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { getDocumentName } from '../DocumentBuilder/Index';
 import jsPDF from 'jspdf';
 import QRCode from 'qrcode';
+import axios from 'axios';
+import { Button } from "@/components/ui/button";
 
-const getBase64ImageFromUrl = (imageUrl: string): Promise<string> => {
-    return new Promise((resolve, reject) => {
+const getCroppedCircularImage = (base64Str: string): Promise<string> => {
+    return new Promise((resolve) => {
         const img = new Image();
-        img.setAttribute('crossOrigin', 'anonymous');
         img.onload = () => {
             const canvas = document.createElement('canvas');
-            canvas.width = img.width;
-            canvas.height = img.height;
+            const size = Math.min(img.width, img.height);
+            canvas.width = size;
+            canvas.height = size;
             const ctx = canvas.getContext('2d');
             if (ctx) {
-                ctx.drawImage(img, 0, 0);
-                const dataURL = canvas.toDataURL('image/png');
-                resolve(dataURL);
+                ctx.beginPath();
+                ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
+                ctx.clip();
+                ctx.drawImage(img, (img.width - size) / 2, (img.height - size) / 2, size, size, 0, 0, size, size);
+                resolve(canvas.toDataURL('image/png'));
             } else {
-                reject(new Error('Canvas context failed'));
+                resolve(base64Str);
             }
         };
-        img.onerror = (error) => {
-            reject(error);
+        img.onerror = () => {
+            resolve(base64Str);
         };
-        img.src = imageUrl;
+        img.src = base64Str;
     });
 };
+
+function IDCardQRCodeCanvas({ text }: { text: string }) {
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+
+    useEffect(() => {
+        if (canvasRef.current && text) {
+            QRCode.toCanvas(canvasRef.current, text, {
+                width: 60,
+                margin: 1,
+                color: {
+                    dark: '#0A1931',
+                    light: '#FFFFFF'
+                }
+            }, (error) => {
+                if (error) console.error('QR code generation failed:', error);
+            });
+        }
+    }, [text]);
+
+    return <canvas ref={canvasRef} className="w-[60px] h-[60px]" />;
+}
 
 export default function Show() {
     const { employee, documents, issuedDocuments } = usePage<any>().props;
     const { t } = useTranslation();
     const [copiedDocId, setCopiedDocId] = useState<number | null>(null);
+    const [isIDCardModalOpen, setIsIDCardModalOpen] = useState(false);
 
     const handleCopySignLink = (id: number) => {
         const signUrl = window.location.origin + '/hrm/document-builder/sign/' + id;
@@ -53,6 +79,7 @@ export default function Show() {
             const verifyUrl = window.location.origin + `/employee/verify/${employee.employee_id}`;
             const qrDataUrl = await QRCode.toDataURL(verifyUrl, { margin: 1, width: 150 });
 
+            // Initialize jsPDF (CR80 vertical ID Card size: 54mm width, 86mm height)
             const doc = new jsPDF({
                 orientation: 'portrait',
                 unit: 'mm',
@@ -60,50 +87,63 @@ export default function Show() {
             });
 
             // ------------------ FRONT SIDE ------------------
+            // Background
             doc.setFillColor(250, 250, 252);
             doc.rect(0, 0, 54, 86, 'F');
 
-            doc.setFillColor(43, 85, 235);
-            doc.rect(0, 0, 54, 20, 'F');
+            // Header Banner - Navy Blue
+            doc.setFillColor(10, 25, 49); // #0A1931
+            doc.rect(0, 0, 54, 22, 'F');
 
-            doc.setFillColor(235, 94, 43);
-            doc.rect(0, 20, 54, 2, 'F');
+            // Gold Stripe Accent (Diagonal)
+            doc.setFillColor(245, 194, 73); // #F5C249
+            doc.triangle(0, 22, 54, 22, 54, 20.2, 'F');
 
+            // Header Text (Company Name & Tagline)
             doc.setFont('Helvetica', 'bold');
-            doc.setFontSize(9);
-            doc.setTextColor(255, 255, 255);
-            doc.text('DYNIME ERP', 27, 10, { align: 'center' });
+            doc.setFontSize(10);
+            doc.setTextColor(245, 194, 73);
+            doc.text('DYNIME LLC', 27, 10, { align: 'center' });
             
             doc.setFont('Helvetica', 'normal');
-            doc.setFontSize(5.5);
-            doc.setTextColor(230, 240, 255);
+            doc.setFontSize(5);
+            doc.setTextColor(219, 234, 254);
             doc.text('SECURE IDENTIFICATION', 27, 14, { align: 'center' });
 
-            const avatarUrl = employee.user?.avatar ? getImagePath(employee.user.avatar) : '';
-            let avatarLoaded = false;
-            
-            if (avatarUrl) {
+            // Fetch Avatar from Backend Base64 Route without CORS issues
+            let base64Avatar = '';
+            try {
+                const response = await axios.get(route('hrm.employees.avatar-base64', employee.id));
+                base64Avatar = response.data.base64;
+            } catch (e) {
+                console.error('Failed to fetch avatar from base64 endpoint', e);
+            }
+
+            let circularAvatar = '';
+            if (base64Avatar) {
                 try {
-                    const base64Avatar = await getBase64ImageFromUrl(avatarUrl);
-                    doc.setFillColor(255, 255, 255);
-                    doc.rect(17, 26, 20, 20, 'F');
-                    doc.addImage(base64Avatar, 'PNG', 17, 26, 20, 20);
-                    doc.setDrawColor(220, 220, 220);
-                    doc.setLineWidth(0.5);
-                    doc.rect(17, 26, 20, 20, 'S');
-                    avatarLoaded = true;
-                } catch (e) {
-                    console.error('Failed to load avatar, drawing fallback placeholder', e);
+                    circularAvatar = await getCroppedCircularImage(base64Avatar);
+                } catch (err) {
+                    console.error('Failed to crop avatar to circle', err);
+                    circularAvatar = base64Avatar;
                 }
             }
 
-            if (!avatarLoaded) {
+            // Draw Photo Circle Container
+            if (circularAvatar) {
+                doc.setFillColor(255, 255, 255);
+                doc.circle(27, 33, 10, 'F');
+                doc.addImage(circularAvatar, 'PNG', 17, 23, 20, 20);
+                doc.setDrawColor(245, 194, 73);
+                doc.setLineWidth(0.8);
+                doc.circle(27, 33, 10, 'S');
+            } else {
+                // Fallback colored circle with initials
                 doc.setFillColor(230, 235, 250);
-                doc.circle(27, 36, 10, 'F');
-                
-                doc.setDrawColor(43, 85, 235);
-                doc.setLineWidth(0.5);
-                doc.circle(27, 36, 10, 'S');
+                doc.circle(27, 33, 10, 'F');
+                doc.setDrawColor(245, 194, 73);
+                doc.setLineWidth(0.8);
+                doc.circle(27, 33, 10, 'S');
 
                 const initials = (employee.user?.name || '')
                     .split(' ')
@@ -113,108 +153,145 @@ export default function Show() {
                     .toUpperCase();
                 
                 doc.setFont('Helvetica', 'bold');
-                doc.setFontSize(10);
-                doc.setTextColor(43, 85, 235);
-                doc.text(initials, 27, 39.5, { align: 'center' });
+                doc.setFontSize(9);
+                doc.setTextColor(10, 25, 49);
+                doc.text(initials, 27, 36.5, { align: 'center' });
             }
 
+            // Employee Name
             doc.setFont('Helvetica', 'bold');
             doc.setFontSize(10);
-            doc.setTextColor(30, 41, 59);
+            doc.setTextColor(10, 25, 49);
             const nameText = employee.user?.name || 'Employee';
             const displayName = nameText.length > 18 ? nameText.substring(0, 16) + '..' : nameText;
-            doc.text(displayName, 27, 51, { align: 'center' });
+            doc.text(displayName.toUpperCase(), 27, 47, { align: 'center' });
 
-            doc.setFont('Helvetica', 'normal');
-            doc.setFontSize(7);
-            doc.setTextColor(100, 116, 139);
+            // Designation Badge
+            doc.setFillColor(245, 194, 73);
+            doc.rect(13, 50, 28, 4, 'F');
+            doc.setFont('Helvetica', 'bold');
+            doc.setFontSize(6.5);
+            doc.setTextColor(10, 25, 49);
             const jobTitle = employee.designation?.designation_name || 'Staff Member';
             const displayTitle = jobTitle.length > 22 ? jobTitle.substring(0, 20) + '..' : jobTitle;
-            doc.text(displayTitle, 27, 55, { align: 'center' });
+            doc.text(displayTitle.toUpperCase(), 27, 53, { align: 'center' });
 
-            doc.setFillColor(241, 245, 249);
-            doc.rect(12, 58, 30, 4.5, 'F');
+            // Details Grid
+            doc.setFont('Helvetica', 'normal');
+            doc.setFontSize(5.5);
+            
+            // Left Column
+            // EMP ID Highlight
+            doc.setFillColor(245, 194, 73);
+            doc.rect(4, 57, 22, 4.5, 'F');
             doc.setFont('Helvetica', 'bold');
-            doc.setFontSize(7.5);
-            doc.setTextColor(15, 23, 42);
-            doc.text(employee.employee_id || '', 27, 61.2, { align: 'center' });
+            doc.setFontSize(6.5);
+            doc.setTextColor(10, 25, 49);
+            doc.text(employee.employee_id || '', 15, 60.2, { align: 'center' });
 
-            doc.addImage(qrDataUrl, 'PNG', 19, 64, 16, 16);
+            doc.setFont('Helvetica', 'normal');
+            doc.setFontSize(5.5);
+            doc.setTextColor(100, 116, 139);
+            doc.text('JOINED: ' + formatDate(employee.date_of_joining), 4, 65);
+            doc.text('BIRTH: ' + formatDate(employee.date_of_birth), 4, 69);
+            doc.text('COUNTRY: ' + (employee.work_location_country || 'USA'), 4, 73);
 
-            doc.setFillColor(43, 85, 235);
-            doc.rect(0, 84, 54, 2, 'F');
+            // Right Column
+            doc.text('DEPT: ' + (employee.department?.department_name || '—'), 28, 59);
+            doc.text('BRANCH: ' + (employee.branch?.branch_name || '—'), 28, 63);
+            doc.text('MAIL: ' + (employee.user?.email || '—'), 28, 67);
+            const empPhone = employee.phone || employee.payment_details?.recipient_phone || '—';
+            doc.text('PHONE: ' + empPhone, 28, 71);
+
+            // Verification QR Code
+            doc.addImage(qrDataUrl, 'PNG', 21, 74, 12, 12);
+            doc.setDrawColor(245, 194, 73);
+            doc.setLineWidth(0.4);
+            doc.rect(21, 74, 12, 12, 'S');
 
             // ------------------ BACK SIDE ------------------
             doc.addPage([54, 86], 'portrait');
 
+            // Background
             doc.setFillColor(250, 250, 252);
             doc.rect(0, 0, 54, 86, 'F');
 
+            // Header Banner - Navy
             doc.setFillColor(30, 41, 59);
-            doc.rect(0, 0, 54, 16, 'F');
+            doc.rect(0, 0, 54, 15, 'F');
 
-            doc.setFillColor(235, 94, 43);
-            doc.rect(0, 16, 54, 1.5, 'F');
+            // Accent Stripe
+            doc.setFillColor(245, 194, 73);
+            doc.triangle(0, 15, 54, 15, 54, 13.5, 'F');
 
             doc.setFont('Helvetica', 'bold');
             doc.setFontSize(8.5);
-            doc.setTextColor(255, 255, 255);
-            doc.text('DYNIME INC.', 27, 8, { align: 'center' });
+            doc.setTextColor(245, 194, 73);
+            doc.text('DYNIME LLC', 27, 7.5, { align: 'center' });
             
             doc.setFont('Helvetica', 'normal');
-            doc.setFontSize(5.5);
+            doc.setFontSize(5);
             doc.setTextColor(200, 210, 225);
-            doc.text('TERMS & INFORMATION', 27, 12, { align: 'center' });
+            doc.text('SECURITY & ACCESS CONTROL', 27, 11.5, { align: 'center' });
 
+            // Headquarters
             doc.setFont('Helvetica', 'bold');
             doc.setFontSize(6.5);
             doc.setTextColor(30, 41, 59);
-            doc.text('Headquarters Address', 27, 24, { align: 'center' });
+            doc.text('HEADQUARTERS', 27, 22, { align: 'center' });
 
             doc.setFont('Helvetica', 'normal');
             doc.setFontSize(5.5);
             doc.setTextColor(71, 85, 105);
-            doc.text('1209 Mountain Road PL NE', 27, 28, { align: 'center' });
-            doc.text('Albuquerque, NM 87110, USA', 27, 31, { align: 'center' });
+            doc.text('1209 Mountain Road PL NE', 27, 25.5, { align: 'center' });
+            doc.text('Albuquerque, NM 87110, USA', 27, 28.5, { align: 'center' });
 
+            // Guidelines
             doc.setFont('Helvetica', 'bold');
             doc.setFontSize(6.5);
             doc.setTextColor(30, 41, 59);
-            doc.text('Card Guidelines', 27, 38, { align: 'center' });
+            doc.text('CARD RULES & GUIDELINES', 27, 35, { align: 'center' });
 
             doc.setFont('Helvetica', 'normal');
-            doc.setFontSize(5);
+            doc.setFontSize(4.8);
             doc.setTextColor(100, 116, 139);
+            
             const terms = [
                 'This identification card remains the property of',
-                'Dynime Inc. and must be carried at all times while',
-                'on duty. In case of termination, this card must be',
-                'returned to the Human Resources department.',
+                'Dynime LLC and must be carried at all times while',
+                'on premises. In case of termination, this card',
+                'must be returned directly to HR department.',
                 '',
                 'If found, please return to the headquarters address',
                 'listed above or drop it in the nearest mailbox.'
             ];
             
-            let termY = 42;
+            let termY = 39;
             terms.forEach(line => {
                 if (line === '') {
-                    termY += 2;
+                    termY += 1.5;
                 } else {
                     doc.text(line, 27, termY, { align: 'center' });
-                    termY += 2.8;
+                    termY += 2.5;
                 }
             });
 
-            doc.setFont('Helvetica', 'bold');
-            doc.setFontSize(5.5);
-            doc.setTextColor(30, 41, 59);
-            doc.text('Support & Enquiries', 27, 65, { align: 'center' });
-            
+            // Contact info
             doc.setFont('Helvetica', 'normal');
             doc.setFontSize(5.5);
-            doc.setTextColor(43, 85, 235);
-            doc.text('support@dynime.com', 27, 68.5, { align: 'center' });
+            doc.setTextColor(71, 85, 105);
+            doc.text('Email: contact@dynime.com', 27, 57, { align: 'center' });
+            doc.text('Phone: +1 (646) 884-0271', 27, 60.5, { align: 'center' });
+            
+            // WhatsApp green contact
+            doc.setFont('Helvetica', 'bold');
+            doc.setTextColor(22, 163, 74);
+            doc.text('WhatsApp: +1 (646) 884-0271', 27, 64, { align: 'center' });
+            
+            doc.setTextColor(30, 41, 59);
+            doc.text('www.dynime.com', 27, 68.5, { align: 'center' });
 
+            // Signature Line
             doc.setDrawColor(200, 200, 200);
             doc.setLineWidth(0.4);
             doc.line(12, 77, 42, 77);
@@ -285,16 +362,16 @@ export default function Show() {
                                             href={window.location.origin + `/employee/verify/${employee.employee_id}`} 
                                             target="_blank" 
                                             rel="noreferrer" 
-                                            className="text-blue-600 hover:text-blue-700 underline font-medium text-xs"
+                                            className="text-blue-600 hover:text-blue-700 underline font-medium text-xs text-center"
                                         >
                                             {t('Public Verification Link')}
                                         </a>
                                         <button 
-                                            onClick={handleDownloadIDCard}
-                                            className="mt-1 inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white rounded-md text-xs font-semibold hover:bg-blue-700 transition shadow-sm w-full"
+                                            onClick={() => setIsIDCardModalOpen(true)}
+                                            className="mt-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-md text-xs font-semibold hover:from-blue-700 hover:to-indigo-700 transition shadow-sm w-full"
                                         >
-                                            <FileText className="w-3.5 h-3.5" />
-                                            {t('Download ID Card (PDF)')}
+                                            <Eye className="w-3.5 h-3.5" />
+                                            {t('Preview & Download ID Card')}
                                         </button>
                                     </div>
                                 </div>
@@ -788,6 +865,193 @@ export default function Show() {
                     </Card>
                 </div>
             </div>
+            
+            {/* ID CARD PREVIEW MODAL */}
+            {isIDCardModalOpen && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 transition-all duration-200">
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-3xl w-full shadow-2xl overflow-hidden border border-slate-100 dark:border-slate-800">
+                        {/* Modal Header */}
+                        <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                            <h3 className="text-lg font-semibold text-slate-950 dark:text-white flex items-center gap-2">
+                                <FileText className="w-5 h-5 text-blue-600" />
+                                {t('Employee ID Card Preview')}
+                            </h3>
+                            <button 
+                                onClick={() => setIsIDCardModalOpen(false)}
+                                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 text-lg p-1"
+                            >
+                                ✕
+                            </button>
+                        </div>
+
+                        {/* Modal Content */}
+                        <div className="p-6 overflow-y-auto max-h-[70vh] flex flex-col md:flex-row items-center justify-center gap-8 bg-slate-50 dark:bg-slate-950/40">
+                            {/* FRONT SIDE */}
+                            <div className="w-[270px] h-[430px] bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden relative flex flex-col justify-between select-none">
+                                {/* Top curved banner */}
+                                <div className="absolute top-0 inset-x-0 h-[92px] bg-[#0A1931] flex flex-col items-center justify-center pt-2">
+                                    <div className="absolute bottom-0 right-0 left-[-20%] h-1 bg-[#F5C249] transform rotate-3 origin-bottom-left"></div>
+                                    <div className="text-[14px] font-extrabold text-[#F5C249] tracking-wider uppercase">
+                                        Dynime LLC
+                                    </div>
+                                    <div className="text-[7.5px] font-semibold text-blue-100 tracking-widest uppercase mt-0.5">
+                                        Secure Identification
+                                    </div>
+                                </div>
+
+                                {/* Employee Photo Container */}
+                                <div className="mt-[74px] mx-auto z-10">
+                                    <div className="w-[90px] h-[90px] rounded-full border-[3px] border-[#F5C249] bg-white overflow-hidden shadow-md flex items-center justify-center">
+                                        <img 
+                                            src={employee.user?.avatar ? getImagePath(employee.user.avatar) : '/default-avatar.png'} 
+                                            alt={employee.user?.name || 'Employee'}
+                                            className="w-full h-full object-cover"
+                                            onError={(e) => { e.currentTarget.src = '/default-avatar.png'; }}
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Employee Basic Info */}
+                                <div className="text-center mt-1 px-3">
+                                    <h4 className="text-[13px] font-black text-slate-800 uppercase tracking-tight truncate">
+                                        {employee.user?.name}
+                                    </h4>
+                                    <div className="mt-0.5 inline-block px-2 py-0.5 rounded text-[8px] font-extrabold uppercase bg-[#F5C249] text-[#0A1931] tracking-wide">
+                                        {employee.designation?.designation_name || 'Staff Member'}
+                                    </div>
+                                </div>
+
+                                {/* Detailed Columns Grid */}
+                                <div className="px-3.5 mt-1 grid grid-cols-2 gap-x-2 gap-y-1.5 text-[8.5px] text-slate-600">
+                                    <div className="col-span-2 flex items-center gap-1.5 bg-[#F5C249]/15 p-1.5 rounded border border-[#F5C249]/20">
+                                        <span className="text-[#0A1931] font-bold text-[7px] uppercase">{t('ID')}:</span>
+                                        <span className="font-extrabold text-[#0A1931]">{employee.employee_id}</span>
+                                    </div>
+                                    <div>
+                                        <span className="text-slate-400 font-bold uppercase block text-[7px]">{t('Department')}</span>
+                                        <span className="font-semibold block truncate text-slate-800">{employee.department?.department_name || '—'}</span>
+                                    </div>
+                                    <div>
+                                        <span className="text-slate-400 font-bold uppercase block text-[7px]">{t('Branch')}</span>
+                                        <span className="font-semibold block truncate text-slate-800">{employee.branch?.branch_name || '—'}</span>
+                                    </div>
+                                    <div>
+                                        <span className="text-slate-400 font-bold uppercase block text-[7px]">{t('Birth Date')}</span>
+                                        <span className="font-semibold block truncate text-slate-800">{formatDate(employee.date_of_birth)}</span>
+                                    </div>
+                                    <div>
+                                        <span className="text-slate-400 font-bold uppercase block text-[7px]">{t('Joined')}</span>
+                                        <span className="font-semibold block truncate text-slate-800">{formatDate(employee.date_of_joining)}</span>
+                                    </div>
+                                    <div>
+                                        <span className="text-slate-400 font-bold uppercase block text-[7px]">{t('Country')}</span>
+                                        <span className="font-semibold block truncate text-slate-800">{employee.work_location_country || 'USA'}</span>
+                                    </div>
+                                    <div>
+                                        <span className="text-slate-400 font-bold uppercase block text-[7px]">{t('Phone')}</span>
+                                        <span className="font-semibold block truncate text-slate-800">{employee.phone || employee.payment_details?.recipient_phone || '—'}</span>
+                                    </div>
+                                    <div className="col-span-2">
+                                        <span className="text-slate-400 font-bold uppercase block text-[7px]">{t('Email')}</span>
+                                        <span className="font-semibold block truncate text-slate-800">{employee.user?.email || '—'}</span>
+                                    </div>
+                                </div>
+
+                                {/* QR Code verification section */}
+                                <div className="mt-1 mb-2.5 flex justify-center">
+                                    <div className="p-1 bg-white border border-slate-200 rounded-lg shadow-sm">
+                                        <IDCardQRCodeCanvas text={window.location.origin + `/employee/verify/${employee.employee_id}`} />
+                                    </div>
+                                </div>
+
+                                {/* Subtle footer line */}
+                                <div className="h-1.5 bg-[#0A1931] w-full"></div>
+                            </div>
+
+                            {/* BACK SIDE */}
+                            <div className="w-[270px] h-[430px] bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden relative flex flex-col justify-between p-4 select-none">
+                                <div>
+                                    {/* Back Header banner */}
+                                    <div className="h-[52px] bg-slate-800 rounded-xl flex flex-col items-center justify-center relative overflow-hidden">
+                                        <div className="absolute bottom-0 right-0 left-[-20%] h-0.5 bg-[#F5C249] transform rotate-3"></div>
+                                        <div className="text-[13px] font-black text-[#F5C249] tracking-wider uppercase">
+                                            Dynime LLC
+                                        </div>
+                                        <div className="text-[6.5px] font-semibold text-slate-300 tracking-widest uppercase mt-0.5">
+                                            Security & Access Control
+                                        </div>
+                                    </div>
+
+                                    {/* Headquarters Section */}
+                                    <div className="text-center mt-4">
+                                        <div className="text-[8.5px] font-bold text-slate-700 uppercase tracking-wider">
+                                            Headquarters
+                                        </div>
+                                        <div className="text-[8px] text-slate-500 mt-1 leading-relaxed">
+                                            1209 Mountain Road PL NE<br />
+                                            Albuquerque, NM 87110, USA
+                                        </div>
+                                    </div>
+
+                                    {/* Card Guidelines */}
+                                    <div className="mt-4 px-1">
+                                        <div className="text-[8.5px] font-bold text-slate-700 uppercase tracking-wider text-center">
+                                            Card Rules & Guidelines
+                                        </div>
+                                        <ul className="text-[6.8px] text-slate-400 mt-2 space-y-1 list-disc pl-3">
+                                            <li>This identification card remains the property of Dynime LLC.</li>
+                                            <li>Please carry this card while on company premises.</li>
+                                            <li>In case of termination, return this card to HR.</li>
+                                            <li>If found, please return to the headquarters address listed above.</li>
+                                        </ul>
+                                    </div>
+                                </div>
+
+                                {/* Footer & Contacts */}
+                                <div className="border-t border-slate-100 pt-3 mb-1 space-y-2">
+                                    <div className="flex flex-col items-center justify-center text-[7.5px] text-slate-500 space-y-0.5">
+                                        <div>Email: <span className="font-semibold text-blue-600">contact@dynime.com</span></div>
+                                        <div>Phone: <span className="font-semibold">+1 (646) 884-0271</span></div>
+                                        
+                                        {/* WhatsApp icon + text */}
+                                        <div className="flex items-center gap-1.5 mt-1 font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded border border-green-100">
+                                            <svg className="w-2.5 h-2.5 fill-current text-green-600" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                                <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.513 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.713-1.457L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.625 1.451 5.403.002 9.803-4.389 9.805-9.779.001-2.612-1.013-5.068-2.859-6.915C16.375 2.064 13.924.982 12.002.982 6.61.982 2.212 5.375 2.21 10.766c-.002 1.517.397 2.999 1.157 4.289L2.37 19.535l4.277-1.121zm12.385-6.853c-.27-.135-1.602-.791-1.85-.882-.249-.09-.431-.135-.612.135-.18.27-.697.882-.855 1.062-.158.18-.316.202-.586.067-.27-.135-1.143-.421-2.18-1.348-.807-.72-1.352-1.61-1.51-1.88-.158-.27-.017-.417.118-.552.122-.122.27-.316.406-.473.135-.158.18-.27.27-.45.09-.18.045-.338-.022-.473-.068-.135-.612-1.473-.838-2.016-.22-.53-.443-.458-.612-.467-.158-.008-.339-.01-.52-.01-.18 0-.474.067-.72.338-.249.27-.95.929-.95 2.264 0 1.335.97 2.625 1.105 2.805.135.18 1.908 2.913 4.622 4.085.645.278 1.148.445 1.54.57.65.207 1.241.177 1.709.107.52-.078 1.602-.655 1.828-1.287.226-.633.226-1.177.158-1.287-.068-.111-.248-.18-.518-.315z"/>
+                                            </svg>
+                                            <span>+1 (646) 884-0271</span>
+                                        </div>
+                                        <div className="font-bold text-slate-700 mt-1">www.dynime.com</div>
+                                    </div>
+
+                                    <div className="mt-2.5 flex flex-col items-center">
+                                        <div className="w-[120px] border-b border-slate-200"></div>
+                                        <div className="text-[6px] text-slate-400 font-bold uppercase mt-1">Authorized Signature</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Modal Footer */}
+                        <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-3 bg-slate-50 dark:bg-slate-900/50">
+                            <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={() => setIsIDCardModalOpen(false)}
+                            >
+                                {t('Close')}
+                            </Button>
+                            <Button 
+                                size="sm" 
+                                onClick={handleDownloadIDCard}
+                                className="gap-2 bg-blue-600 hover:bg-blue-700 text-white"
+                            >
+                                <FileText className="w-4 h-4" />
+                                {t('Download PDF')}
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </AuthenticatedLayout>
     );
 }

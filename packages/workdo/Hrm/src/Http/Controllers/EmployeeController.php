@@ -457,4 +457,43 @@ class EmployeeController extends Controller
             'error' => __('No employee found with this ID.'),
         ]);
     }
+
+    public function getAvatarBase64(Employee $employee)
+    {
+        $avatarPath = $employee->user ? $employee->user->avatar : null;
+        if (!$avatarPath) {
+            return response()->json(['base64' => '']);
+        }
+
+        $paths = [
+            public_path($avatarPath),
+            storage_path('app/public/' . $avatarPath),
+            storage_path('app/' . $avatarPath),
+            public_path('storage/' . $avatarPath),
+        ];
+
+        foreach ($paths as $path) {
+            if (file_exists($path) && is_file($path)) {
+                $type = pathinfo($path, PATHINFO_EXTENSION);
+                $data = file_get_contents($path);
+                $base64 = 'data:image/' . $type . ';base64,' . base64_encode($data);
+                return response()->json(['base64' => $base64]);
+            }
+        }
+
+        if (filter_var($avatarPath, FILTER_VALIDATE_URL)) {
+            try {
+                $client = new \GuzzleHttp\Client();
+                $response = $client->get($avatarPath);
+                $contentType = $response->getHeaderLine('content-type');
+                $body = $response->getBody()->getContents();
+                $base64 = 'data:' . $contentType . ';base64,' . base64_encode($body);
+                return response()->json(['base64' => $base64]);
+            } catch (\Exception $e) {
+                // fall through
+            }
+        }
+
+        return response()->json(['base64' => '']);
+    }
 }
