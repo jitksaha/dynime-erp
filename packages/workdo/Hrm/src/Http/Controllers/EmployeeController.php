@@ -496,4 +496,31 @@ class EmployeeController extends Controller
 
         return response()->json(['base64' => '']);
     }
+
+    public function getSealBase64()
+    {
+        $sealUrl = 'https://cdn.dynime.com/Dynime%20Logo/Seal/seal.png';
+        try {
+            $client = new \GuzzleHttp\Client();
+            $response = $client->get($sealUrl, ['timeout' => 5]);
+            $contentType = $response->getHeaderLine('content-type') ?: 'image/png';
+            $body = $response->getBody()->getContents();
+            $base64 = 'data:' . $contentType . ';base64,' . base64_encode($body);
+            return response()->json(['base64' => $base64]);
+        } catch (\Exception $e) {
+            // Fallback to local files
+            $fallbackPaths = [
+                public_path('custom_seal.png'),
+                public_path('seal_dynime.png'),
+            ];
+            foreach ($fallbackPaths as $path) {
+                if (file_exists($path) && is_file($path)) {
+                    $type = pathinfo($path, PATHINFO_EXTENSION);
+                    $data = file_get_contents($path);
+                    return response()->json(['base64' => 'data:image/' . $type . ';base64,' . base64_encode($data)]);
+                }
+            }
+        }
+        return response()->json(['base64' => '']);
+    }
 }

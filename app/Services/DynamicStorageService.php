@@ -36,9 +36,6 @@ class DynamicStorageService
         }
     }
     
-    /**
-     * Configure S3 disk
-     */
     private static function configureS3Disk(array $s3Config): void
     {
          config(
@@ -47,8 +44,9 @@ class DynamicStorageService
                     'filesystems.disks.s3.secret' => $s3Config['secret'],
                     'filesystems.disks.s3.region' => $s3Config['region'],
                     'filesystems.disks.s3.bucket' => $s3Config['bucket'],
-                    // 'filesystems.disks.s3.url' => $storage_settings['s3_url'],
-                    // 'filesystems.disks.s3.endpoint' => $storage_settings['s3_endpoint'],
+                    'filesystems.disks.s3.url' => $s3Config['url'],
+                    'filesystems.disks.s3.endpoint' => $s3Config['endpoint'],
+                    'filesystems.disks.s3.use_path_style_endpoint' => true,
                 ]
             );
     }

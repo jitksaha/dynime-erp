@@ -65,6 +65,19 @@ export default function Show() {
     const { t } = useTranslation();
     const [copiedDocId, setCopiedDocId] = useState<number | null>(null);
     const [isIDCardModalOpen, setIsIDCardModalOpen] = useState(false);
+    const [sealBase64, setSealBase64] = useState<string>('');
+
+    useEffect(() => {
+        const fetchSeal = async () => {
+            try {
+                const response = await axios.get(route('hrm.employees.seal-base64'));
+                setSealBase64(response.data.base64);
+            } catch (err) {
+                console.error('Failed to fetch seal base64', err);
+            }
+        };
+        fetchSeal();
+    }, []);
 
     const handleCopySignLink = (id: number) => {
         const signUrl = window.location.origin + '/hrm/document-builder/sign/' + id;
@@ -91,23 +104,23 @@ export default function Show() {
             doc.setFillColor(250, 250, 252);
             doc.rect(0, 0, 54, 86, 'F');
 
-            // Header Banner - Navy Blue
-            doc.setFillColor(10, 25, 49); // #0A1931
+            // Header Banner - Brand Royal Blue (#22279e)
+            doc.setFillColor(34, 39, 158);
             doc.rect(0, 0, 54, 22, 'F');
 
-            // Gold Stripe Accent (Diagonal)
-            doc.setFillColor(245, 194, 73); // #F5C249
+            // Light Blue / Cyan Accent Stripe (#38BDF8)
+            doc.setFillColor(56, 189, 248);
             doc.triangle(0, 22, 54, 22, 54, 20.2, 'F');
 
             // Header Text (Company Name & Tagline)
             doc.setFont('Helvetica', 'bold');
             doc.setFontSize(10);
-            doc.setTextColor(245, 194, 73);
+            doc.setTextColor(255, 255, 255);
             doc.text('DYNIME LLC', 27, 10, { align: 'center' });
             
             doc.setFont('Helvetica', 'normal');
             doc.setFontSize(5);
-            doc.setTextColor(219, 234, 254);
+            doc.setTextColor(186, 230, 253); // light sky blue text
             doc.text('SECURE IDENTIFICATION', 27, 14, { align: 'center' });
 
             // Fetch Avatar from Backend Base64 Route without CORS issues
@@ -129,21 +142,21 @@ export default function Show() {
                 }
             }
 
-            // Draw Photo Circle Container
+            // Draw Photo Circle Container (with Brand Blue border)
             if (circularAvatar) {
                 doc.setFillColor(255, 255, 255);
-                doc.circle(27, 33, 10, 'F');
-                doc.addImage(circularAvatar, 'PNG', 17, 23, 20, 20);
-                doc.setDrawColor(245, 194, 73);
-                doc.setLineWidth(0.8);
-                doc.circle(27, 33, 10, 'S');
+                doc.circle(27, 31, 9, 'F');
+                doc.addImage(circularAvatar, 'PNG', 18, 22, 18, 18);
+                doc.setDrawColor(94, 87, 248); // #5e57f8
+                doc.setLineWidth(0.6);
+                doc.circle(27, 31, 9, 'S');
             } else {
                 // Fallback colored circle with initials
-                doc.setFillColor(230, 235, 250);
-                doc.circle(27, 33, 10, 'F');
-                doc.setDrawColor(245, 194, 73);
-                doc.setLineWidth(0.8);
-                doc.circle(27, 33, 10, 'S');
+                doc.setFillColor(238, 242, 255);
+                doc.circle(27, 31, 9, 'F');
+                doc.setDrawColor(94, 87, 248); // #5e57f8
+                doc.setLineWidth(0.6);
+                doc.circle(27, 31, 9, 'S');
 
                 const initials = (employee.user?.name || '')
                     .split(' ')
@@ -153,61 +166,62 @@ export default function Show() {
                     .toUpperCase();
                 
                 doc.setFont('Helvetica', 'bold');
-                doc.setFontSize(9);
-                doc.setTextColor(10, 25, 49);
-                doc.text(initials, 27, 36.5, { align: 'center' });
+                doc.setFontSize(8.5);
+                doc.setTextColor(34, 39, 158);
+                doc.text(initials, 27, 34, { align: 'center' });
             }
 
             // Employee Name
             doc.setFont('Helvetica', 'bold');
-            doc.setFontSize(10);
-            doc.setTextColor(10, 25, 49);
+            doc.setFontSize(9.5);
+            doc.setTextColor(15, 23, 42); // slate-900
             const nameText = employee.user?.name || 'Employee';
             const displayName = nameText.length > 18 ? nameText.substring(0, 16) + '..' : nameText;
-            doc.text(displayName.toUpperCase(), 27, 47, { align: 'center' });
+            doc.text(displayName.toUpperCase(), 27, 43, { align: 'center' });
 
-            // Designation Badge
-            doc.setFillColor(245, 194, 73);
-            doc.rect(13, 50, 28, 4, 'F');
+            // Designation Badge (Light Blue theme)
+            doc.setFillColor(56, 189, 248); // #38BDF8
+            doc.rect(13, 45.5, 28, 4, 'F');
             doc.setFont('Helvetica', 'bold');
-            doc.setFontSize(6.5);
-            doc.setTextColor(10, 25, 49);
+            doc.setFontSize(6);
+            doc.setTextColor(34, 39, 158); // brand blue text
             const jobTitle = employee.designation?.designation_name || 'Staff Member';
             const displayTitle = jobTitle.length > 22 ? jobTitle.substring(0, 20) + '..' : jobTitle;
-            doc.text(displayTitle.toUpperCase(), 27, 53, { align: 'center' });
+            doc.text(displayTitle.toUpperCase(), 27, 48.5, { align: 'center' });
 
             // Details Grid
             doc.setFont('Helvetica', 'normal');
-            doc.setFontSize(5.5);
+            doc.setFontSize(5);
             
             // Left Column
             // EMP ID Highlight
-            doc.setFillColor(245, 194, 73);
-            doc.rect(4, 57, 22, 4.5, 'F');
+            doc.setFillColor(238, 242, 255); // bg-[#5e57f8]/10
+            doc.rect(4, 51.5, 22, 4.5, 'F');
             doc.setFont('Helvetica', 'bold');
-            doc.setFontSize(6.5);
-            doc.setTextColor(10, 25, 49);
-            doc.text(employee.employee_id || '', 15, 60.2, { align: 'center' });
+            doc.setFontSize(6);
+            doc.setTextColor(34, 39, 158);
+            doc.text(employee.employee_id || '', 15, 54.7, { align: 'center' });
 
             doc.setFont('Helvetica', 'normal');
-            doc.setFontSize(5.5);
+            doc.setFontSize(5);
             doc.setTextColor(100, 116, 139);
-            doc.text('JOINED: ' + formatDate(employee.date_of_joining), 4, 65);
-            doc.text('BIRTH: ' + formatDate(employee.date_of_birth), 4, 69);
-            doc.text('COUNTRY: ' + (employee.work_location_country || 'USA'), 4, 73);
+            doc.text('JOINED: ' + formatDate(employee.date_of_joining), 4, 59.5);
+            doc.text('BIRTH: ' + formatDate(employee.date_of_birth), 4, 63.5);
+            doc.text('COUNTRY: ' + (employee.work_location_country || 'USA'), 4, 67.5);
 
             // Right Column
-            doc.text('DEPT: ' + (employee.department?.department_name || '—'), 28, 59);
-            doc.text('BRANCH: ' + (employee.branch?.branch_name || '—'), 28, 63);
-            doc.text('MAIL: ' + (employee.user?.email || '—'), 28, 67);
+            doc.text('DEPT: ' + (employee.department?.department_name || '—'), 28, 53.5);
+            doc.text('BRANCH: ' + (employee.branch?.branch_name || '—'), 28, 57.5);
+            doc.text('MAIL: ' + (employee.user?.email || '—'), 28, 61.5);
             const empPhone = employee.phone || employee.payment_details?.recipient_phone || '—';
-            doc.text('PHONE: ' + empPhone, 28, 71);
+            doc.text('PHONE: ' + empPhone, 28, 65.5);
 
-            // Verification QR Code
-            doc.addImage(qrDataUrl, 'PNG', 21, 74, 12, 12);
-            doc.setDrawColor(245, 194, 73);
-            doc.setLineWidth(0.4);
-            doc.rect(21, 74, 12, 12, 'S');
+            // Verification QR Code - with a clean 3mm bottom padding/margin
+            // Y = 71, X = 21.5, size = 11mm x 11mm. Center of card is X=27.
+            doc.addImage(qrDataUrl, 'PNG', 21.5, 71, 11, 11);
+            doc.setDrawColor(56, 189, 248);
+            doc.setLineWidth(0.3);
+            doc.rect(21.5, 71, 11, 11, 'S');
 
             // ------------------ BACK SIDE ------------------
             doc.addPage([54, 86], 'portrait');
@@ -216,44 +230,44 @@ export default function Show() {
             doc.setFillColor(250, 250, 252);
             doc.rect(0, 0, 54, 86, 'F');
 
-            // Header Banner - Navy
-            doc.setFillColor(30, 41, 59);
+            // Header Banner - Royal Blue (#22279e)
+            doc.setFillColor(34, 39, 158);
             doc.rect(0, 0, 54, 15, 'F');
 
-            // Accent Stripe
-            doc.setFillColor(245, 194, 73);
+            // Accent Stripe - Light Blue (#38BDF8)
+            doc.setFillColor(56, 189, 248);
             doc.triangle(0, 15, 54, 15, 54, 13.5, 'F');
 
             doc.setFont('Helvetica', 'bold');
             doc.setFontSize(8.5);
-            doc.setTextColor(245, 194, 73);
+            doc.setTextColor(255, 255, 255);
             doc.text('DYNIME LLC', 27, 7.5, { align: 'center' });
             
             doc.setFont('Helvetica', 'normal');
             doc.setFontSize(5);
-            doc.setTextColor(200, 210, 225);
+            doc.setTextColor(186, 230, 253);
             doc.text('SECURITY & ACCESS CONTROL', 27, 11.5, { align: 'center' });
 
             // Headquarters
             doc.setFont('Helvetica', 'bold');
             doc.setFontSize(6.5);
-            doc.setTextColor(30, 41, 59);
-            doc.text('HEADQUARTERS', 27, 22, { align: 'center' });
+            doc.setTextColor(34, 39, 158);
+            doc.text('HEADQUARTERS', 27, 21, { align: 'center' });
 
             doc.setFont('Helvetica', 'normal');
-            doc.setFontSize(5.5);
+            doc.setFontSize(5.2);
             doc.setTextColor(71, 85, 105);
-            doc.text('1209 Mountain Road PL NE', 27, 25.5, { align: 'center' });
-            doc.text('Albuquerque, NM 87110, USA', 27, 28.5, { align: 'center' });
+            doc.text('1209 Mountain Road PL NE', 27, 24.5, { align: 'center' });
+            doc.text('Albuquerque, NM 87110, USA', 27, 27.5, { align: 'center' });
 
             // Guidelines
             doc.setFont('Helvetica', 'bold');
             doc.setFontSize(6.5);
-            doc.setTextColor(30, 41, 59);
-            doc.text('CARD RULES & GUIDELINES', 27, 35, { align: 'center' });
+            doc.setTextColor(34, 39, 158);
+            doc.text('CARD RULES & GUIDELINES', 27, 33.5, { align: 'center' });
 
             doc.setFont('Helvetica', 'normal');
-            doc.setFontSize(4.8);
+            doc.setFontSize(4.5);
             doc.setTextColor(100, 116, 139);
             
             const terms = [
@@ -266,40 +280,56 @@ export default function Show() {
                 'listed above or drop it in the nearest mailbox.'
             ];
             
-            let termY = 39;
+            let termY = 37.5;
             terms.forEach(line => {
                 if (line === '') {
-                    termY += 1.5;
+                    termY += 1;
                 } else {
                     doc.text(line, 27, termY, { align: 'center' });
-                    termY += 2.5;
+                    termY += 2.2;
                 }
             });
 
-            // Contact info
+            // Contact info (placed higher to leave space for Seal)
             doc.setFont('Helvetica', 'normal');
-            doc.setFontSize(5.5);
+            doc.setFontSize(5);
             doc.setTextColor(71, 85, 105);
-            doc.text('Email: contact@dynime.com', 27, 57, { align: 'center' });
-            doc.text('Phone: +1 (646) 884-0271', 27, 60.5, { align: 'center' });
+            doc.text('Email: contact@dynime.com', 27, 54, { align: 'center' });
+            doc.text('Phone: +1 (646) 884-0271', 27, 57, { align: 'center' });
             
             // WhatsApp green contact
             doc.setFont('Helvetica', 'bold');
             doc.setTextColor(22, 163, 74);
-            doc.text('WhatsApp: +1 (646) 884-0271', 27, 64, { align: 'center' });
+            doc.text('WhatsApp: +1 (646) 884-0271', 27, 60.5, { align: 'center' });
             
-            doc.setTextColor(30, 41, 59);
-            doc.text('www.dynime.com', 27, 68.5, { align: 'center' });
+            doc.setTextColor(34, 39, 158);
+            doc.text('www.dynime.com', 27, 64, { align: 'center' });
 
-            // Signature Line
-            doc.setDrawColor(200, 200, 200);
-            doc.setLineWidth(0.4);
-            doc.line(12, 77, 42, 77);
-            
-            doc.setFont('Helvetica', 'normal');
-            doc.setFontSize(5);
+            // Line separator
+            doc.setDrawColor(226, 232, 240); // slate-200
+            doc.setLineWidth(0.3);
+            doc.line(12, 66.5, 42, 66.5);
+
+            // Fetch and draw official Company Seal
+            let activeSealBase64 = sealBase64;
+            if (!activeSealBase64) {
+                try {
+                    const response = await axios.get(route('hrm.employees.seal-base64'));
+                    activeSealBase64 = response.data.base64;
+                } catch (e) {
+                    console.error('Failed to load seal dynamically in download handler', e);
+                }
+            }
+
+            if (activeSealBase64) {
+                // Draw company seal centered, with space on top
+                doc.addImage(activeSealBase64, 'PNG', 21.5, 68, 11, 11);
+            }
+
+            doc.setFont('Helvetica', 'bold');
+            doc.setFontSize(4.5);
             doc.setTextColor(100, 116, 139);
-            doc.text('AUTHORIZED SIGNATURE', 27, 80.5, { align: 'center' });
+            doc.text('OFFICIAL COMPANY SEAL', 27, 81.5, { align: 'center' });
 
             doc.save(`employee-id-${employee.employee_id}.pdf`);
         } catch (error) {
@@ -887,11 +917,11 @@ export default function Show() {
                         {/* Modal Content */}
                         <div className="p-6 overflow-y-auto max-h-[70vh] flex flex-col md:flex-row items-center justify-center gap-8 bg-slate-50 dark:bg-slate-950/40">
                             {/* FRONT SIDE */}
-                            <div className="w-[270px] h-[430px] bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden relative flex flex-col justify-between select-none">
+                            <div className="w-[270px] h-[430px] bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden relative flex flex-col justify-between select-none pb-2">
                                 {/* Top curved banner */}
-                                <div className="absolute top-0 inset-x-0 h-[92px] bg-[#0A1931] flex flex-col items-center justify-center pt-2">
-                                    <div className="absolute bottom-0 right-0 left-[-20%] h-1 bg-[#F5C249] transform rotate-3 origin-bottom-left"></div>
-                                    <div className="text-[14px] font-extrabold text-[#F5C249] tracking-wider uppercase">
+                                <div className="absolute top-0 inset-x-0 h-[92px] bg-[#22279e] flex flex-col items-center justify-center pt-2">
+                                    <div className="absolute bottom-0 right-0 left-[-20%] h-1 bg-[#38BDF8] transform rotate-3 origin-bottom-left"></div>
+                                    <div className="text-[14px] font-extrabold text-white tracking-wider uppercase">
                                         Dynime LLC
                                     </div>
                                     <div className="text-[7.5px] font-semibold text-blue-100 tracking-widest uppercase mt-0.5">
@@ -901,7 +931,7 @@ export default function Show() {
 
                                 {/* Employee Photo Container */}
                                 <div className="mt-[74px] mx-auto z-10">
-                                    <div className="w-[90px] h-[90px] rounded-full border-[3px] border-[#F5C249] bg-white overflow-hidden shadow-md flex items-center justify-center">
+                                    <div className="w-[90px] h-[90px] rounded-full border-[3px] border-[#5e57f8] bg-white overflow-hidden shadow-md flex items-center justify-center">
                                         <img 
                                             src={employee.user?.avatar ? getImagePath(employee.user.avatar) : '/default-avatar.png'} 
                                             alt={employee.user?.name || 'Employee'}
@@ -916,89 +946,89 @@ export default function Show() {
                                     <h4 className="text-[13px] font-black text-slate-800 uppercase tracking-tight truncate">
                                         {employee.user?.name}
                                     </h4>
-                                    <div className="mt-0.5 inline-block px-2 py-0.5 rounded text-[8px] font-extrabold uppercase bg-[#F5C249] text-[#0A1931] tracking-wide">
+                                    <div className="mt-0.5 inline-block px-2 py-0.5 rounded text-[8px] font-extrabold uppercase bg-[#38BDF8] text-[#22279e] tracking-wide">
                                         {employee.designation?.designation_name || 'Staff Member'}
                                     </div>
                                 </div>
 
                                 {/* Detailed Columns Grid */}
-                                <div className="px-3.5 mt-1 grid grid-cols-2 gap-x-2 gap-y-1.5 text-[8.5px] text-slate-600">
-                                    <div className="col-span-2 flex items-center gap-1.5 bg-[#F5C249]/15 p-1.5 rounded border border-[#F5C249]/20">
-                                        <span className="text-[#0A1931] font-bold text-[7px] uppercase">{t('ID')}:</span>
-                                        <span className="font-extrabold text-[#0A1931]">{employee.employee_id}</span>
+                                <div className="px-3 mt-1 grid grid-cols-2 gap-x-2 gap-y-1 text-[8px] text-slate-600">
+                                    <div className="col-span-2 flex items-center gap-1.5 bg-[#5e57f8]/10 p-1.5 rounded border border-[#5e57f8]/20">
+                                        <span className="text-[#22279e] font-bold text-[7px] uppercase">{t('ID')}:</span>
+                                        <span className="font-extrabold text-[#22279e]">{employee.employee_id}</span>
                                     </div>
                                     <div>
-                                        <span className="text-slate-400 font-bold uppercase block text-[7px]">{t('Department')}</span>
+                                        <span className="text-slate-400 font-bold uppercase block text-[6.5px]">{t('Department')}</span>
                                         <span className="font-semibold block truncate text-slate-800">{employee.department?.department_name || '—'}</span>
                                     </div>
                                     <div>
-                                        <span className="text-slate-400 font-bold uppercase block text-[7px]">{t('Branch')}</span>
+                                        <span className="text-slate-400 font-bold uppercase block text-[6.5px]">{t('Branch')}</span>
                                         <span className="font-semibold block truncate text-slate-800">{employee.branch?.branch_name || '—'}</span>
                                     </div>
                                     <div>
-                                        <span className="text-slate-400 font-bold uppercase block text-[7px]">{t('Birth Date')}</span>
+                                        <span className="text-slate-400 font-bold uppercase block text-[6.5px]">{t('Birth Date')}</span>
                                         <span className="font-semibold block truncate text-slate-800">{formatDate(employee.date_of_birth)}</span>
                                     </div>
                                     <div>
-                                        <span className="text-slate-400 font-bold uppercase block text-[7px]">{t('Joined')}</span>
+                                        <span className="text-slate-400 font-bold uppercase block text-[6.5px]">{t('Joined')}</span>
                                         <span className="font-semibold block truncate text-slate-800">{formatDate(employee.date_of_joining)}</span>
                                     </div>
                                     <div>
-                                        <span className="text-slate-400 font-bold uppercase block text-[7px]">{t('Country')}</span>
+                                        <span className="text-slate-400 font-bold uppercase block text-[6.5px]">{t('Country')}</span>
                                         <span className="font-semibold block truncate text-slate-800">{employee.work_location_country || 'USA'}</span>
                                     </div>
                                     <div>
-                                        <span className="text-slate-400 font-bold uppercase block text-[7px]">{t('Phone')}</span>
+                                        <span className="text-slate-400 font-bold uppercase block text-[6.5px]">{t('Phone')}</span>
                                         <span className="font-semibold block truncate text-slate-800">{employee.phone || employee.payment_details?.recipient_phone || '—'}</span>
                                     </div>
                                     <div className="col-span-2">
-                                        <span className="text-slate-400 font-bold uppercase block text-[7px]">{t('Email')}</span>
+                                        <span className="text-slate-400 font-bold uppercase block text-[6.5px]">{t('Email')}</span>
                                         <span className="font-semibold block truncate text-slate-800">{employee.user?.email || '—'}</span>
                                     </div>
                                 </div>
 
                                 {/* QR Code verification section */}
-                                <div className="mt-1 mb-2.5 flex justify-center">
+                                <div className="mt-1 mb-1.5 flex justify-center pb-1">
                                     <div className="p-1 bg-white border border-slate-200 rounded-lg shadow-sm">
                                         <IDCardQRCodeCanvas text={window.location.origin + `/employee/verify/${employee.employee_id}`} />
                                     </div>
                                 </div>
 
                                 {/* Subtle footer line */}
-                                <div className="h-1.5 bg-[#0A1931] w-full"></div>
+                                <div className="h-1 bg-[#22279e] w-full"></div>
                             </div>
 
                             {/* BACK SIDE */}
                             <div className="w-[270px] h-[430px] bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden relative flex flex-col justify-between p-4 select-none">
                                 <div>
                                     {/* Back Header banner */}
-                                    <div className="h-[52px] bg-slate-800 rounded-xl flex flex-col items-center justify-center relative overflow-hidden">
-                                        <div className="absolute bottom-0 right-0 left-[-20%] h-0.5 bg-[#F5C249] transform rotate-3"></div>
-                                        <div className="text-[13px] font-black text-[#F5C249] tracking-wider uppercase">
+                                    <div className="h-[52px] bg-[#22279e] rounded-xl flex flex-col items-center justify-center relative overflow-hidden">
+                                        <div className="absolute bottom-0 right-0 left-[-20%] h-0.5 bg-[#38BDF8] transform rotate-3"></div>
+                                        <div className="text-[13px] font-black text-white tracking-wider uppercase">
                                             Dynime LLC
                                         </div>
-                                        <div className="text-[6.5px] font-semibold text-slate-300 tracking-widest uppercase mt-0.5">
+                                        <div className="text-[6.5px] font-semibold text-blue-100 tracking-widest uppercase mt-0.5">
                                             Security & Access Control
                                         </div>
                                     </div>
 
                                     {/* Headquarters Section */}
-                                    <div className="text-center mt-4">
-                                        <div className="text-[8.5px] font-bold text-slate-700 uppercase tracking-wider">
+                                    <div className="text-center mt-3">
+                                        <div className="text-[8.5px] font-bold text-[#22279e] uppercase tracking-wider">
                                             Headquarters
                                         </div>
-                                        <div className="text-[8px] text-slate-500 mt-1 leading-relaxed">
+                                        <div className="text-[7.5px] text-slate-500 mt-0.5 leading-relaxed">
                                             1209 Mountain Road PL NE<br />
                                             Albuquerque, NM 87110, USA
                                         </div>
                                     </div>
 
                                     {/* Card Guidelines */}
-                                    <div className="mt-4 px-1">
-                                        <div className="text-[8.5px] font-bold text-slate-700 uppercase tracking-wider text-center">
+                                    <div className="mt-3 px-1">
+                                        <div className="text-[8.5px] font-bold text-[#22279e] uppercase tracking-wider text-center">
                                             Card Rules & Guidelines
                                         </div>
-                                        <ul className="text-[6.8px] text-slate-400 mt-2 space-y-1 list-disc pl-3">
+                                        <ul className="text-[6.2px] text-slate-400 mt-1 space-y-0.5 list-disc pl-3">
                                             <li>This identification card remains the property of Dynime LLC.</li>
                                             <li>Please carry this card while on company premises.</li>
                                             <li>In case of termination, return this card to HR.</li>
@@ -1008,24 +1038,35 @@ export default function Show() {
                                 </div>
 
                                 {/* Footer & Contacts */}
-                                <div className="border-t border-slate-100 pt-3 mb-1 space-y-2">
+                                <div className="border-t border-slate-100 pt-2 mb-1 space-y-1.5">
                                     <div className="flex flex-col items-center justify-center text-[7.5px] text-slate-500 space-y-0.5">
                                         <div>Email: <span className="font-semibold text-blue-600">contact@dynime.com</span></div>
                                         <div>Phone: <span className="font-semibold">+1 (646) 884-0271</span></div>
                                         
                                         {/* WhatsApp icon + text */}
-                                        <div className="flex items-center gap-1.5 mt-1 font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded border border-green-100">
+                                        <div className="flex items-center gap-1.5 mt-0.5 font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded border border-green-100">
                                             <svg className="w-2.5 h-2.5 fill-current text-green-600" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                                 <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.513 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.713-1.457L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.625 1.451 5.403.002 9.803-4.389 9.805-9.779.001-2.612-1.013-5.068-2.859-6.915C16.375 2.064 13.924.982 12.002.982 6.61.982 2.212 5.375 2.21 10.766c-.002 1.517.397 2.999 1.157 4.289L2.37 19.535l4.277-1.121zm12.385-6.853c-.27-.135-1.602-.791-1.85-.882-.249-.09-.431-.135-.612.135-.18.27-.697.882-.855 1.062-.158.18-.316.202-.586.067-.27-.135-1.143-.421-2.18-1.348-.807-.72-1.352-1.61-1.51-1.88-.158-.27-.017-.417.118-.552.122-.122.27-.316.406-.473.135-.158.18-.27.27-.45.09-.18.045-.338-.022-.473-.068-.135-.612-1.473-.838-2.016-.22-.53-.443-.458-.612-.467-.158-.008-.339-.01-.52-.01-.18 0-.474.067-.72.338-.249.27-.95.929-.95 2.264 0 1.335.97 2.625 1.105 2.805.135.18 1.908 2.913 4.622 4.085.645.278 1.148.445 1.54.57.65.207 1.241.177 1.709.107.52-.078 1.602-.655 1.828-1.287.226-.633.226-1.177.158-1.287-.068-.111-.248-.18-.518-.315z"/>
                                             </svg>
                                             <span>+1 (646) 884-0271</span>
                                         </div>
-                                        <div className="font-bold text-slate-700 mt-1">www.dynime.com</div>
+                                        <div className="font-bold text-[#22279e] mt-0.5">www.dynime.com</div>
                                     </div>
 
-                                    <div className="mt-2.5 flex flex-col items-center">
-                                        <div className="w-[120px] border-b border-slate-200"></div>
-                                        <div className="text-[6px] text-slate-400 font-bold uppercase mt-1">Authorized Signature</div>
+                                    {/* Company Seal centered block */}
+                                    <div className="mt-2 flex flex-col items-center border-t border-slate-100 pt-2 w-full">
+                                        {sealBase64 ? (
+                                            <img 
+                                                src={sealBase64} 
+                                                alt="Dynime Seal" 
+                                                className="w-[45px] h-[45px] object-contain mb-1"
+                                            />
+                                        ) : (
+                                            <div className="w-[45px] h-[45px] bg-slate-50 border border-slate-200 rounded-full flex items-center justify-center mb-1 text-[7px] text-slate-300">
+                                                Seal
+                                            </div>
+                                        )}
+                                        <div className="text-[6px] text-slate-400 font-extrabold uppercase tracking-wider">Official Company Seal</div>
                                     </div>
                                 </div>
                             </div>

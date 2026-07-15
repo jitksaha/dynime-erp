@@ -121,6 +121,7 @@ Route::middleware(['web', 'auth', 'verified', 'PlanModuleCheck:Hrm'])->group(fun
         Route::put('/{employee}', [EmployeeController::class, 'update'])->name('update');
         Route::delete('/{employee}', [EmployeeController::class, 'destroy'])->name('destroy');
         Route::get('/{employee}/avatar-base64', [EmployeeController::class, 'getAvatarBase64'])->name('avatar-base64');
+        Route::get('/seal-base64', [EmployeeController::class, 'getSealBase64'])->name('seal-base64');
         Route::get('/{employee}', [EmployeeController::class, 'show'])->name('show');
     });
 

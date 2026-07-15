@@ -194,6 +194,10 @@ if (!function_exists('getImageUrlPrefix')) {
         switch ($storageType) {
             case 's3':
             case 'aws_s3':
+                $url = admin_setting('awsUrl');
+                if ($url) {
+                    return rtrim($url, '/') . '/media/';
+                }
                 $endpoint = admin_setting('awsEndpoint');
                 if ($endpoint && strpos($endpoint, 'amazonaws.com') === false) {
                     return rtrim($endpoint, '/') . '/media/';
