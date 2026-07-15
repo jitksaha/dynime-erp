@@ -63,8 +63,12 @@ class StorageConfigService
     private static function loadStorageConfigFromDB(): array
     {
         try {
-
-            $settings = getAdminAllSetting();
+            // Load company settings if authenticated/available, otherwise fallback to admin settings
+            $settings = getCompanyAllSetting();
+            if (empty($settings['storageType'])) {
+                $settings = getAdminAllSetting();
+            }
+            
             // Map storageType to correct disk name
             $storageType = $settings['storageType'] ?? 'local';
             $diskName = match($storageType) {
