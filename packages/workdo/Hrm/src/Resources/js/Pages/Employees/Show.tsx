@@ -8,6 +8,32 @@ import { Eye, Trash2, FileText, ExternalLink, Copy, Check, PenTool } from 'lucid
 import { formatDate, getImagePath, getCurrencySymbol } from '@/utils/helpers';
 import { useState } from 'react';
 import { getDocumentName } from '../DocumentBuilder/Index';
+import jsPDF from 'jspdf';
+import QRCode from 'qrcode';
+
+const getBase64ImageFromUrl = (imageUrl: string): Promise<string> => {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.setAttribute('crossOrigin', 'anonymous');
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+                ctx.drawImage(img, 0, 0);
+                const dataURL = canvas.toDataURL('image/png');
+                resolve(dataURL);
+            } else {
+                reject(new Error('Canvas context failed'));
+            }
+        };
+        img.onerror = (error) => {
+            reject(error);
+        };
+        img.src = imageUrl;
+    });
+};
 
 export default function Show() {
     const { employee, documents, issuedDocuments } = usePage<any>().props;
@@ -20,6 +46,188 @@ export default function Show() {
             setCopiedDocId(id);
             setTimeout(() => setCopiedDocId(null), 2000);
         });
+    };
+
+    const handleDownloadIDCard = async () => {
+        try {
+            const verifyUrl = window.location.origin + `/employee/verify/${employee.employee_id}`;
+            const qrDataUrl = await QRCode.toDataURL(verifyUrl, { margin: 1, width: 150 });
+
+            const doc = new jsPDF({
+                orientation: 'portrait',
+                unit: 'mm',
+                format: [54, 86]
+            });
+
+            // ------------------ FRONT SIDE ------------------
+            doc.setFillColor(250, 250, 252);
+            doc.rect(0, 0, 54, 86, 'F');
+
+            doc.setFillColor(43, 85, 235);
+            doc.rect(0, 0, 54, 20, 'F');
+
+            doc.setFillColor(235, 94, 43);
+            doc.rect(0, 20, 54, 2, 'F');
+
+            doc.setFont('Helvetica', 'bold');
+            doc.setFontSize(9);
+            doc.setTextColor(255, 255, 255);
+            doc.text('DYNIME ERP', 27, 10, { align: 'center' });
+            
+            doc.setFont('Helvetica', 'normal');
+            doc.setFontSize(5.5);
+            doc.setTextColor(230, 240, 255);
+            doc.text('SECURE IDENTIFICATION', 27, 14, { align: 'center' });
+
+            const avatarUrl = employee.user?.avatar ? getImagePath(employee.user.avatar) : '';
+            let avatarLoaded = false;
+            
+            if (avatarUrl) {
+                try {
+                    const base64Avatar = await getBase64ImageFromUrl(avatarUrl);
+                    doc.setFillColor(255, 255, 255);
+                    doc.rect(17, 26, 20, 20, 'F');
+                    doc.addImage(base64Avatar, 'PNG', 17, 26, 20, 20);
+                    doc.setDrawColor(220, 220, 220);
+                    doc.setLineWidth(0.5);
+                    doc.rect(17, 26, 20, 20, 'S');
+                    avatarLoaded = true;
+                } catch (e) {
+                    console.error('Failed to load avatar, drawing fallback placeholder', e);
+                }
+            }
+
+            if (!avatarLoaded) {
+                doc.setFillColor(230, 235, 250);
+                doc.circle(27, 36, 10, 'F');
+                
+                doc.setDrawColor(43, 85, 235);
+                doc.setLineWidth(0.5);
+                doc.circle(27, 36, 10, 'S');
+
+                const initials = (employee.user?.name || '')
+                    .split(' ')
+                    .map((n: string) => n[0])
+                    .slice(0, 2)
+                    .join('')
+                    .toUpperCase();
+                
+                doc.setFont('Helvetica', 'bold');
+                doc.setFontSize(10);
+                doc.setTextColor(43, 85, 235);
+                doc.text(initials, 27, 39.5, { align: 'center' });
+            }
+
+            doc.setFont('Helvetica', 'bold');
+            doc.setFontSize(10);
+            doc.setTextColor(30, 41, 59);
+            const nameText = employee.user?.name || 'Employee';
+            const displayName = nameText.length > 18 ? nameText.substring(0, 16) + '..' : nameText;
+            doc.text(displayName, 27, 51, { align: 'center' });
+
+            doc.setFont('Helvetica', 'normal');
+            doc.setFontSize(7);
+            doc.setTextColor(100, 116, 139);
+            const jobTitle = employee.designation?.designation_name || 'Staff Member';
+            const displayTitle = jobTitle.length > 22 ? jobTitle.substring(0, 20) + '..' : jobTitle;
+            doc.text(displayTitle, 27, 55, { align: 'center' });
+
+            doc.setFillColor(241, 245, 249);
+            doc.rect(12, 58, 30, 4.5, 'F');
+            doc.setFont('Helvetica', 'bold');
+            doc.setFontSize(7.5);
+            doc.setTextColor(15, 23, 42);
+            doc.text(employee.employee_id || '', 27, 61.2, { align: 'center' });
+
+            doc.addImage(qrDataUrl, 'PNG', 19, 64, 16, 16);
+
+            doc.setFillColor(43, 85, 235);
+            doc.rect(0, 84, 54, 2, 'F');
+
+            // ------------------ BACK SIDE ------------------
+            doc.addPage([54, 86], 'portrait');
+
+            doc.setFillColor(250, 250, 252);
+            doc.rect(0, 0, 54, 86, 'F');
+
+            doc.setFillColor(30, 41, 59);
+            doc.rect(0, 0, 54, 16, 'F');
+
+            doc.setFillColor(235, 94, 43);
+            doc.rect(0, 16, 54, 1.5, 'F');
+
+            doc.setFont('Helvetica', 'bold');
+            doc.setFontSize(8.5);
+            doc.setTextColor(255, 255, 255);
+            doc.text('DYNIME INC.', 27, 8, { align: 'center' });
+            
+            doc.setFont('Helvetica', 'normal');
+            doc.setFontSize(5.5);
+            doc.setTextColor(200, 210, 225);
+            doc.text('TERMS & INFORMATION', 27, 12, { align: 'center' });
+
+            doc.setFont('Helvetica', 'bold');
+            doc.setFontSize(6.5);
+            doc.setTextColor(30, 41, 59);
+            doc.text('Headquarters Address', 27, 24, { align: 'center' });
+
+            doc.setFont('Helvetica', 'normal');
+            doc.setFontSize(5.5);
+            doc.setTextColor(71, 85, 105);
+            doc.text('1209 Mountain Road PL NE', 27, 28, { align: 'center' });
+            doc.text('Albuquerque, NM 87110, USA', 27, 31, { align: 'center' });
+
+            doc.setFont('Helvetica', 'bold');
+            doc.setFontSize(6.5);
+            doc.setTextColor(30, 41, 59);
+            doc.text('Card Guidelines', 27, 38, { align: 'center' });
+
+            doc.setFont('Helvetica', 'normal');
+            doc.setFontSize(5);
+            doc.setTextColor(100, 116, 139);
+            const terms = [
+                'This identification card remains the property of',
+                'Dynime Inc. and must be carried at all times while',
+                'on duty. In case of termination, this card must be',
+                'returned to the Human Resources department.',
+                '',
+                'If found, please return to the headquarters address',
+                'listed above or drop it in the nearest mailbox.'
+            ];
+            
+            let termY = 42;
+            terms.forEach(line => {
+                if (line === '') {
+                    termY += 2;
+                } else {
+                    doc.text(line, 27, termY, { align: 'center' });
+                    termY += 2.8;
+                }
+            });
+
+            doc.setFont('Helvetica', 'bold');
+            doc.setFontSize(5.5);
+            doc.setTextColor(30, 41, 59);
+            doc.text('Support & Enquiries', 27, 65, { align: 'center' });
+            
+            doc.setFont('Helvetica', 'normal');
+            doc.setFontSize(5.5);
+            doc.setTextColor(43, 85, 235);
+            doc.text('support@dynime.com', 27, 68.5, { align: 'center' });
+
+            doc.setDrawColor(200, 200, 200);
+            doc.setLineWidth(0.4);
+            doc.line(12, 77, 42, 77);
+            
+            doc.setFont('Helvetica', 'normal');
+            doc.setFontSize(5);
+            doc.setTextColor(100, 116, 139);
+            doc.text('AUTHORIZED SIGNATURE', 27, 80.5, { align: 'center' });
+
+            doc.save(`employee-id-${employee.employee_id}.pdf`);
+        } catch (error) {
+            console.error('Failed to generate ID Card PDF', error);
+        }
     };
 
     const getGenderText = (gender: string) => {
@@ -72,15 +280,22 @@ export default function Show() {
                                 <div>
                                     <p className="text-sm text-muted-foreground">{t('Employee ID')}</p>
                                     <p className="font-medium">{employee.employee_id}</p>
-                                    <div className="mt-1 text-xs">
+                                    <div className="mt-2 flex flex-col gap-2">
                                         <a 
                                             href={window.location.origin + `/employee/verify/${employee.employee_id}`} 
                                             target="_blank" 
                                             rel="noreferrer" 
-                                            className="text-blue-600 hover:text-blue-700 underline font-medium"
+                                            className="text-blue-600 hover:text-blue-700 underline font-medium text-xs"
                                         >
                                             {t('Public Verification Link')}
                                         </a>
+                                        <button 
+                                            onClick={handleDownloadIDCard}
+                                            className="mt-1 inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white rounded-md text-xs font-semibold hover:bg-blue-700 transition shadow-sm w-full"
+                                        >
+                                            <FileText className="w-3.5 h-3.5" />
+                                            {t('Download ID Card (PDF)')}
+                                        </button>
                                     </div>
                                 </div>
                                 <div>
