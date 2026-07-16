@@ -321,10 +321,13 @@ export default function Edit() {
             // Add employee fields
             Object.keys(employeeData).forEach(key => {
                 if (key !== 'avatar') {
-                    if (key === 'payment_details' && typeof employeeData[key] === 'object' && employeeData[key] !== null) {
-                        formData.append(key, JSON.stringify(employeeData[key]));
+                    const val = employeeData[key];
+                    if (val === null || val === undefined) {
+                        formData.append(key, '');
+                    } else if (key === 'payment_details' && typeof val === 'object') {
+                        formData.append(key, JSON.stringify(val));
                     } else {
-                        formData.append(key, employeeData[key]);
+                        formData.append(key, val);
                     }
                 }
             });
