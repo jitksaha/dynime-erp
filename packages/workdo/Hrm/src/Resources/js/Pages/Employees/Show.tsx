@@ -104,8 +104,8 @@ export default function Show() {
             doc.setFillColor(250, 250, 252);
             doc.rect(0, 0, 54, 86, 'F');
 
-            // Header Banner - Brand Royal Blue (#22279e)
-            doc.setFillColor(34, 39, 158);
+            // Header Banner - Brand Violet (#635bff)
+            doc.setFillColor(99, 91, 255);
             doc.rect(0, 0, 54, 22, 'F');
 
             // Light Blue / Cyan Accent Stripe (#38BDF8)
@@ -142,19 +142,19 @@ export default function Show() {
                 }
             }
 
-            // Draw Photo Circle Container (with Brand Blue border)
+            // Draw Photo Circle Container (with Brand Violet border)
             if (circularAvatar) {
                 doc.setFillColor(255, 255, 255);
                 doc.circle(27, 31, 9, 'F');
                 doc.addImage(circularAvatar, 'PNG', 18, 22, 18, 18);
-                doc.setDrawColor(94, 87, 248); // #5e57f8
+                doc.setDrawColor(99, 91, 255); // #635bff
                 doc.setLineWidth(0.6);
                 doc.circle(27, 31, 9, 'S');
             } else {
                 // Fallback colored circle with initials
-                doc.setFillColor(238, 242, 255);
+                doc.setFillColor(240, 239, 255);
                 doc.circle(27, 31, 9, 'F');
-                doc.setDrawColor(94, 87, 248); // #5e57f8
+                doc.setDrawColor(99, 91, 255); // #635bff
                 doc.setLineWidth(0.6);
                 doc.circle(27, 31, 9, 'S');
 
@@ -167,7 +167,7 @@ export default function Show() {
                 
                 doc.setFont('Helvetica', 'bold');
                 doc.setFontSize(8.5);
-                doc.setTextColor(34, 39, 158);
+                doc.setTextColor(99, 91, 255);
                 doc.text(initials, 27, 34, { align: 'center' });
             }
 
@@ -184,7 +184,7 @@ export default function Show() {
             doc.rect(13, 45.5, 28, 4, 'F');
             doc.setFont('Helvetica', 'bold');
             doc.setFontSize(6);
-            doc.setTextColor(34, 39, 158); // brand blue text
+            doc.setTextColor(99, 91, 255); // brand violet text
             const jobTitle = employee.designation?.designation_name || 'Staff Member';
             const displayTitle = jobTitle.length > 22 ? jobTitle.substring(0, 20) + '..' : jobTitle;
             doc.text(displayTitle.toUpperCase(), 27, 48.5, { align: 'center' });
@@ -195,11 +195,11 @@ export default function Show() {
             
             // Left Column
             // EMP ID Highlight
-            doc.setFillColor(238, 242, 255); // bg-[#5e57f8]/10
+            doc.setFillColor(240, 239, 255); // bg-[#635bff]/10
             doc.rect(4, 51.5, 22, 4.5, 'F');
             doc.setFont('Helvetica', 'bold');
             doc.setFontSize(6);
-            doc.setTextColor(34, 39, 158);
+            doc.setTextColor(99, 91, 255);
             doc.text(employee.employee_id || '', 15, 54.7, { align: 'center' });
 
             doc.setFont('Helvetica', 'normal');
@@ -217,7 +217,6 @@ export default function Show() {
             doc.text('PHONE: ' + empPhone, 28, 65.5);
 
             // Verification QR Code - with a clean 3mm bottom padding/margin
-            // Y = 71, X = 21.5, size = 11mm x 11mm. Center of card is X=27.
             doc.addImage(qrDataUrl, 'PNG', 21.5, 71, 11, 11);
             doc.setDrawColor(56, 189, 248);
             doc.setLineWidth(0.3);
@@ -230,8 +229,8 @@ export default function Show() {
             doc.setFillColor(250, 250, 252);
             doc.rect(0, 0, 54, 86, 'F');
 
-            // Header Banner - Royal Blue (#22279e)
-            doc.setFillColor(34, 39, 158);
+            // Header Banner - Brand Violet (#635bff)
+            doc.setFillColor(99, 91, 255);
             doc.rect(0, 0, 54, 15, 'F');
 
             // Accent Stripe - Light Blue (#38BDF8)
@@ -251,7 +250,7 @@ export default function Show() {
             // Headquarters
             doc.setFont('Helvetica', 'bold');
             doc.setFontSize(6.5);
-            doc.setTextColor(34, 39, 158);
+            doc.setTextColor(99, 91, 255);
             doc.text('HEADQUARTERS', 27, 21, { align: 'center' });
 
             doc.setFont('Helvetica', 'normal');
@@ -263,36 +262,32 @@ export default function Show() {
             // Guidelines
             doc.setFont('Helvetica', 'bold');
             doc.setFontSize(6.5);
-            doc.setTextColor(34, 39, 158);
+            doc.setTextColor(99, 91, 255);
             doc.text('CARD RULES & GUIDELINES', 27, 33.5, { align: 'center' });
 
             doc.setFont('Helvetica', 'normal');
-            doc.setFontSize(4.5);
+            doc.setFontSize(3.8);
             doc.setTextColor(100, 116, 139);
             
-            const terms = [
-                'This identification card remains the property of',
-                'Dynime LLC and must be carried at all times while',
-                'on premises. In case of termination, this card',
-                'must be returned directly to HR department.',
-                '',
-                'If found, please return to the headquarters address',
-                'listed above or drop it in the nearest mailbox.'
+            const rules = [
+                'This ID card is the property of the company.',
+                'Must be worn and displayed at all times on premises.',
+                'Non-transferable; for authorized holder only.',
+                'Report loss or theft to HR immediately.',
+                'Do not alter, damage, or duplicate this card.',
+                'Return upon resignation or termination.',
+                'If found, return to HR/Admin office.'
             ];
             
-            let termY = 37.5;
-            terms.forEach(line => {
-                if (line === '') {
-                    termY += 1;
-                } else {
-                    doc.text(line, 27, termY, { align: 'center' });
-                    termY += 2.2;
-                }
+            let ruleY = 37.5;
+            rules.forEach(rule => {
+                doc.text('•  ' + rule, 6, ruleY);
+                ruleY += 2.2;
             });
 
-            // Contact info (placed higher to leave space for Seal)
+            // Contact info
             doc.setFont('Helvetica', 'normal');
-            doc.setFontSize(5);
+            doc.setFontSize(4.5);
             doc.setTextColor(71, 85, 105);
             doc.text('Email: contact@dynime.com', 27, 54, { align: 'center' });
             doc.text('Phone: +1 (646) 884-0271', 27, 57, { align: 'center' });
@@ -302,7 +297,7 @@ export default function Show() {
             doc.setTextColor(22, 163, 74);
             doc.text('WhatsApp: +1 (646) 884-0271', 27, 60.5, { align: 'center' });
             
-            doc.setTextColor(34, 39, 158);
+            doc.setTextColor(99, 91, 255);
             doc.text('www.dynime.com', 27, 64, { align: 'center' });
 
             // Line separator
@@ -322,7 +317,6 @@ export default function Show() {
             }
 
             if (activeSealBase64) {
-                // Draw company seal centered, with space on top
                 doc.addImage(activeSealBase64, 'PNG', 21.5, 68, 11, 11);
             }
 
@@ -919,7 +913,7 @@ export default function Show() {
                             {/* FRONT SIDE */}
                             <div className="w-[270px] h-[430px] bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden relative flex flex-col justify-between select-none pb-2">
                                 {/* Top curved banner */}
-                                <div className="absolute top-0 inset-x-0 h-[92px] bg-[#22279e] flex flex-col items-center justify-center pt-2">
+                                <div className="absolute top-0 inset-x-0 h-[92px] bg-[#635bff] flex flex-col items-center justify-center pt-2">
                                     <div className="absolute bottom-0 right-0 left-[-20%] h-1 bg-[#38BDF8] transform rotate-3 origin-bottom-left"></div>
                                     <div className="text-[14px] font-extrabold text-white tracking-wider uppercase">
                                         Dynime LLC
@@ -931,7 +925,7 @@ export default function Show() {
 
                                 {/* Employee Photo Container */}
                                 <div className="mt-[74px] mx-auto z-10">
-                                    <div className="w-[90px] h-[90px] rounded-full border-[3px] border-[#5e57f8] bg-white overflow-hidden shadow-md flex items-center justify-center">
+                                    <div className="w-[90px] h-[90px] rounded-full border-[3px] border-[#635bff] bg-white overflow-hidden shadow-md flex items-center justify-center">
                                         <img 
                                             src={employee.user?.avatar ? getImagePath(employee.user.avatar) : '/default-avatar.png'} 
                                             alt={employee.user?.name || 'Employee'}
@@ -946,16 +940,16 @@ export default function Show() {
                                     <h4 className="text-[13px] font-black text-slate-800 uppercase tracking-tight truncate">
                                         {employee.user?.name}
                                     </h4>
-                                    <div className="mt-0.5 inline-block px-2 py-0.5 rounded text-[8px] font-extrabold uppercase bg-[#38BDF8] text-[#22279e] tracking-wide">
+                                    <div className="mt-0.5 inline-block px-2 py-0.5 rounded text-[8px] font-extrabold uppercase bg-[#38BDF8] text-[#635bff] tracking-wide">
                                         {employee.designation?.designation_name || 'Staff Member'}
                                     </div>
                                 </div>
 
                                 {/* Detailed Columns Grid */}
                                 <div className="px-3 mt-1 grid grid-cols-2 gap-x-2 gap-y-1 text-[8px] text-slate-600">
-                                    <div className="col-span-2 flex items-center gap-1.5 bg-[#5e57f8]/10 p-1.5 rounded border border-[#5e57f8]/20">
-                                        <span className="text-[#22279e] font-bold text-[7px] uppercase">{t('ID')}:</span>
-                                        <span className="font-extrabold text-[#22279e]">{employee.employee_id}</span>
+                                    <div className="col-span-2 flex items-center gap-1.5 bg-[#635bff]/10 p-1.5 rounded border border-[#635bff]/20">
+                                        <span className="text-[#635bff] font-bold text-[7px] uppercase">{t('ID')}:</span>
+                                        <span className="font-extrabold text-[#635bff]">{employee.employee_id}</span>
                                     </div>
                                     <div>
                                         <span className="text-slate-400 font-bold uppercase block text-[6.5px]">{t('Department')}</span>
@@ -995,14 +989,14 @@ export default function Show() {
                                 </div>
 
                                 {/* Subtle footer line */}
-                                <div className="h-1 bg-[#22279e] w-full"></div>
+                                <div className="h-1 bg-[#635bff] w-full"></div>
                             </div>
 
                             {/* BACK SIDE */}
                             <div className="w-[270px] h-[430px] bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden relative flex flex-col justify-between p-4 select-none">
                                 <div>
                                     {/* Back Header banner */}
-                                    <div className="h-[52px] bg-[#22279e] rounded-xl flex flex-col items-center justify-center relative overflow-hidden">
+                                    <div className="h-[52px] bg-[#635bff] rounded-xl flex flex-col items-center justify-center relative overflow-hidden">
                                         <div className="absolute bottom-0 right-0 left-[-20%] h-0.5 bg-[#38BDF8] transform rotate-3"></div>
                                         <div className="text-[13px] font-black text-white tracking-wider uppercase">
                                             Dynime LLC
@@ -1013,8 +1007,8 @@ export default function Show() {
                                     </div>
 
                                     {/* Headquarters Section */}
-                                    <div className="text-center mt-3">
-                                        <div className="text-[8.5px] font-bold text-[#22279e] uppercase tracking-wider">
+                                    <div className="text-center mt-2.5">
+                                        <div className="text-[8.5px] font-bold text-[#635bff] uppercase tracking-wider">
                                             Headquarters
                                         </div>
                                         <div className="text-[7.5px] text-slate-500 mt-0.5 leading-relaxed">
@@ -1024,33 +1018,43 @@ export default function Show() {
                                     </div>
 
                                     {/* Card Guidelines */}
-                                    <div className="mt-3 px-1">
-                                        <div className="text-[8.5px] font-bold text-[#22279e] uppercase tracking-wider text-center">
+                                    <div className="mt-2.5 px-1">
+                                        <div className="text-[8.5px] font-bold text-[#635bff] uppercase tracking-wider text-center">
                                             Card Rules & Guidelines
                                         </div>
-                                        <ul className="text-[6.2px] text-slate-400 mt-1 space-y-0.5 list-disc pl-3">
-                                            <li>This identification card remains the property of Dynime LLC.</li>
-                                            <li>Please carry this card while on company premises.</li>
-                                            <li>In case of termination, return this card to HR.</li>
-                                            <li>If found, please return to the headquarters address listed above.</li>
+                                        <ul className="text-[5.8px] text-slate-400 mt-1 space-y-0.5 list-disc pl-3.5 text-left leading-tight">
+                                            <li>This ID card is the property of the company.</li>
+                                            <li>It must be worn and displayed at all times while on company premises.</li>
+                                            <li>This card is non-transferable and must be used only by the authorized holder.</li>
+                                            <li>Loss or theft of this card must be reported to the HR/Admin department immediately.</li>
+                                            <li>Do not alter, damage, or duplicate this card.</li>
+                                            <li>Return this card to the company upon resignation, termination, or expiry.</li>
+                                            <li>If found, please return to the company administration office.</li>
                                         </ul>
                                     </div>
                                 </div>
 
                                 {/* Footer & Contacts */}
-                                <div className="border-t border-slate-100 pt-2 mb-1 space-y-1.5">
-                                    <div className="flex flex-col items-center justify-center text-[7.5px] text-slate-500 space-y-0.5">
-                                        <div>Email: <span className="font-semibold text-blue-600">contact@dynime.com</span></div>
-                                        <div>Phone: <span className="font-semibold">+1 (646) 884-0271</span></div>
+                                <div className="border-t border-slate-100 pt-2 mb-1 space-y-1">
+                                    <div className="flex flex-col items-center justify-center text-[7px] text-slate-500 space-y-1">
+                                        {/* Contact Grid with Icons */}
+                                        <div className="flex items-center gap-1.5 justify-center">
+                                            <Mail className="w-2.5 h-2.5 text-[#635bff] shrink-0" />
+                                            <span className="font-medium text-slate-600 text-[6.5px]">contact@dynime.com</span>
+                                        </div>
+                                        <div className="flex items-center gap-1.5 justify-center">
+                                            <Phone className="w-2.5 h-2.5 text-[#635bff] shrink-0" />
+                                            <span className="font-semibold text-slate-700 text-[6.5px]">+1 (646) 884-0271</span>
+                                        </div>
                                         
                                         {/* WhatsApp icon + text */}
-                                        <div className="flex items-center gap-1.5 mt-0.5 font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded border border-green-100">
-                                            <svg className="w-2.5 h-2.5 fill-current text-green-600" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                        <div className="flex items-center gap-1 mt-0.5 font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded border border-green-100 shrink-0">
+                                            <svg className="w-2.5 h-2.5 fill-current text-green-600 shrink-0" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                                 <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.513 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.713-1.457L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.625 1.451 5.403.002 9.803-4.389 9.805-9.779.001-2.612-1.013-5.068-2.859-6.915C16.375 2.064 13.924.982 12.002.982 6.61.982 2.212 5.375 2.21 10.766c-.002 1.517.397 2.999 1.157 4.289L2.37 19.535l4.277-1.121zm12.385-6.853c-.27-.135-1.602-.791-1.85-.882-.249-.09-.431-.135-.612.135-.18.27-.697.882-.855 1.062-.158.18-.316.202-.586.067-.27-.135-1.143-.421-2.18-1.348-.807-.72-1.352-1.61-1.51-1.88-.158-.27-.017-.417.118-.552.122-.122.27-.316.406-.473.135-.158.18-.27.27-.45.09-.18.045-.338-.022-.473-.068-.135-.612-1.473-.838-2.016-.22-.53-.443-.458-.612-.467-.158-.008-.339-.01-.52-.01-.18 0-.474.067-.72.338-.249.27-.95.929-.95 2.264 0 1.335.97 2.625 1.105 2.805.135.18 1.908 2.913 4.622 4.085.645.278 1.148.445 1.54.57.65.207 1.241.177 1.709.107.52-.078 1.602-.655 1.828-1.287.226-.633.226-1.177.158-1.287-.068-.111-.248-.18-.518-.315z"/>
                                             </svg>
-                                            <span>+1 (646) 884-0271</span>
+                                            <span className="font-semibold text-green-700 text-[6.5px]">+1 (646) 884-0271</span>
                                         </div>
-                                        <div className="font-bold text-[#22279e] mt-0.5">www.dynime.com</div>
+                                        <div className="font-bold text-[#635bff] mt-0.5 text-[7px] tracking-wider">www.dynime.com</div>
                                     </div>
 
                                     {/* Company Seal centered block */}
