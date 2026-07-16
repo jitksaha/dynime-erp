@@ -103,7 +103,9 @@ const filterByPermission = (items: NavItem[], userPermissions: string[]): NavIte
             return true;
         }
 
-        if (!userPermissions.includes(item.permission)) {
+        const permissionsToCheck = item.permission.split('|');
+        const hasPermission = permissionsToCheck.some(perm => userPermissions.includes(perm));
+        if (!hasPermission) {
             return false;
         }
 

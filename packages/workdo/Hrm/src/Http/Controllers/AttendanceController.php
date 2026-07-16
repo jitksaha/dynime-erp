@@ -23,7 +23,7 @@ class AttendanceController extends Controller
 {
     public function index()
     {
-        if (Auth::user()->can('manage-attendances')) {
+        if (Auth::user()->can('manage-attendances') || Auth::user()->can('manage-own-attendances')) {
             $isDemo = config('app.is_demo');
 
             // In demo mode, default to July 2025 if no filter is explicitly passed
@@ -580,10 +580,11 @@ class AttendanceController extends Controller
 
     public function clockIn()
     {
-        if (Auth::user()->can('clock-in')) {
-            $employeeId = Auth::id();
-            // Check if user exists in employee table
-            $employee = Employee::where('user_id', $employeeId)->where('created_by', creatorId())->first();
+        $employeeId = Auth::id();
+        // Check if user exists in employee table
+        $employee = Employee::where('user_id', $employeeId)->where('created_by', creatorId())->first();
+
+        if (Auth::user()->can('clock-in') || $employee) {
             if (!$employee) {
                 return redirect()->back()->with('error', __('Please convert staff to employee first.'));
             }
@@ -685,7 +686,10 @@ class AttendanceController extends Controller
 
     public function clockOut()
     {
-        if (Auth::user()->can('clock-out')) {
+        $employeeId = Auth::id();
+        $employee = Employee::where('user_id', $employeeId)->where('created_by', creatorId())->first();
+
+        if (Auth::user()->can('clock-out') || $employee) {
             // Check IP restriction
             $setting = getCompanyAllSetting();
             if (isset($setting['ip_restrict']) && $setting['ip_restrict'] === 'on') {

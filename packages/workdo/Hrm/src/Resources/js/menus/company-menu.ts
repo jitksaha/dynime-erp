@@ -41,7 +41,7 @@ export const hrmCompanyMenu = (t: (key: string) => string) => [
             },
             {
                 title: t('Attendance'),
-                permission: 'manage-attendances',
+                permission: 'manage-attendances|manage-own-attendances',
                 children: [
                     {
                         title: t('Shifts'),
@@ -51,7 +51,7 @@ export const hrmCompanyMenu = (t: (key: string) => string) => [
                     {
                         title: t('Attendances'),
                         href: route('hrm.attendances.index'),
-                        permission: 'manage-attendances',
+                        permission: 'manage-attendances|manage-own-attendances',
                     },
                 ],
             },

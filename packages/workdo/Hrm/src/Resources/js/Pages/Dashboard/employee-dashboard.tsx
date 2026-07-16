@@ -103,9 +103,54 @@ export default function EmployeeDashboard({ message, stats }: EmployeeDashboardP
     const [clockOutTime, setClockOutTime] = useState(stats.attendance_data?.clock_out_time || '');
     const [totalWorkingHours, setTotalWorkingHours] = useState(stats.attendance_data?.total_working_hours || '');
 
+    const [currentTime, setCurrentTime] = useState(new Date());
+    const [elapsedTime, setElapsedTime] = useState('00:00:00');
 
     useEffect(() => {
-        // Initialize state from props data
+        const interval = setInterval(() => {
+            setCurrentTime(new Date());
+        }, 1000);
+        return () => clearInterval(interval);
+    }, []);
+
+    useEffect(() => {
+        if (!isClockedIn || !clockInTime) {
+            setElapsedTime('00:00:00');
+            return;
+        }
+
+        const calculateElapsed = () => {
+            try {
+                const normalizedStr = clockInTime.includes(' ') ? clockInTime.replace(' ', 'T') : clockInTime;
+                const start = new Date(normalizedStr);
+                const now = new Date();
+                const diffMs = now.getTime() - start.getTime();
+                if (diffMs < 0) return '00:00:00';
+                
+                const totalSecs = Math.floor(diffMs / 1000);
+                const hrs = Math.floor(totalSecs / 3600);
+                const mins = Math.floor((totalSecs % 3600) / 60);
+                const secs = totalSecs % 60;
+                
+                return [
+                    hrs.toString().padStart(2, '0'),
+                    mins.toString().padStart(2, '0'),
+                    secs.toString().padStart(2, '0')
+                ].join(':');
+            } catch (e) {
+                return '00:00:00';
+            }
+        };
+
+        setElapsedTime(calculateElapsed());
+        const timer = setInterval(() => {
+            setElapsedTime(calculateElapsed());
+        }, 1000);
+
+        return () => clearInterval(timer);
+    }, [isClockedIn, clockInTime]);
+
+    useEffect(() => {
         const attendanceData = stats.attendance_data;
         if (attendanceData) {
             setIsClockedIn(attendanceData.is_clocked_in);
@@ -273,139 +318,173 @@ export default function EmployeeDashboard({ message, stats }: EmployeeDashboardP
                 </div>
 
                 {/* Clock In/Out Section */}
-                {(auth.user?.permissions?.includes('clock-in') || auth.user?.permissions?.includes('clock-out')) && (
-                    <div className="grid grid-cols-1 gap-6">
-                        <Card className="bg-gradient-to-r from-slate-50 to-slate-100 border-slate-200">
-                            <CardContent className="p-6">
-                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                                    {/* Left Side - Clock In/Out */}
+                <div className="grid grid-cols-1 gap-6">
+                    <Card className="overflow-hidden border-0 shadow-md bg-white rounded-2xl relative">
+                        <div className="absolute top-0 left-0 right-0 h-1.5 bg-[#635bff]" />
+                        <CardContent className="p-6 md:p-8">
+                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-center">
+                                {/* Left Side - Real-time Current Clock & Status */}
+                                <div className="lg:col-span-1 flex flex-col justify-between h-full space-y-4">
                                     <div>
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-4">
-                                                <div className={`p-3 rounded-full ${isClockedIn ? 'bg-green-500' : 'bg-gray-400'}`}>
-                                                    <Clock className="h-6 w-6 text-white" />
-                                                </div>
-                                                <div>
-                                                    {clockOutTime ? (
-                                                        <div>
-                                                            <h3 className="text-lg font-semibold text-gray-900">{t('Today\'s Attendance')}</h3>
-                                                            <div className="mt-3 space-y-2 text-sm text-gray-600">
-                                                                <p><strong>{t('Clock In')}:</strong> {formatDateTime(clockInTime)}</p>
-                                                                <p><strong>{t('Clock Out')}:</strong> {formatDateTime(clockOutTime)}</p>
-                                                                <p><strong>{t('Total Working Hours')}:</strong> {totalWorkingHours}</p>
-                                                            </div>
-                                                        </div>
-                                                    ) : (
-                                                        <div>
-                                                            <h3 className="text-lg font-semibold text-gray-900">
-                                                                {isClockedIn ? t('Clocked In') : t('Not Clocked In')}
-                                                            </h3>
-                                                            <p className="text-sm text-gray-600">
-                                                                {isClockedIn ? `${t('Since')}: ${formatDateTime(clockTime)}` : t('Ready to start your day?')}
-                                                            </p>
-                                                            {!clockOutTime && !stats.attendance_data?.can_clock && (
-                                                                <div className="mt-2">
-                                                                    
-                                                                    {(() => {
-                                                                        if (stats.attendance_data?.is_on_leave) {
-                                                                            const today = new Date().toISOString().split('T')[0];
-                                                                            const todayLeave = stats.recent_leave_applications?.find(leave => {
-                                                                                const leaveStart = leave.start_date.split('T')[0];
-                                                                                const leaveEnd = leave.end_date.split('T')[0];
-                                                                                return leaveStart <= today && leaveEnd >= today && leave.status === 'approved';
-                                                                            });
-                                                                            return (
-                                                                                <div className="text-sm">
-                                                                                    <p className="font-bold text-orange-600">{t('You are on approved leave today')}</p>
-                                                                                    {todayLeave && (
-                                                                                        <div className="mt-3 space-y-2 text-xs text-gray-600">
-                                                                                            <p><strong>{t('Leave Type')}:</strong> {todayLeave.leave_type}</p>
-                                                                                            <p><strong>{t('Status')}:</strong> <span className="text-green-600">{todayLeave.status}</span></p>
-                                                                                            <p><strong>{t('Date')}:</strong> {formatDate(todayLeave.start_date)} - {formatDate(todayLeave.end_date)} ({todayLeave.total_days} day{todayLeave.total_days > 1 ? 's' : ''})</p>
-                                                                                        </div>
-                                                                                    )}
-                                                                                </div>
-                                                                            );
-                                                                        } else if (stats.attendance_data?.is_holiday) {
-                                                                            const today = new Date().toISOString().split('T')[0];
-                                                                            const todayHoliday = stats.calendar_events?.find(event => {
-                                                                                const eventStart = event.startDate.split('T')[0];
-                                                                                const eventEnd = event.endDate.split('T')[0];
-                                                                                return eventStart <= today && eventEnd >= today && event.type === 'holiday';
-                                                                            });
-                                                                            return (
-                                                                                <div className="text-sm">
-                                                                                    <p className="font-bold text-red-600">{t('Today is a holiday')}</p>
-                                                                                    {todayHoliday && (
-                                                                                        <div className="mt-3 space-y-2 text-xs text-gray-600">
-                                                                                            <p><strong>{t('Title')}:</strong> {todayHoliday.title}</p>
-                                                                                            <p><strong>{t('Date')}:</strong> {formatDate(todayHoliday.startDate)} - {formatDate(todayHoliday.endDate)} ({Math.ceil((new Date(todayHoliday.endDate) - new Date(todayHoliday.startDate)) / (1000 * 60 * 60 * 24)) + 1} day{Math.ceil((new Date(todayHoliday.endDate) - new Date(todayHoliday.startDate)) / (1000 * 60 * 60 * 24)) + 1 > 1 ? 's' : ''})</p>
-                                                                                        </div>
-                                                                                    )}
-                                                                                </div>
-                                                                            );
-                                                                        } else if (stats.attendance_data?.is_non_working_day) {
-                                                                            return (
-                                                                                <div className="text-sm">
-                                                                                    <p className="font-bold text-red-600">{t('Today is not a working day')}</p>
-                                                                                </div>
-                                                                            );
-                                                                        }
-                                                                        return null;
-                                                                    })()}
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                            {!clockOutTime && stats.attendance_data?.can_clock && ((isClockedIn && auth.user?.permissions?.includes('clock-out')) || (!isClockedIn && auth.user?.permissions?.includes('clock-in'))) && (
-                                                <Button
-                                                    onClick={handleClockAction}
-                                                    className={`px-6 py-3 ${isClockedIn ? 'bg-red-500 hover:bg-red-600' : 'bg-green-100 text-green-800 hover:bg-green-200'}`}
-                                                >
-                                                    {isClockedIn ? (
-                                                        <>
-                                                            <Square className="h-4 w-4 mr-2" />
-                                                            {t('Clock Out')}
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            <Play className="h-4 w-4 mr-2" />
-                                                            {t('Clock In')}
-                                                        </>
-                                                    )}
-                                                </Button>
-                                            )}
+                                        <div className="flex items-center gap-2 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
+                                            <Calendar className="h-3.5 w-3.5 text-[#635bff]" />
+                                            {currentTime.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })}
+                                        </div>
+                                        <div className="text-3xl font-extrabold text-gray-900 tracking-tight">
+                                            {currentTime.toLocaleTimeString()}
                                         </div>
                                     </div>
-                                    
-                                    {/* Right Side - Important Notes */}
-                                    <div className="lg:col-span-1 border rounded-lg p-4 bg-blue-50">
-                                        <h4 className="font-medium mb-3 text-blue-900">
-                                            {t('Important Notes')}
-                                        </h4>
-                                        <div className="space-y-2 text-sm text-blue-800">
-                                            <div className="flex items-start gap-2">
-                                                <span className="text-blue-600 font-bold mt-0.5">○</span>
-                                                <span>{t('You can clock in and clock out only once per day')}</span>
-                                            </div>
-                                            <div className="flex items-start gap-2">
-                                                <span className="text-blue-600 font-bold mt-0.5">○</span>
-                                                <span>{t('If you forget to clock out, the system will automatically clock you out at shift end time when you clock in next day')}</span>
-                                            </div>
-                                            <div className="flex items-start gap-2">
-                                                <span className="text-blue-600 font-bold mt-0.5">○</span>
-                                                <span>{t('Your shift timing')}: <span className="font-bold">{stats.attendance_data?.shift_start_time ? formatTime(stats.attendance_data.shift_start_time) : '--:--'} - {stats.attendance_data?.shift_end_time ? formatTime(stats.attendance_data.shift_end_time) : '--:--'}</span></span>
-                                            </div>
+
+                                    <div className="flex items-center gap-3">
+                                        <div className={`p-2.5 rounded-xl ${isClockedIn ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>
+                                            <Clock className="h-5 w-5" />
+                                        </div>
+                                        <div>
+                                            <p className="text-xs text-gray-500 font-medium">{t('Status')}</p>
+                                            <h4 className="text-sm font-bold text-gray-800">
+                                                {isClockedIn ? t('Clocked In') : t('Not Clocked In')}
+                                            </h4>
                                         </div>
                                     </div>
                                 </div>
 
-                            </CardContent>
-                        </Card>
-                    </div>
-                )}
+                                {/* Center Side - Timer and Actions */}
+                                <div className="lg:col-span-1 flex flex-col items-center justify-center py-6 lg:py-0 border-y lg:border-y-0 lg:border-x border-gray-100 px-0 lg:px-8">
+                                    {isClockedIn && !clockOutTime && (
+                                        <div className="text-center mb-4">
+                                            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">{t('Active Work Duration')}</p>
+                                            <div className="text-4xl font-mono font-bold text-[#635bff] tracking-widest tabular-nums drop-shadow-sm">
+                                                {elapsedTime}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {clockOutTime ? (
+                                        <div className="w-full text-center space-y-2">
+                                            <Badge className="bg-emerald-50 text-emerald-700 hover:bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full text-xs font-semibold">
+                                                {t('Completed Today')}
+                                            </Badge>
+                                            <div className="grid grid-cols-2 gap-4 mt-2 text-left">
+                                                <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                                                    <p className="text-[10px] text-gray-500 font-semibold uppercase">{t('Clock In')}</p>
+                                                    <p className="text-xs font-bold text-gray-700 mt-0.5">{formatTime(clockInTime)}</p>
+                                                </div>
+                                                <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                                                    <p className="text-[10px] text-gray-500 font-semibold uppercase">{t('Clock Out')}</p>
+                                                    <p className="text-xs font-bold text-gray-700 mt-0.5">{formatTime(clockOutTime)}</p>
+                                                </div>
+                                            </div>
+                                            <p className="text-xs font-bold text-gray-500 mt-2">
+                                                {t('Total Hours')}: <span className="text-[#635bff]">{totalWorkingHours}</span>
+                                            </p>
+                                        </div>
+                                    ) : (
+                                        <div className="w-full flex flex-col items-center">
+                                            {!stats.attendance_data?.can_clock ? (
+                                                <div className="w-full text-center">
+                                                    {(() => {
+                                                        if (stats.attendance_data?.is_on_leave) {
+                                                            const today = new Date().toISOString().split('T')[0];
+                                                            const todayLeave = stats.recent_leave_applications?.find(leave => {
+                                                                const leaveStart = leave.start_date.split('T')[0];
+                                                                const leaveEnd = leave.end_date.split('T')[0];
+                                                                return leaveStart <= today && leaveEnd >= today && leave.status === 'approved';
+                                                            });
+                                                            return (
+                                                                <div className="p-3 bg-orange-50 border border-orange-100 rounded-xl">
+                                                                    <p className="font-bold text-xs text-orange-600">{t('On Leave Today')}</p>
+                                                                    {todayLeave && (
+                                                                        <p className="text-[11px] text-orange-500 mt-1 font-medium">{todayLeave.leave_type} ({todayLeave.total_days} {todayLeave.total_days > 1 ? t('days') : t('day')})</p>
+                                                                    )}
+                                                                </div>
+                                                            );
+                                                        } else if (stats.attendance_data?.is_holiday) {
+                                                            const today = new Date().toISOString().split('T')[0];
+                                                            const todayHoliday = stats.calendar_events?.find(event => {
+                                                                const eventStart = event.startDate.split('T')[0];
+                                                                const eventEnd = event.endDate.split('T')[0];
+                                                                return eventStart <= today && eventEnd >= today && event.type === 'holiday';
+                                                            });
+                                                            return (
+                                                                <div className="p-3 bg-red-50 border border-red-100 rounded-xl">
+                                                                    <p className="font-bold text-xs text-red-600">{t('Today is a Holiday')}</p>
+                                                                    {todayHoliday && (
+                                                                        <p className="text-[11px] text-red-500 mt-1 font-medium">{todayHoliday.title}</p>
+                                                                    )}
+                                                                </div>
+                                                            );
+                                                        } else if (stats.attendance_data?.is_non_working_day) {
+                                                            return (
+                                                                <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl">
+                                                                    <p className="font-bold text-xs text-slate-500">{t('Non-Working Day')}</p>
+                                                                </div>
+                                                            );
+                                                        }
+                                                        return null;
+                                                    })()}
+                                                </div>
+                                            ) : (
+                                                <div className="w-full space-y-2">
+                                                    <Button
+                                                        onClick={handleClockAction}
+                                                        className={`w-full py-6 rounded-xl font-bold text-sm tracking-wide shadow-sm transition-all duration-300 hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2 ${
+                                                            isClockedIn
+                                                                ? 'bg-rose-600 hover:bg-rose-700 text-white shadow-rose-100'
+                                                                : 'bg-[#635bff] hover:bg-[#534bd6] text-white shadow-[#635bff]/10'
+                                                        }`}
+                                                    >
+                                                        {isClockedIn ? (
+                                                            <>
+                                                                <Square className="h-4.5 w-4.5 fill-current" />
+                                                                {t('Clock Out')}
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <Play className="h-4.5 w-4.5 fill-current" />
+                                                                {t('Clock In')}
+                                                            </>
+                                                        )}
+                                                    </Button>
+                                                    {isClockedIn && clockInTime && (
+                                                        <p className="text-[11px] text-center text-gray-500 font-medium">
+                                                            {t('Clocked in at')} <span className="font-bold">{formatTime(clockInTime)}</span>
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Right Side - Important Notes & Schedule */}
+                                <div className="lg:col-span-1 p-4 rounded-xl bg-slate-50 border border-slate-100 self-stretch flex flex-col justify-between">
+                                    <div>
+                                        <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
+                                            <Shield className="h-3.5 w-3.5 text-[#635bff]" />
+                                            {t('Shift & Schedule')}
+                                        </h4>
+                                        <div className="space-y-2 text-xs text-gray-600">
+                                            <div className="flex justify-between items-center bg-white p-2 rounded-lg border border-slate-100">
+                                                <span className="font-medium text-gray-500">{t('Shift Timing')}</span>
+                                                <span className="font-bold text-gray-800">
+                                                    {stats.attendance_data?.shift_start_time ? formatTime(stats.attendance_data.shift_start_time) : '--:--'} - {stats.attendance_data?.shift_end_time ? formatTime(stats.attendance_data.shift_end_time) : '--:--'}
+                                                </span>
+                                            </div>
+                                            <div className="flex justify-between items-center bg-white p-2 rounded-lg border border-slate-100">
+                                                <span className="font-medium text-gray-500">{t('Work Mode')}</span>
+                                                <span className="font-bold text-gray-800">{t('Office')}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="mt-4 pt-3 border-t border-slate-100 text-[10px] text-gray-400 font-medium space-y-1">
+                                        <p>• {t('You can clock in/out once per day.')}</p>
+                                        <p>• {t('Missed clock-outs will auto-complete at shift end.')}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
 
                 {/* Signed Letters & Documents */}
                 {stats.signed_documents && stats.signed_documents.length > 0 && (
