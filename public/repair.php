@@ -76,4 +76,19 @@ if (file_exists($appCacheDir)) {
     echo "INFO: storage/framework/cache/data does not exist or cache is not using file driver.\n";
 }
 
+// 4. Update pull.php itself
+$pullUrl = 'https://raw.githubusercontent.com/jitksaha/dynime-erp/main/public/pull.php';
+$pullPath = $baseDir . '/public/pull.php';
+echo "Updating pull.php...\n";
+$pullContent = @file_get_contents($pullUrl);
+if ($pullContent !== false) {
+    if (file_put_contents($pullPath, $pullContent) !== false) {
+        echo "SUCCESS: Self-updated pull.php to latest ZIP-based deployer!\n";
+    } else {
+        echo "FAILED to write to public/pull.php\n";
+    }
+} else {
+    echo "FAILED to fetch pull.php from raw GitHub\n";
+}
+
 echo "\n=== REPAIR COMPLETED ===\n</pre>\n";
