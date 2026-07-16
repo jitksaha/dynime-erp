@@ -5,9 +5,11 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Save, HardDrive, Search } from 'lucide-react';
+import { Save, HardDrive, Search, Cloud, RefreshCw, CheckCircle, XCircle, AlertCircle, Play } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { router } from '@inertiajs/react';
+import axios from 'axios';
+import { toast } from 'sonner';
 
 type StorageType = 'local' | 'aws_s3' | 'wasabi';
 
@@ -66,6 +68,11 @@ export default function StorageSettings({ userSettings, auth }: StorageSettingsP
   });
 
   const [settings, setSettings] = useState<StorageSettings>(() => initializeSettings(userSettings));
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncTotal, setSyncTotal] = useState(0);
+  const [syncProgress, setSyncProgress] = useState(0);
+  const [syncStatus, setSyncStatus] = useState<string>('');
+  const [syncLogs, setSyncLogs] = useState<Array<{ name: string; status: 'pending' | 'success' | 'failed'; error?: string }>>([]);
 
   useEffect(() => {
     if (userSettings) {
@@ -125,6 +132,160 @@ export default function StorageSettings({ userSettings, auth }: StorageSettingsP
       setIsLoading(false);
       
     }
+  };
+
+  const startSync = async () => {
+    try {
+      setIsSyncing(true);
+      setSyncStatus(t('Fetching local files to sync...'));
+      setSyncLogs([]);
+      setSyncProgress(0);
+      
+      const response = await axios.get('/settings/storage/sync/files');
+      const files = response.data.files || [];
+      
+      if (files.length === 0) {
+        setSyncStatus(t('No local files found to migrate! Everything is up to date.'));
+        setIsSyncing(false);
+        return;
+      }
+      
+      setSyncTotal(files.length);
+      setSyncStatus(t('Syncing {{count}} files...', { count: files.length }));
+      
+      // Initialize logs
+      setSyncLogs(files.map((f: any) => ({ name: f.file_name, status: 'pending' })));
+      
+      let completed = 0;
+      for (const file of files) {
+        setSyncStatus(t('Syncing file: {{name}} ({{current}}/{{total}})...', { 
+          name: file.name, 
+          current: completed + 1, 
+          total: files.length 
+        }));
+        
+        try {
+          await axios.post('/settings/storage/sync/migrate-file', { id: file.id });
+          setSyncLogs(prev => prev.map(log => 
+            log.name === file.file_name ? { ...log, status: 'success' } : log
+          ));
+        } catch (err: any) {
+          const errMsg = err.response?.data?.error || err.message || t('Unknown error');
+          setSyncLogs(prev => prev.map(log => 
+            log.name === file.file_name ? { ...log, status: 'failed', error: errMsg } : log
+          ));
+        }
+        completed++;
+        setSyncProgress(completed);
+      }
+      
+      setSyncStatus(t('Sync completed successfully! All URLs rewritten.'));
+      toast.success(t('Sync completed successfully!'));
+    } catch (err: any) {
+      toast.error(err.message || t('Failed to run sync.'));
+      setSyncStatus(t('Sync failed.'));
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const renderR2SyncSection = () => {
+    if (settings.storageType !== 'aws_s3') return null;
+
+    return (
+      <div className="mt-8 pt-6 border-t border-border space-y-4">
+        <div>
+          <h4 className="text-base font-bold text-foreground flex items-center gap-2">
+            <Cloud className="h-5 w-5 text-orange-500 animate-pulse" />
+            {t("Cloudflare R2 Sync & URL Rewriting")}
+          </h4>
+          <p className="text-sm text-muted-foreground mt-1">
+            {t("Migrate files currently stored on local server to your configured Cloudflare R2 bucket. This will also rewrite any local image URLs in database settings to use the Cloudflare R2 CDN.")}
+          </p>
+        </div>
+
+        <div className="bg-orange-50/50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-900/50 rounded-xl p-4 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <span className="text-xs font-bold uppercase tracking-wider text-orange-600 dark:text-orange-400">
+                {t("Status")}
+              </span>
+              <p className="text-sm font-medium text-foreground">
+                {syncStatus || t("Ready to sync")}
+              </p>
+            </div>
+            
+            <Button
+              onClick={startSync}
+              disabled={isSyncing || !settings.awsAccessKeyId || !settings.awsSecretAccessKey}
+              variant="default"
+              size="sm"
+              className="bg-orange-600 hover:bg-orange-700 text-white font-semibold flex items-center gap-1.5"
+            >
+              <RefreshCw className={`h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
+              {isSyncing ? t('Syncing...') : t('Sync Local Files')}
+            </Button>
+          </div>
+
+          {/* Progress Bar */}
+          {(isSyncing || syncTotal > 0) && (
+            <div className="space-y-2">
+              <div className="flex justify-between text-xs text-muted-foreground font-medium">
+                <span>{t("Progress:")} {syncProgress} / {syncTotal} {t("files")}</span>
+                <span>{Math.round((syncProgress / (syncTotal || 1)) * 100)}%</span>
+              </div>
+              <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-orange-500 rounded-full transition-all duration-300"
+                  style={{ width: `${(syncProgress / (syncTotal || 1)) * 100}%` }}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Scrollable logs */}
+          {syncLogs.length > 0 && (
+            <div className="border rounded-lg bg-card overflow-hidden">
+              <div className="px-3 py-2 bg-muted/50 border-b text-xs font-bold text-muted-foreground uppercase">
+                {t("Synchronization Logs")}
+              </div>
+              <div className="p-3 max-h-48 overflow-y-auto font-mono text-xs space-y-2 divide-y divide-border/30">
+                {syncLogs.map((log, idx) => (
+                  <div key={idx} className="flex items-start justify-between py-1.5 first:pt-0 last:pb-0 gap-2">
+                    <span className="truncate text-foreground font-medium" title={log.name}>
+                      {log.name}
+                    </span>
+                    <span className="flex-shrink-0 flex items-center gap-1.5">
+                      {log.status === 'pending' && (
+                        <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400 font-semibold animate-pulse">
+                          <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                          {t("Syncing")}
+                        </span>
+                      )}
+                      {log.status === 'success' && (
+                        <span className="inline-flex items-center gap-1 text-green-600 dark:text-green-400 font-semibold">
+                          <CheckCircle className="h-3.5 w-3.5" />
+                          {t("Success")}
+                        </span>
+                      )}
+                      {log.status === 'failed' && (
+                        <span 
+                          className="inline-flex items-center gap-1 text-red-600 dark:text-red-400 font-semibold cursor-help"
+                          title={log.error}
+                        >
+                          <XCircle className="h-3.5 w-3.5" />
+                          {t("Failed")}
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
   };
 
   const renderFileTypeSelector = () => (
@@ -523,6 +684,7 @@ export default function StorageSettings({ userSettings, auth }: StorageSettingsP
             {renderWasabiFields()}
           </TabsContent>
         </Tabs>
+        {renderR2SyncSection()}
       </CardContent>
     </Card>
   );

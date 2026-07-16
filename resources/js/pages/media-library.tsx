@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
-import { Upload, Search, Plus, Info, Copy, Download, X, MoreHorizontal, MoreVertical, Image as ImageIcon, Calendar, HardDrive, Edit, Trash2, Folder, FolderOpen, Home, Grid3X3, List, Eye } from 'lucide-react';
+import { Upload, Search, Plus, Info, Copy, Download, X, MoreHorizontal, MoreVertical, Image as ImageIcon, Calendar, HardDrive, Edit, Trash2, Folder, FolderOpen, Home, Grid3X3, List, Eye, Cloud } from 'lucide-react';
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 interface MediaItem {
   id: number;
@@ -20,6 +20,7 @@ interface MediaItem {
   thumb_url: string;
   size: number;
   mime_type: string;
+  disk?: string;
   created_at: string;
   directory_id: number | null;
 }
@@ -630,6 +631,15 @@ export default function MediaLibrary() {
                                   {item.mime_type.split('/')[1] || 'FILE'}
                                 </span>
                               </div>
+
+                              {item.disk === 's3' && (
+                                <div className="absolute top-2 right-2 z-10">
+                                  <span className="inline-flex items-center gap-1 rounded-md bg-orange-500/90 text-white px-2 py-0.5 text-[10px] font-extrabold shadow-sm backdrop-blur-md">
+                                    <Cloud className="h-3 w-3" />
+                                    R2
+                                  </span>
+                                </div>
+                              )}
                             </div>
 
                             <div className="flex flex-col flex-1 border-t border-border/50 bg-white dark:bg-card p-3">
@@ -677,7 +687,15 @@ export default function MediaLibrary() {
                                       {item.mime_type.startsWith('image/') ? <img src={item.thumb_url} className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-500" onError={e => { e.currentTarget.src = item.url; }} /> : getFileIcon(item.mime_type)}
                                     </div>
                                     <div className="flex flex-col min-w-0">
-                                      <span className="font-semibold text-foreground truncate max-w-full">{item.name}</span>
+                                      <div className="flex items-center gap-2">
+                                        <span className="font-semibold text-foreground truncate max-w-[200px] md:max-w-xs">{item.name}</span>
+                                        {item.disk === 's3' && (
+                                          <span className="inline-flex items-center gap-1 rounded bg-orange-100 dark:bg-orange-950 text-orange-700 dark:text-orange-300 px-1.5 py-0.2 text-[9px] font-extrabold uppercase border border-orange-200 dark:border-orange-900">
+                                            <Cloud className="h-2.5 w-2.5" />
+                                            R2
+                                          </span>
+                                        )}
+                                      </div>
                                       <span className="text-[11px] text-muted-foreground uppercase tracking-widest mt-0.5 font-medium">{item.mime_type.split('/')[1] || 'FILE'}</span>
                                     </div>
                                   </div>
@@ -986,6 +1004,29 @@ export default function MediaLibrary() {
                       <div className="flex flex-col gap-1.5">
                         <span className="text-sm text-muted-foreground">{t('Upload Date')}</span>
                         <span className="text-sm font-medium text-foreground">{formatDate(selectedMediaInfo.created_at)}</span>
+                      </div>
+
+                      <div className="flex flex-col gap-1.5">
+                        <span className="text-sm text-muted-foreground">{t('Storage Driver')}</span>
+                        <div className="flex items-center gap-2">
+                          <span className={`inline-flex items-center gap-1.5 text-xs px-3 py-1 rounded-full font-medium ${
+                            selectedMediaInfo.disk === 's3' 
+                              ? 'bg-orange-100 dark:bg-orange-950 text-orange-700 dark:text-orange-300 border border-orange-200 dark:border-orange-900' 
+                              : 'bg-muted/60 text-foreground'
+                          }`}>
+                            {selectedMediaInfo.disk === 's3' ? (
+                              <>
+                                <Cloud className="h-3.5 w-3.5" />
+                                Cloudflare R2
+                              </>
+                            ) : (
+                              <>
+                                <HardDrive className="h-3.5 w-3.5" />
+                                Local Storage
+                              </>
+                            )}
+                          </span>
+                        </div>
                       </div>
 
                       <div className="flex flex-col gap-1.5 mt-2">

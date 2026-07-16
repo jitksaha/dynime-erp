@@ -210,6 +210,7 @@ class EmployeeController extends Controller
             if(!$this->checkEmployeeAccess($employee)) {
                 return redirect()->route('hrm.employees.index')->with('error', __('Permission denied'));
             }
+            $employee->load('user');
             $existingDocuments = EmployeeDocument::where('user_id', $employee->id)
                 ->with('documentType')
                 ->get()
@@ -501,11 +502,17 @@ class EmployeeController extends Controller
             }
         }
 
-        if (filter_var($avatarPath, FILTER_VALIDATE_URL)) {
+        $urlToFetch = $avatarPath;
+        if (!filter_var($avatarPath, FILTER_VALIDATE_URL)) {
+            $prefix = getImageUrlPrefix();
+            $urlToFetch = rtrim($prefix, '/') . '/' . ltrim($avatarPath, '/');
+        }
+
+        if (filter_var($urlToFetch, FILTER_VALIDATE_URL)) {
             try {
-                $client = new \GuzzleHttp\Client();
-                $response = $client->get($avatarPath);
-                $contentType = $response->getHeaderLine('content-type');
+                $client = new \GuzzleHttp\Client(['verify' => false]);
+                $response = $client->get($urlToFetch, ['timeout' => 5]);
+                $contentType = $response->getHeaderLine('content-type') ?: 'image/jpeg';
                 $body = $response->getBody()->getContents();
                 $base64 = 'data:' . $contentType . ';base64,' . base64_encode($body);
                 return response()->json(['base64' => $base64]);

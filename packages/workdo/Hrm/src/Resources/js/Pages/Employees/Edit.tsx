@@ -96,7 +96,7 @@ export default function Edit() {
 
     const { data, setData, put, processing, errors } = useForm<EditEmployeeFormData>({
         employee_id: employee.employee_id ?? '',
-        avatar: null,
+        avatar: employee.user?.avatar || null,
         date_of_birth: employee.date_of_birth || '',
         gender: employee.gender || 'Male',
         shift_id: employee.shift?.toString() || '',
