@@ -161,21 +161,48 @@ export default function EmployeeDashboard({ message, stats }: EmployeeDashboardP
         }
     }, [stats.attendance_data]);
 
-    const handleClockAction = () => {
+    useEffect(() => {
+        const handleClockChange = (e: Event) => {
+            const data = (e as CustomEvent).detail;
+            setIsClockedIn(data.is_clocked_in);
+            setClockTime(data.is_clocked_in ? data.clock_in_time : '--:--');
+            setClockInTime(data.clock_in_time || '');
+            setClockOutTime(data.clock_out_time || '');
+            setTotalWorkingHours(data.total_working_hours || '');
+        };
+
+        window.addEventListener('attendance-clock-changed', handleClockChange);
+        return () => window.removeEventListener('attendance-clock-changed', handleClockChange);
+    }, []);
+
+    const handleClockAction = async () => {
         const endpoint = isClockedIn ? route('hrm.attendances.clock-out') : route('hrm.attendances.clock-in');
-        router.post(endpoint, {}, {
-            onSuccess: () => {
-                fetch(route('hrm.attendances.clock-status'))
-                    .then(response => response.json())
-                    .then(data => {
-                        setIsClockedIn(data.is_clocked_in);
-                        setClockTime(data.is_clocked_in ? data.clock_in_time : '--:--');
-                        setClockInTime(data.clock_in_time || '');
-                        setClockOutTime(data.clock_out_time || '');
-                        setTotalWorkingHours(data.total_working_hours || '');
-                    });
-            }
-        });
+        try {
+            const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+            await fetch(endpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': token || '',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
+            });
+
+            const response = await fetch(route('hrm.attendances.clock-status'));
+            const data = await response.json();
+            
+            setIsClockedIn(data.is_clocked_in);
+            setClockTime(data.is_clocked_in ? data.clock_in_time : '--:--');
+            setClockInTime(data.clock_in_time || '');
+            setClockOutTime(data.clock_out_time || '');
+            setTotalWorkingHours(data.total_working_hours || '');
+
+            // Dispatch custom event to update header widget
+            window.dispatchEvent(new CustomEvent('attendance-clock-changed', { detail: data }));
+        } catch (e) {
+            console.error(e);
+        }
     };
 
     return (

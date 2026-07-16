@@ -11,6 +11,7 @@ import {
     BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { NavUser } from "@/components/nav-user";
+import { HeaderAttendance } from "@/components/header-attendance";
 import { usePage, Head, Link, router } from "@inertiajs/react";
 import { PageProps } from "@/types";
 import { BrandProvider, useBrand } from "@/contexts/brand-context";
@@ -125,6 +126,7 @@ function AuthenticatedLayoutContent({
                                 {t('Leave Login As User')}
                             </Button>
                         )}
+                        <HeaderAttendance />
                         <NavUser user={auth.user} inHeader={true} />
                     </div>
                 </header>
