@@ -289,6 +289,10 @@ class EmployeeController extends Controller
             // Update avatar if provided
             $user = User::find($employee->user_id);
             if ($user) {
+                if ($request->has('mobile_no')) {
+                    $user->mobile_no = $request->input('mobile_no');
+                    $user->save();
+                }
                 if ($request->hasFile('avatar')) {
                     $file = $request->file('avatar');
                     $filename = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);

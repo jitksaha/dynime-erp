@@ -108,8 +108,8 @@ export default function Show() {
             doc.setFillColor(99, 91, 255);
             doc.rect(0, 0, 54, 22, 'F');
 
-            // Light Blue / Cyan Accent Stripe (#38BDF8)
-            doc.setFillColor(56, 189, 248);
+            // Light Blue / Cyan Accent Stripe (#635bff)
+            doc.setFillColor(99, 91, 255);
             doc.triangle(0, 22, 54, 22, 54, 20.2, 'F');
 
             // Header Text (Company Name & Tagline)
@@ -179,12 +179,12 @@ export default function Show() {
             const displayName = nameText.length > 18 ? nameText.substring(0, 16) + '..' : nameText;
             doc.text(displayName.toUpperCase(), 27, 43, { align: 'center' });
 
-            // Designation Badge (Light Blue theme)
-            doc.setFillColor(56, 189, 248); // #38BDF8
+            // Designation Badge (Brand Violet theme with white text)
+            doc.setFillColor(99, 91, 255); // #635bff
             doc.rect(13, 45.5, 28, 4, 'F');
             doc.setFont('Helvetica', 'bold');
             doc.setFontSize(6);
-            doc.setTextColor(99, 91, 255); // brand violet text
+            doc.setTextColor(255, 255, 255); // white text
             const jobTitle = employee.designation?.designation_name || 'Staff Member';
             const displayTitle = jobTitle.length > 22 ? jobTitle.substring(0, 20) + '..' : jobTitle;
             doc.text(displayTitle.toUpperCase(), 27, 48.5, { align: 'center' });
@@ -193,14 +193,13 @@ export default function Show() {
             doc.setFont('Helvetica', 'normal');
             doc.setFontSize(5);
             
-            // Left Column
-            // EMP ID Highlight
+            // Centered EMP ID Highlight spanning the columns
             doc.setFillColor(240, 239, 255); // bg-[#635bff]/10
-            doc.rect(4, 51.5, 22, 4.5, 'F');
+            doc.rect(4, 51.5, 46, 4.5, 'F');
             doc.setFont('Helvetica', 'bold');
             doc.setFontSize(6);
             doc.setTextColor(99, 91, 255);
-            doc.text(employee.employee_id || '', 15, 54.7, { align: 'center' });
+            doc.text('ID: ' + (employee.employee_id || ''), 27, 54.7, { align: 'center' });
 
             doc.setFont('Helvetica', 'normal');
             doc.setFontSize(5);
@@ -210,17 +209,17 @@ export default function Show() {
             doc.text('COUNTRY: ' + (employee.work_location_country || 'USA'), 4, 67.5);
 
             // Right Column
-            doc.text('DEPT: ' + (employee.department?.department_name || '—'), 28, 53.5);
-            doc.text('BRANCH: ' + (employee.branch?.branch_name || '—'), 28, 57.5);
-            doc.text('MAIL: ' + (employee.user?.email || '—'), 28, 61.5);
-            const empPhone = employee.phone || employee.payment_details?.recipient_phone || '—';
-            doc.text('PHONE: ' + empPhone, 28, 65.5);
+            doc.text('DEPT: ' + (employee.department?.department_name || '—'), 28, 59.5);
+            doc.text('BRANCH: ' + (employee.branch?.branch_name || '—'), 28, 63.5);
+            doc.text('MAIL: ' + (employee.user?.email || '—'), 28, 67.5);
+            const empPhone = employee.user?.mobile_no || employee.payment_details?.recipient_phone || '—';
+            doc.text('PHONE: ' + empPhone, 4, 71.5);
 
             // Verification QR Code - with a clean 3mm bottom padding/margin
-            doc.addImage(qrDataUrl, 'PNG', 21.5, 71, 11, 11);
-            doc.setDrawColor(56, 189, 248);
+            doc.addImage(qrDataUrl, 'PNG', 38, 71, 12, 12);
+            doc.setDrawColor(99, 91, 255);
             doc.setLineWidth(0.3);
-            doc.rect(21.5, 71, 11, 11, 'S');
+            doc.rect(38, 71, 12, 12, 'S');
 
             // ------------------ BACK SIDE ------------------
             doc.addPage([54, 86], 'portrait');
@@ -233,8 +232,8 @@ export default function Show() {
             doc.setFillColor(99, 91, 255);
             doc.rect(0, 0, 54, 15, 'F');
 
-            // Accent Stripe - Light Blue (#38BDF8)
-            doc.setFillColor(56, 189, 248);
+            // Accent Stripe - Brand Violet (#635bff)
+            doc.setFillColor(99, 91, 255);
             doc.triangle(0, 15, 54, 15, 54, 13.5, 'F');
 
             doc.setFont('Helvetica', 'bold');
@@ -292,9 +291,9 @@ export default function Show() {
             doc.text('Email: contact@dynime.com', 27, 54, { align: 'center' });
             doc.text('Phone: +1 (646) 884-0271', 27, 57, { align: 'center' });
             
-            // WhatsApp green contact
+            // WhatsApp contact
             doc.setFont('Helvetica', 'bold');
-            doc.setTextColor(22, 163, 74);
+            doc.setTextColor(71, 85, 105);
             doc.text('WhatsApp: +1 (646) 884-0271', 27, 60.5, { align: 'center' });
             
             doc.setTextColor(99, 91, 255);
@@ -914,7 +913,7 @@ export default function Show() {
                             <div className="w-[270px] h-[430px] bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden relative flex flex-col justify-between select-none pb-2">
                                 {/* Top curved banner */}
                                 <div className="absolute top-0 inset-x-0 h-[92px] bg-[#635bff] flex flex-col items-center justify-center pt-2">
-                                    <div className="absolute bottom-0 right-0 left-[-20%] h-1 bg-[#38BDF8] transform rotate-3 origin-bottom-left"></div>
+                                    <div className="absolute bottom-0 right-0 left-[-20%] h-1 bg-[#635bff] transform rotate-3 origin-bottom-left"></div>
                                     <div className="text-[14px] font-extrabold text-white tracking-wider uppercase">
                                         Dynime LLC
                                     </div>
@@ -940,14 +939,14 @@ export default function Show() {
                                     <h4 className="text-[13px] font-black text-slate-800 uppercase tracking-tight truncate">
                                         {employee.user?.name}
                                     </h4>
-                                    <div className="mt-0.5 inline-block px-2 py-0.5 rounded text-[8px] font-extrabold uppercase bg-[#38BDF8] text-[#635bff] tracking-wide">
+                                    <div className="mt-0.5 inline-block px-2.5 py-0.5 rounded text-[8px] font-extrabold uppercase bg-[#635bff] text-white tracking-wide">
                                         {employee.designation?.designation_name || 'Staff Member'}
                                     </div>
                                 </div>
 
                                 {/* Detailed Columns Grid */}
                                 <div className="px-3 mt-1 grid grid-cols-2 gap-x-2 gap-y-1 text-[8px] text-slate-600">
-                                    <div className="col-span-2 flex items-center gap-1.5 bg-[#635bff]/10 p-1.5 rounded border border-[#635bff]/20">
+                                    <div className="col-span-2 flex items-center justify-center gap-1.5 bg-[#635bff]/10 p-1.5 rounded border border-[#635bff]/20">
                                         <span className="text-[#635bff] font-bold text-[7px] uppercase">{t('ID')}:</span>
                                         <span className="font-extrabold text-[#635bff]">{employee.employee_id}</span>
                                     </div>
@@ -973,7 +972,7 @@ export default function Show() {
                                     </div>
                                     <div>
                                         <span className="text-slate-400 font-bold uppercase block text-[6.5px]">{t('Phone')}</span>
-                                        <span className="font-semibold block truncate text-slate-800">{employee.phone || employee.payment_details?.recipient_phone || '—'}</span>
+                                        <span className="font-semibold block truncate text-slate-800">{employee.user?.mobile_no || employee.payment_details?.recipient_phone || '—'}</span>
                                     </div>
                                     <div className="col-span-2">
                                         <span className="text-slate-400 font-bold uppercase block text-[6.5px]">{t('Email')}</span>
@@ -997,7 +996,7 @@ export default function Show() {
                                 <div>
                                     {/* Back Header banner */}
                                     <div className="h-[52px] bg-[#635bff] rounded-xl flex flex-col items-center justify-center relative overflow-hidden">
-                                        <div className="absolute bottom-0 right-0 left-[-20%] h-0.5 bg-[#38BDF8] transform rotate-3"></div>
+                                        <div className="absolute bottom-0 right-0 left-[-20%] h-0.5 bg-[#635bff] transform rotate-3"></div>
                                         <div className="text-[13px] font-black text-white tracking-wider uppercase">
                                             Dynime LLC
                                         </div>
@@ -1048,11 +1047,11 @@ export default function Show() {
                                         </div>
                                         
                                         {/* WhatsApp icon + text */}
-                                        <div className="flex items-center gap-1 mt-0.5 font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded border border-green-100 shrink-0">
-                                            <svg className="w-2.5 h-2.5 fill-current text-green-600 shrink-0" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                                <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.513 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.713-1.457L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.625 1.451 5.403.002 9.803-4.389 9.805-9.779.001-2.612-1.013-5.068-2.859-6.915C16.375 2.064 13.924.982 12.002.982 6.61.982 2.212 5.375 2.21 10.766c-.002 1.517.397 2.999 1.157 4.289L2.37 19.535l4.277-1.121zm12.385-6.853c-.27-.135-1.602-.791-1.85-.882-.249-.09-.431-.135-.612.135-.18.27-.697.882-.855 1.062-.158.18-.316.202-.586.067-.27-.135-1.143-.421-2.18-1.348-.807-.72-1.352-1.61-1.51-1.88-.158-.27-.017-.417.118-.552.122-.122.27-.316.406-.473.135-.158.18-.27.27-.45.09-.18.045-.338-.022-.473-.068-.135-.612-1.473-.838-2.016-.22-.53-.443-.458-.612-.467-.158-.008-.339-.01-.52-.01-.18 0-.474.067-.72.338-.249.27-.95.929-.95 2.264 0 1.335.97 2.625 1.105 2.805.135.18 1.908 2.913 4.622 4.085.645.278 1.148.445 1.54.57.65.207 1.241.177 1.709.107.52-.078 1.602-.655 1.828-1.287.226-.633.226-1.177.158-1.287-.068-.111-.248-.18-.518-.315z"/>
+                                        <div className="flex items-center gap-1.5 justify-center">
+                                            <svg className="w-2.5 h-2.5 fill-current text-[#635bff] shrink-0" viewBox="0 0 448 512" xmlns="http://www.w3.org/2000/svg">
+                                                <path d="M380.9 97.1C339 55.1 283.2 32 223.9 32c-122.4 0-222 99.6-222 222 0 39.1 10.2 77.3 29.6 111L3 480l117.7-30.9c32.4 17.7 68.9 27 106.1 27h.1c122.3 0 224.1-99.6 224.1-222 0-59.3-25.2-115-67.1-157zm-157 341.6c-33.2 0-65.7-8.9-94-25.7l-6.7-4-69.8 18.3L72 359.2l-4.4-7c-18.5-29.4-28.2-63.3-28.2-98.2 0-101.7 82.8-184.5 184.6-184.5 49.3 0 95.6 19.2 130.4 54.1 34.8 34.9 56.2 81.2 56.1 130.5 0 101.8-84.9 184.6-186.6 184.6zm101.2-138.2c-5.5-2.8-32.8-16.2-37.9-18-5.1-1.9-8.8-2.8-12.5 2.8-3.7 5.6-14.3 18-17.6 21.8-3.2 3.7-6.5 4.2-12 1.4-32.6-16.3-54-29.1-75.5-66-5.7-9.8 5.7-9.1 16.3-30.3 1.8-3.7.9-6.9-.5-9.7-1.4-2.8-12.5-30.1-17.1-41.2-4.5-10.8-9.1-9.3-12.5-9.5-3.2-.2-6.9-.2-10.6-.2-3.7 0-9.7 1.4-14.8 6.9-5.1 5.6-19.4 19-19.4 46.3 0 27.3 19.9 53.7 22.6 57.4 2.8 3.7 39.1 59.7 94.8 83.8 35.2 15.2 49 16.5 66.6 13.9 10.7-1.6 32.8-13.4 37.4-26.4 4.6-13 4.6-24.1 3.2-26.4-1.3-2.5-5-3.9-10.5-6.6z"/>
                                             </svg>
-                                            <span className="font-semibold text-green-700 text-[6.5px]">+1 (646) 884-0271</span>
+                                            <span className="font-semibold text-slate-700 text-[6.5px]">+1 (646) 884-0271</span>
                                         </div>
                                         <div className="font-bold text-[#635bff] mt-0.5 text-[7px] tracking-wider">www.dynime.com</div>
                                     </div>

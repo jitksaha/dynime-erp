@@ -13,6 +13,7 @@ export interface Department {
 export interface User {
     id: number;
     name: string;
+    mobile_no?: string;
 }
 
 export interface Designation {
@@ -71,6 +72,7 @@ export interface Employee {
 
 export interface CreateEmployeeFormData {
     employee_id: string;
+    mobile_no: string;
     date_of_birth: string;
     gender: string;
     shift_id: string;
@@ -115,6 +117,7 @@ export interface CreateEmployeeFormData {
 
 export interface EditEmployeeFormData {
     employee_id: string;
+    mobile_no: string;
     date_of_birth: string;
     gender: string;
     shift_id: string;

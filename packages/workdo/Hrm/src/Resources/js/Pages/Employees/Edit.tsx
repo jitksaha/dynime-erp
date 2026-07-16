@@ -96,6 +96,7 @@ export default function Edit() {
 
     const { data, setData, put, processing, errors } = useForm<EditEmployeeFormData>({
         employee_id: employee.employee_id ?? '',
+        mobile_no: employee.user?.mobile_no ?? '',
         avatar: employee.user?.avatar || null,
         date_of_birth: employee.date_of_birth || '',
         gender: employee.gender || 'Male',
@@ -806,6 +807,15 @@ export default function Edit() {
                                         />
                                         <InputError message={errors.emergency_contact_relationship} />
                                     </div>
+                                </div>
+
+                                <div>
+                                    <PhoneInputComponent
+                                        label={t('Phone Number')}
+                                        value={data.mobile_no}
+                                        onChange={(value) => setData('mobile_no', value || '')}
+                                        error={errors.mobile_no}
+                                    />
                                 </div>
 
                                 <div>

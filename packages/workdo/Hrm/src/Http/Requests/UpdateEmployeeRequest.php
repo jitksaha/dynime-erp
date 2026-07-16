@@ -27,6 +27,7 @@ class UpdateEmployeeRequest extends FormRequest
     {
         $rules = [
             'avatar' => 'nullable',
+            'mobile_no' => 'nullable|string|max:30',
             'date_of_birth' => 'required|date',
             'gender' => 'required',
             'shift_id' => 'required|exists:shifts,id',
