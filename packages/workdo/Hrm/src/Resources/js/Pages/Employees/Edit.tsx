@@ -324,8 +324,10 @@ export default function Edit() {
                     const val = employeeData[key];
                     if (val === null || val === undefined) {
                         formData.append(key, '');
-                    } else if (key === 'payment_details' && typeof val === 'object') {
-                        formData.append(key, JSON.stringify(val));
+                    } else if (key === 'payment_details' && typeof val === 'object' && val !== null) {
+                        Object.keys(val).forEach(subKey => {
+                            formData.append(`payment_details[${subKey}]`, val[subKey] !== null && val[subKey] !== undefined ? val[subKey] : '');
+                        });
                     } else {
                         formData.append(key, val);
                     }

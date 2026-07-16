@@ -11,6 +11,18 @@ class UpdateEmployeeRequest extends FormRequest
         return true;
     }
 
+    protected function prepareForValidation()
+    {
+        if ($this->has('payment_details') && is_string($this->payment_details)) {
+            $decoded = json_decode($this->payment_details, true);
+            if (is_array($decoded)) {
+                $this->merge([
+                    'payment_details' => $decoded
+                ]);
+            }
+        }
+    }
+
     public function rules(): array
     {
         $rules = [
