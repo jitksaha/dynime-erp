@@ -366,7 +366,27 @@ export default function MediaLibraryModal({
           </div>
 
           {/* Media Grid */}
-          <div className="border rounded-lg bg-muted/10 flex flex-col flex-1 min-h-0">
+          <div 
+            className="border rounded-lg bg-muted/10 flex flex-col flex-1 min-h-0 relative"
+            onDragEnter={handleDrag}
+            onDragOver={handleDrag}
+            onDragLeave={handleDrag}
+            onDrop={handleDrop}
+          >
+            {dragActive && (
+              <div 
+                className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm border-2 border-dashed border-primary rounded-lg z-50 flex flex-col items-center justify-center gap-3 transition-all duration-200"
+                onDragEnter={handleDrag}
+                onDragOver={handleDrag}
+                onDragLeave={handleDrag}
+                onDrop={handleDrop}
+              >
+                <div className="bg-primary text-white p-4 rounded-full shadow-lg animate-bounce">
+                  <Upload className="h-8 w-8" />
+                </div>
+                <p className="text-lg font-bold text-white drop-shadow-md">{t('Drop files here to upload')}</p>
+              </div>
+            )}
             {loading ? (
               <div className="flex-1 flex items-center justify-center">
                 <div className="text-center">
