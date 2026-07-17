@@ -37,6 +37,7 @@ def main():
         commands = [
             "cd ~/domains/app.dynime.com/public_html",
             "git pull",
+            "sed -i 's/APP_NAME=\"Dynime ERP\"/APP_NAME=\"Dynime\"/g' .env",
             "php artisan migrate --force",
             "php artisan cache:clear",
             "php artisan view:clear",

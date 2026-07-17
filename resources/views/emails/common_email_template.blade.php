@@ -50,7 +50,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h2>{{ config('app.name') }}</h2>
+            <h2>Dynime</h2>
         </div>
 
         <div class="content">
@@ -58,7 +58,37 @@
         </div>
 
         <div class="footer">
-            <p>&copy; {{ date('Y') }} {{ config('app.name') }}. All rights reserved.</p>
+            <p style="margin: 0 0 12px 0; font-size: 13px; font-weight: 600; color: #475569; text-transform: uppercase; letter-spacing: 0.05em; text-align: center;">Follow us</p>
+            <table border="0" cellpadding="0" cellspacing="0" align="center" style="margin: 0 auto 20px auto;">
+                <tr>
+                    <td style="padding: 0 6px;">
+                        <a href="https://facebook.com/thedynime" target="_blank" style="display: inline-block; width: 32px; height: 32px; border-radius: 16px; background-color: #1e293b; text-align: center; text-decoration: none; vertical-align: middle;">
+                            <img src="https://img.icons8.com/ios-filled/50/ffffff/facebook-new.png" width="16" height="16" style="display: block; margin: 8px auto; border: 0;" alt="Facebook">
+                        </a>
+                    </td>
+                    <td style="padding: 0 6px;">
+                        <a href="https://linkedin.com/company/thedynime" target="_blank" style="display: inline-block; width: 32px; height: 32px; border-radius: 16px; background-color: #1e293b; text-align: center; text-decoration: none; vertical-align: middle;">
+                            <img src="https://img.icons8.com/ios-filled/50/ffffff/linkedin.png" width="16" height="16" style="display: block; margin: 8px auto; border: 0;" alt="LinkedIn">
+                        </a>
+                    </td>
+                    <td style="padding: 0 6px;">
+                        <a href="https://instagram.com/thedynime" target="_blank" style="display: inline-block; width: 32px; height: 32px; border-radius: 16px; background-color: #1e293b; text-align: center; text-decoration: none; vertical-align: middle;">
+                            <img src="https://img.icons8.com/ios-filled/50/ffffff/instagram-new.png" width="16" height="16" style="display: block; margin: 8px auto; border: 0;" alt="Instagram">
+                        </a>
+                    </td>
+                    <td style="padding: 0 6px;">
+                        <a href="https://wa.me/thedynime" target="_blank" style="display: inline-block; width: 32px; height: 32px; border-radius: 16px; background-color: #1e293b; text-align: center; text-decoration: none; vertical-align: middle;">
+                            <img src="https://img.icons8.com/ios-filled/50/ffffff/whatsapp.png" width="16" height="16" style="display: block; margin: 8px auto; border: 0;" alt="WhatsApp">
+                        </a>
+                    </td>
+                </tr>
+            </table>
+
+            <p style="margin: 0 0 8px 0; font-size: 12px; color: #64748b; line-height: 1.4; text-align: center;">
+                1209 Mountain Road Pl Ne Ste R, Albuquerque, NM, 87110
+            </p>
+            <p style="margin: 0 0 4px 0; font-size: 12px; color: #94a3b8; text-align: center;">This email was sent automatically. Please do not reply to this address.</p>
+            <p style="margin: 0; font-size: 12px; color: #94a3b8; text-align: center;">&copy; 2020 - {{ date('Y') }} Dynime LLC. All rights reserved.</p>
         </div>
     </div>
 </body>

@@ -23,6 +23,10 @@ class MailConfigService
             'fromName' => company_setting('email_fromName', $userId) ?: admin_setting('email_fromName') ?: config('app.name', 'APP_NAME')
         ];
 
+        if ($settings['fromName'] === 'Dynime ERP') {
+            $settings['fromName'] = 'Dynime';
+        }
+
         Config::set([
             'mail.default' => $settings['driver'],
             'mail.mailers.smtp.host' => $settings['host'],

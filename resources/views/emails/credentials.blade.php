@@ -61,29 +61,32 @@
                             <table border="0" cellpadding="0" cellspacing="0" align="center" style="margin: 0 auto 24px auto;">
                                 <tr>
                                     <td style="padding: 0 6px;">
-                                        <a href="https://facebook.com/thedynime" target="_blank" style="display: block; width: 36px; height: 36px; line-height: 36px; border-radius: 50%; background-color: #1e293b; text-align: center;">
-                                            <img src="https://img.icons8.com/ios-filled/50/ffffff/facebook-new.png" width="18" height="18" style="vertical-align: middle; padding-top: 9px;" alt="Facebook">
+                                        <a href="https://facebook.com/thedynime" target="_blank" style="display: inline-block; width: 36px; height: 36px; border-radius: 18px; background-color: #1e293b; text-align: center; text-decoration: none; vertical-align: middle;">
+                                            <img src="https://img.icons8.com/ios-filled/50/ffffff/facebook-new.png" width="18" height="18" style="display: block; margin: 9px auto; border: 0;" alt="Facebook">
                                         </a>
                                     </td>
                                     <td style="padding: 0 6px;">
-                                        <a href="https://linkedin.com/company/thedynime" target="_blank" style="display: block; width: 36px; height: 36px; line-height: 36px; border-radius: 50%; background-color: #1e293b; text-align: center;">
-                                            <img src="https://img.icons8.com/ios-filled/50/ffffff/linkedin.png" width="18" height="18" style="vertical-align: middle; padding-top: 9px;" alt="LinkedIn">
+                                        <a href="https://linkedin.com/company/thedynime" target="_blank" style="display: inline-block; width: 36px; height: 36px; border-radius: 18px; background-color: #1e293b; text-align: center; text-decoration: none; vertical-align: middle;">
+                                            <img src="https://img.icons8.com/ios-filled/50/ffffff/linkedin.png" width="18" height="18" style="display: block; margin: 9px auto; border: 0;" alt="LinkedIn">
                                         </a>
                                     </td>
                                     <td style="padding: 0 6px;">
-                                        <a href="https://instagram.com/thedynime" target="_blank" style="display: block; width: 36px; height: 36px; line-height: 36px; border-radius: 50%; background-color: #1e293b; text-align: center;">
-                                            <img src="https://img.icons8.com/ios-filled/50/ffffff/instagram-new.png" width="18" height="18" style="vertical-align: middle; padding-top: 9px;" alt="Instagram">
+                                        <a href="https://instagram.com/thedynime" target="_blank" style="display: inline-block; width: 36px; height: 36px; border-radius: 18px; background-color: #1e293b; text-align: center; text-decoration: none; vertical-align: middle;">
+                                            <img src="https://img.icons8.com/ios-filled/50/ffffff/instagram-new.png" width="18" height="18" style="display: block; margin: 9px auto; border: 0;" alt="Instagram">
                                         </a>
                                     </td>
                                     <td style="padding: 0 6px;">
-                                        <a href="https://wa.me/thedynime" target="_blank" style="display: block; width: 36px; height: 36px; line-height: 36px; border-radius: 50%; background-color: #1e293b; text-align: center;">
-                                            <img src="https://img.icons8.com/ios-filled/50/ffffff/whatsapp.png" width="18" height="18" style="vertical-align: middle; padding-top: 9px;" alt="WhatsApp">
+                                        <a href="https://wa.me/thedynime" target="_blank" style="display: inline-block; width: 36px; height: 36px; border-radius: 18px; background-color: #1e293b; text-align: center; text-decoration: none; vertical-align: middle;">
+                                            <img src="https://img.icons8.com/ios-filled/50/ffffff/whatsapp.png" width="18" height="18" style="display: block; margin: 9px auto; border: 0;" alt="WhatsApp">
                                         </a>
                                     </td>
                                 </tr>
                             </table>
 
-                            <!-- Copyright -->
+                            <!-- Address & Copyright -->
+                            <p style="margin: 0 0 8px 0; font-size: 13px; color: #64748b; line-height: 1.4;">
+                                1209 Mountain Road Pl Ne Ste R, Albuquerque, NM, 87110
+                            </p>
                             <p style="margin: 0 0 4px 0; font-size: 13px; color: #94a3b8;">This email was sent automatically. Please do not reply to this address.</p>
                             <p style="margin: 0; font-size: 13px; color: #94a3b8;">&copy; 2020 - {{ date('Y') }} Dynime LLC. All rights reserved.</p>
                         </td>
