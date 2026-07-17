@@ -30,7 +30,7 @@ class SendCredentialsMail extends Mailable
      */
     public function build()
     {
-        return $this->subject('Welcome to ' . config('app.name') . ' - Your Login Credentials')
+        return $this->subject('Welcome to Dynime - Your Login Credentials')
                     ->view('emails.credentials');
     }
 }
