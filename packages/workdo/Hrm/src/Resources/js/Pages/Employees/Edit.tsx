@@ -15,7 +15,7 @@ import { EditEmployeeFormData } from './types';
 import { useEffect, useState } from 'react';
 import { Eye, Trash2 } from 'lucide-react';
 import { router } from '@inertiajs/react';
-import { getImagePath } from '@/utils/helpers';
+import { getImagePath, formatCurrency } from '@/utils/helpers';
 import { useFormFields } from '@/hooks/useFormFields';
 import MediaLibraryModal from "@/components/MediaLibraryModal";
 
@@ -480,6 +480,18 @@ export default function Edit() {
                                         </RadioGroup>
                                         <InputError message={errors.gender} />
                                     </div>
+
+                                    <div>
+                                        <Label htmlFor="user_phone">{t('Phone Number')}</Label>
+                                        <Input
+                                            id="user_phone"
+                                            type="text"
+                                            value={employee.user?.mobile_no || ''}
+                                            disabled
+                                            placeholder={t('No Phone Number')}
+                                            className="bg-slate-50 cursor-not-allowed"
+                                        />
+                                    </div>
                                     {biometricFields.map((field) => (
                                         <div key={field.id}>
                                             {field.component}
@@ -870,6 +882,41 @@ export default function Edit() {
                                             </SelectContent>
                                         </Select>
                                         <InputError message={errors.payment_method} />
+                                        {data.payment_method && (() => {
+                                            const feeType = companyAllSetting[`payroll_method_fee_type_${data.payment_method}`] || 'percentage';
+                                            const percentageFee = parseFloat(companyAllSetting[`payroll_method_fee_percentage_${data.payment_method}`] || '0') || 0;
+                                            const fixedFee = parseFloat(companyAllSetting[`payroll_method_fee_fixed_${data.payment_method}`] || '0') || 0;
+                                            const basicSalary = parseFloat(data.basic_salary || '0') || 0;
+
+                                            let feeText = '';
+                                            let estimatedCharge = 0;
+
+                                            if (feeType === 'percentage') {
+                                                feeText = `${percentageFee}%`;
+                                                estimatedCharge = (basicSalary * percentageFee) / 100;
+                                            } else if (feeType === 'fixed') {
+                                                feeText = `${formatCurrency(fixedFee)}`;
+                                                estimatedCharge = fixedFee;
+                                            } else if (feeType === 'both') {
+                                                feeText = `${percentageFee}% + ${formatCurrency(fixedFee)}`;
+                                                estimatedCharge = ((basicSalary * percentageFee) / 100) + fixedFee;
+                                            }
+
+                                            return (
+                                                <div className="mt-3 p-3 bg-slate-50 border border-slate-100 rounded-lg text-sm flex flex-col gap-1">
+                                                    <div className="flex justify-between items-center">
+                                                        <span className="text-slate-500 font-medium">{t('Transaction Fee')}:</span>
+                                                        <span className="font-semibold text-slate-800">{feeText}</span>
+                                                    </div>
+                                                    {basicSalary > 0 && (
+                                                        <div className="flex justify-between items-center border-t border-slate-200/60 pt-1 mt-1">
+                                                            <span className="text-slate-500 font-medium">{t('Estimated Charge')}:</span>
+                                                            <span className="font-bold text-primary">{formatCurrency(estimatedCharge)}</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })()}
                                     </div>
                                 </div>
 
@@ -1399,6 +1446,12 @@ export default function Edit() {
                                             required
                                         />
                                         <InputError message={errors.basic_salary} />
+                                        {data.salary_type === 'yearly' && data.basic_salary && !isNaN(parseFloat(data.basic_salary)) && (
+                                            <div className="mt-2 text-xs font-semibold text-slate-500 flex justify-between">
+                                                <span>{t('Monthly Equivalent:')}</span>
+                                                <span className="text-primary font-bold">{formatCurrency(parseFloat(data.basic_salary) / 12)}</span>
+                                            </div>
+                                        )}
                                     </div>
 
                                     <div>

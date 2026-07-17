@@ -5,7 +5,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Eye, Trash2, FileText, ExternalLink, Copy, Check, PenTool, Mail, Phone, MapPin, Calendar, Briefcase, User, Flag } from 'lucide-react';
-import { formatDate, getImagePath, getCurrencySymbol } from '@/utils/helpers';
+import { formatDate, getImagePath, getCurrencySymbol, formatCurrency } from '@/utils/helpers';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useState, useEffect, useRef } from 'react';
 import { getDocumentName } from '../DocumentBuilder/Index';
 import jsPDF from 'jspdf';
@@ -61,6 +65,48 @@ function IDCardQRCodeCanvas({ text }: { text: string }) {
 }
 
 export default function Show() {
+    const { auth, companyAllSetting = {} } = usePage<any>().props;
+    const isEmployee = auth?.user?.id === employee.user_id;
+
+    const [isChangeModalOpen, setIsChangeModalOpen] = useState(false);
+    const [changeMethod, setChangeMethod] = useState(employee.payment_method || 'bank_transfer');
+    const [changeDetails, setChangeDetails] = useState<any>(employee.payment_details || {});
+
+    const handleRequestSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        router.post(route('hrm.payroll-requests.store'), {
+            requested_payment_method: changeMethod,
+            requested_payment_details: changeDetails,
+        }, {
+            onSuccess: () => {
+                setIsChangeModalOpen(false);
+            }
+        });
+    };
+
+    const handleDetailChange = (key: string, value: string) => {
+        setChangeDetails((prev: any) => ({
+            ...prev,
+            [key]: value
+        }));
+    };
+
+    const paymentMethods = [
+        { value: 'bank_transfer', label: t('Bank Transfer') },
+        { value: 'cards_transfer', label: t('Cards Transfer') },
+        { value: 'paypal', label: t('PayPal') },
+        { value: 'kast', label: t('Kast') },
+        { value: 'redotpay', label: t('Redotpay') },
+        { value: 'remitly', label: t('Remitly') },
+        { value: 'western_union', label: t('Western Union') },
+        { value: 'binance_bybit', label: t('Binance / Bybit') }
+    ];
+
+    const enabledMethods = paymentMethods.filter(method => {
+        const val = companyAllSetting[`payroll_method_enabled_${method.value}`];
+        return val === undefined ? (method.value === 'bank_transfer') : (val === 'on');
+    });
+
     const { employee, documents, issuedDocuments } = usePage<any>().props;
     const { t } = useTranslation();
     const [copiedDocId, setCopiedDocId] = useState<number | null>(null);
@@ -527,7 +573,55 @@ export default function Show() {
                                                     {!employee.payment_method && t('Bank Transfer (Default)')}
                                                 </h4>
                                             </div>
+                                            {isEmployee && (
+                                                <Button
+                                                    variant="outline"
+                                                    onClick={() => {
+                                                        setChangeMethod(employee.payment_method || 'bank_transfer');
+                                                        setChangeDetails(employee.payment_details || {});
+                                                        setIsChangeModalOpen(true);
+                                                    }}
+                                                    className="font-semibold text-sm border-blue-200 text-blue-600 hover:bg-blue-50"
+                                                >
+                                                    {t('Request Payroll Change')}
+                                                </Button>
+                                            )}
                                         </div>
+                                        {employee.payment_method && (() => {
+                                            const feeType = companyAllSetting[`payroll_method_fee_type_${employee.payment_method}`] || 'percentage';
+                                            const percentageFee = parseFloat(companyAllSetting[`payroll_method_fee_percentage_${employee.payment_method}`] || '0') || 0;
+                                            const fixedFee = parseFloat(companyAllSetting[`payroll_method_fee_fixed_${employee.payment_method}`] || '0') || 0;
+                                            const basicSalary = parseFloat(employee.basic_salary || '0') || 0;
+
+                                            let feeText = '';
+                                            let estimatedCharge = 0;
+
+                                            if (feeType === 'percentage') {
+                                                feeText = `${percentageFee}%`;
+                                                estimatedCharge = (basicSalary * percentageFee) / 100;
+                                            } else if (feeType === 'fixed') {
+                                                feeText = `${formatCurrency(fixedFee)}`;
+                                                estimatedCharge = fixedFee;
+                                            } else if (feeType === 'both') {
+                                                feeText = `${percentageFee}% + ${formatCurrency(fixedFee)}`;
+                                                estimatedCharge = ((basicSalary * percentageFee) / 100) + fixedFee;
+                                            }
+
+                                            return (
+                                                <div className="mt-3 p-3 bg-white/60 border border-slate-100 rounded-lg text-xs flex flex-col gap-1 max-w-sm">
+                                                    <div className="flex justify-between items-center">
+                                                        <span className="text-slate-500 font-medium">{t('Transaction Fee')}:</span>
+                                                        <span className="font-semibold text-slate-800">{feeText}</span>
+                                                    </div>
+                                                    {basicSalary > 0 && (
+                                                        <div className="flex justify-between items-center border-t border-slate-100 pt-1 mt-1">
+                                                            <span className="text-slate-500 font-medium">{t('Estimated Charge')}:</span>
+                                                            <span className="font-bold text-primary">{formatCurrency(estimatedCharge)}</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })()}
                                     </div>
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1096,6 +1190,360 @@ export default function Show() {
                     </div>
                 </div>
             )}
+            <Dialog open={isChangeModalOpen} onOpenChange={setIsChangeModalOpen}>
+                <DialogContent className="sm:max-w-[500px]">
+                    <DialogHeader>
+                        <DialogTitle className="text-xl font-bold">{t('Request Payroll Information Change')}</DialogTitle>
+                    </DialogHeader>
+                    <form onSubmit={handleRequestSubmit} className="space-y-4 pt-3 max-h-[75vh] overflow-y-auto px-1">
+                        <div>
+                            <Label htmlFor="request_method" required>{t('Payment Method')}</Label>
+                            <Select value={changeMethod} onValueChange={(val) => {
+                                setChangeMethod(val);
+                                setChangeDetails({});
+                            }}>
+                                <SelectTrigger id="request_method">
+                                    <SelectValue placeholder={t('Select Payment Method')} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {enabledMethods.map((method) => (
+                                        <SelectItem key={method.value} value={method.value}>
+                                            {method.label}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            
+                            {changeMethod && (() => {
+                                const feeType = companyAllSetting[`payroll_method_fee_type_${changeMethod}`] || 'percentage';
+                                const percentageFee = parseFloat(companyAllSetting[`payroll_method_fee_percentage_${changeMethod}`] || '0') || 0;
+                                const fixedFee = parseFloat(companyAllSetting[`payroll_method_fee_fixed_${changeMethod}`] || '0') || 0;
+                                const basicSalary = parseFloat(employee.basic_salary || '0') || 0;
+
+                                const feeText = feeType === 'percentage' 
+                                    ? `${percentageFee}%` 
+                                    : feeType === 'fixed' 
+                                        ? `${formatCurrency(fixedFee)}` 
+                                        : `${percentageFee}% + ${formatCurrency(fixedFee)}`;
+
+                                const estimatedCharge = feeType === 'percentage'
+                                    ? (basicSalary * percentageFee) / 100
+                                    : feeType === 'fixed'
+                                        ? fixedFee
+                                        : ((basicSalary * percentageFee) / 100) + fixedFee;
+
+                                return (
+                                    <div className="mt-2 p-3 bg-slate-50 border border-slate-100 rounded-lg text-sm flex flex-col gap-1">
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-slate-500 font-medium">{t('Transaction Fee')}:</span>
+                                            <span className="font-semibold text-slate-800">{feeText}</span>
+                                        </div>
+                                        {basicSalary > 0 && (
+                                            <div className="flex justify-between items-center border-t border-slate-200/60 pt-1 mt-1">
+                                                <span className="text-slate-500 font-medium">{t('Estimated Charge')}:</span>
+                                                <span className="font-bold text-primary">{formatCurrency(estimatedCharge)}</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })()}
+                        </div>
+
+                        <div className="border-t pt-4">
+                            {changeMethod === 'bank_transfer' && (
+                                <div className="space-y-4">
+                                    <div>
+                                        <Label required>{t('Bank Country')}</Label>
+                                        <Select
+                                            value={changeDetails?.bank_country || 'Other'}
+                                            onValueChange={(val) => handleDetailChange('bank_country', val)}
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue placeholder={t('Select Country')} />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="Other">{t('Other (Standard SWIFT/BIC)')}</SelectItem>
+                                                <SelectItem value="US">{t('United States (ACH)')}</SelectItem>
+                                                <SelectItem value="EU">{t('Europe (SEPA IBAN)')}</SelectItem>
+                                                <SelectItem value="UK">{t('United Kingdom (FPS)')}</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+
+                                    <div>
+                                        <Label required>{t('Account Holder Name')}</Label>
+                                        <Input
+                                            value={changeDetails?.account_holder_name || ''}
+                                            onChange={(e) => handleDetailChange('account_holder_name', e.target.value)}
+                                            placeholder={t('Enter Account Holder Name')}
+                                            required
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <Label required>{t('Bank Name')}</Label>
+                                        <Input
+                                            value={changeDetails?.bank_name || ''}
+                                            onChange={(e) => handleDetailChange('bank_name', e.target.value)}
+                                            placeholder={t('Enter Bank Name')}
+                                            required
+                                        />
+                                    </div>
+
+                                    {changeDetails?.bank_country === 'US' ? (
+                                        <div className="space-y-4">
+                                            <div>
+                                                <Label required>{t('Routing Number (ABA)')}</Label>
+                                                <Input
+                                                    value={changeDetails?.routing_number || ''}
+                                                    onChange={(e) => handleDetailChange('routing_number', e.target.value)}
+                                                    placeholder="e.g. 021000021"
+                                                    required
+                                                />
+                                            </div>
+                                            <div>
+                                                <Label required>{t('Account Number')}</Label>
+                                                <Input
+                                                    value={changeDetails?.account_number || ''}
+                                                    onChange={(e) => handleDetailChange('account_number', e.target.value)}
+                                                    placeholder={t('Enter Account Number')}
+                                                    required
+                                                />
+                                            </div>
+                                            <div>
+                                                <Label required>{t('Account Type')}</Label>
+                                                <Select
+                                                    value={changeDetails?.account_type || 'Checking'}
+                                                    onValueChange={(val) => handleDetailChange('account_type', val)}
+                                                >
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder={t('Select Account Type')} />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="Checking">{t('Checking')}</SelectItem>
+                                                        <SelectItem value="Savings">{t('Savings')}</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                        </div>
+                                    ) : changeDetails?.bank_country === 'EU' ? (
+                                        <div className="space-y-4">
+                                            <div>
+                                                <Label required>{t('IBAN')}</Label>
+                                                <Input
+                                                    value={changeDetails?.iban || ''}
+                                                    onChange={(e) => handleDetailChange('iban', e.target.value)}
+                                                    placeholder="e.g. DE89370400440532013000"
+                                                    required
+                                                />
+                                            </div>
+                                            <div>
+                                                <Label required>{t('BIC / SWIFT')}</Label>
+                                                <Input
+                                                    value={changeDetails?.bic_swift || ''}
+                                                    onChange={(e) => handleDetailChange('bic_swift', e.target.value)}
+                                                    placeholder="e.g. DBKADEFFXXX"
+                                                    required
+                                                />
+                                            </div>
+                                        </div>
+                                    ) : changeDetails?.bank_country === 'UK' ? (
+                                        <div className="space-y-4">
+                                            <div>
+                                                <Label required>{t('Sort Code')}</Label>
+                                                <Input
+                                                    value={changeDetails?.sort_code || ''}
+                                                    onChange={(e) => handleDetailChange('sort_code', e.target.value)}
+                                                    placeholder="e.g. 200000"
+                                                    required
+                                                />
+                                            </div>
+                                            <div>
+                                                <Label required>{t('Account Number')}</Label>
+                                                <Input
+                                                    value={changeDetails?.account_number || ''}
+                                                    onChange={(e) => handleDetailChange('account_number', e.target.value)}
+                                                    placeholder={t('Enter Account Number')}
+                                                    required
+                                                />
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-4">
+                                            <div>
+                                                <Label required>{t('Account Number')}</Label>
+                                                <Input
+                                                    value={changeDetails?.account_number || ''}
+                                                    onChange={(e) => handleDetailChange('account_number', e.target.value)}
+                                                    placeholder={t('Enter Account Number')}
+                                                    required
+                                                />
+                                            </div>
+                                            <div>
+                                                <Label required>{t('BIC / SWIFT')}</Label>
+                                                <Input
+                                                    value={changeDetails?.bic_swift || ''}
+                                                    onChange={(e) => handleDetailChange('bic_swift', e.target.value)}
+                                                    placeholder="e.g. DBKADEFFXXX"
+                                                    required
+                                                />
+                                            </div>
+                                            <div>
+                                                <Label>{t('Bank Branch')}</Label>
+                                                <Input
+                                                    value={changeDetails?.bank_branch || ''}
+                                                    onChange={(e) => handleDetailChange('bank_branch', e.target.value)}
+                                                    placeholder={t('Enter Bank Branch')}
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {changeMethod === 'cards_transfer' && (
+                                <div className="space-y-4">
+                                    <div>
+                                        <Label required>{t('Cardholder Full Name')}</Label>
+                                        <Input
+                                            value={changeDetails?.card_holder_name || ''}
+                                            onChange={(e) => handleDetailChange('card_holder_name', e.target.value)}
+                                            placeholder={t('Enter Cardholder Full Name')}
+                                            required
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label required>{t('Card Number')}</Label>
+                                        <Input
+                                            value={changeDetails?.card_number || ''}
+                                            onChange={(e) => handleDetailChange('card_number', e.target.value)}
+                                            placeholder={t('Enter Card Number')}
+                                            required
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label required>{t('Bank Name')}</Label>
+                                        <Input
+                                            value={changeDetails?.bank_name || ''}
+                                            onChange={(e) => handleDetailChange('bank_name', e.target.value)}
+                                            placeholder={t('Enter Bank Name')}
+                                            required
+                                        />
+                                    </div>
+                                </div>
+                            )}
+
+                            {changeMethod === 'paypal' && (
+                                <div>
+                                    <Label required>{t('PayPal Registered Email Address')}</Label>
+                                    <Input
+                                        type="email"
+                                        value={changeDetails?.paypal_email || ''}
+                                        onChange={(e) => handleDetailChange('paypal_email', e.target.value)}
+                                        placeholder="email@example.com"
+                                        required
+                                    />
+                                </div>
+                            )}
+
+                            {changeMethod === 'kast' && (
+                                <div>
+                                    <Label required>{t('Kast Account ID')}</Label>
+                                    <Input
+                                        value={changeDetails?.kast_account_id || ''}
+                                        onChange={(e) => handleDetailChange('kast_account_id', e.target.value)}
+                                        placeholder={t('Enter Kast Account ID')}
+                                        required
+                                    />
+                                </div>
+                            )}
+
+                            {changeMethod === 'redotpay' && (
+                                <div>
+                                    <Label required>{t('Redotpay Pay ID / Wallet Address')}</Label>
+                                    <Input
+                                        value={changeDetails?.redotpay_wallet_address || ''}
+                                        onChange={(e) => handleDetailChange('redotpay_wallet_address', e.target.value)}
+                                        placeholder={t('Enter Redotpay ID/Address')}
+                                        required
+                                    />
+                                </div>
+                            )}
+
+                            {(changeMethod === 'remitly' || changeMethod === 'western_union') && (
+                                <div className="space-y-4">
+                                    <div>
+                                        <Label required>{t('Recipient Full Name')}</Label>
+                                        <Input
+                                            value={changeDetails?.recipient_name || ''}
+                                            onChange={(e) => handleDetailChange('recipient_name', e.target.value)}
+                                            placeholder={t('Enter Recipient Name')}
+                                            required
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label required>{t('Recipient Phone Number')}</Label>
+                                        <Input
+                                            value={changeDetails?.recipient_phone || ''}
+                                            onChange={(e) => handleDetailChange('recipient_phone', e.target.value)}
+                                            placeholder={t('Enter Recipient Phone Number')}
+                                            required
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label required>{t('Recipient Country')}</Label>
+                                        <Input
+                                            value={changeDetails?.recipient_country || ''}
+                                            onChange={(e) => handleDetailChange('recipient_country', e.target.value)}
+                                            placeholder={t('Enter Recipient Country')}
+                                            required
+                                        />
+                                    </div>
+                                </div>
+                            )}
+
+                            {changeMethod === 'binance_bybit' && (
+                                <div className="space-y-4">
+                                    <div>
+                                        <Label required>{t('Crypto Network')}</Label>
+                                        <Select
+                                            value={changeDetails?.crypto_network || 'TRC20'}
+                                            onValueChange={(val) => handleDetailChange('crypto_network', val)}
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue placeholder={t('Select Network')} />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="TRC20">{t('TRON (TRC20)')}</SelectItem>
+                                                <SelectItem value="ERC20">{t('Ethereum (ERC20)')}</SelectItem>
+                                                <SelectItem value="BSC">{t('BNB Smart Chain (BEP20)')}</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div>
+                                        <Label required>{t('USDT Wallet Address')}</Label>
+                                        <Input
+                                            value={changeDetails?.wallet_address || ''}
+                                            onChange={(e) => handleDetailChange('wallet_address', e.target.value)}
+                                            placeholder={t('Enter USDT Address')}
+                                            required
+                                        />
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="flex justify-end gap-2 pt-4 border-t">
+                            <Button type="button" variant="outline" onClick={() => setIsChangeModalOpen(false)}>
+                                {t('Cancel')}
+                            </Button>
+                            <Button type="submit">
+                                {t('Submit Request')}
+                            </Button>
+                        </div>
+                    </form>
+                </DialogContent>
+            </Dialog>
         </AuthenticatedLayout>
     );
 }

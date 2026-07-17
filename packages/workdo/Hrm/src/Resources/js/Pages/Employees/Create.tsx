@@ -17,7 +17,7 @@ import { useEffect, useState } from 'react';
 import { useFormFields } from '@/hooks/useFormFields';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import MediaLibraryModal from "@/components/MediaLibraryModal";
-import { getImagePath } from "@/utils/helpers";
+import { getImagePath, formatCurrency } from "@/utils/helpers";
 import axios from 'axios';
 import { usePersistentForm } from "@/hooks/usePersistentForm";
 
@@ -518,6 +518,47 @@ export default function Create() {
                                         />
                                     </div>
 
+                                                                    <div>
+                                        <div className="flex items-center justify-between mb-2">
+                                            <Label htmlFor="user_id" required className="mb-0">{t('User')}</Label>
+                                            <Button
+                                                type="button"
+                                                variant="link"
+                                                size="sm"
+                                                className="h-auto p-0 text-blue-600 hover:text-blue-700 font-medium"
+                                                onClick={() => setIsAddUserOpen(true)}
+                                            >
+                                                + {t('Add New User')}
+                                            </Button>
+                                        </div>
+                                        <Select value={data.user_id?.toString() || ''} onValueChange={(value) => setData('user_id', value)} required>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder={t('Select User')} />
+                                            </SelectTrigger>
+                                            <SelectContent searchable={true}>
+                                                {localUsers.map((item: any) => (
+                                                    <SelectItem key={item.id} value={item.id.toString()}>
+                                                        {item.name}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                        <p className="text-sm text-muted-foreground mt-1">{t('Note: Company users will be applicable for create employee.')}</p>
+                                        <InputError message={errors.user_id} />
+                                    </div>
+
+                                    <div>
+                                        <Label htmlFor="user_phone">{t('Phone Number')}</Label>
+                                        <Input
+                                            id="user_phone"
+                                            type="text"
+                                            value={localUsers.find((u: any) => u.id.toString() === data.user_id?.toString())?.mobile_no || ''}
+                                            disabled
+                                            placeholder={t('No Phone Number')}
+                                            className="bg-slate-50 cursor-not-allowed"
+                                        />
+                                    </div>
+
                                     <div>
                                         <Label htmlFor="employee_id">{t('Employee Id')}</Label>
                                         <Input
@@ -582,34 +623,7 @@ export default function Create() {
 
                             <TabsContent value="employment" className="space-y-6 mt-6">
                                 <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                                    <div>
-                                        <div className="flex items-center justify-between mb-2">
-                                            <Label htmlFor="user_id" required className="mb-0">{t('User')}</Label>
-                                            <Button
-                                                type="button"
-                                                variant="link"
-                                                size="sm"
-                                                className="h-auto p-0 text-blue-600 hover:text-blue-700 font-medium"
-                                                onClick={() => setIsAddUserOpen(true)}
-                                            >
-                                                + {t('Add New User')}
-                                            </Button>
-                                        </div>
-                                        <Select value={data.user_id?.toString() || ''} onValueChange={(value) => setData('user_id', value)} required>
-                                            <SelectTrigger>
-                                                <SelectValue placeholder={t('Select User')} />
-                                            </SelectTrigger>
-                                            <SelectContent searchable={true}>
-                                                {localUsers.map((item: any) => (
-                                                    <SelectItem key={item.id} value={item.id.toString()}>
-                                                        {item.name}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                        <p className="text-sm text-muted-foreground mt-1">{t('Note: Company users will be applicable for create employee.')}</p>
-                                        <InputError message={errors.user_id} />
-                                    </div>
+
 
 
                                     <div>
@@ -973,6 +987,41 @@ export default function Create() {
                                             </SelectContent>
                                         </Select>
                                         <InputError message={errors.payment_method} />
+                                        {data.payment_method && (() => {
+                                            const feeType = companyAllSetting[`payroll_method_fee_type_${data.payment_method}`] || 'percentage';
+                                            const percentageFee = parseFloat(companyAllSetting[`payroll_method_fee_percentage_${data.payment_method}`] || '0') || 0;
+                                            const fixedFee = parseFloat(companyAllSetting[`payroll_method_fee_fixed_${data.payment_method}`] || '0') || 0;
+                                            const basicSalary = parseFloat(data.basic_salary || '0') || 0;
+
+                                            let feeText = '';
+                                            let estimatedCharge = 0;
+
+                                            if (feeType === 'percentage') {
+                                                feeText = `${percentageFee}%`;
+                                                estimatedCharge = (basicSalary * percentageFee) / 100;
+                                            } else if (feeType === 'fixed') {
+                                                feeText = `${formatCurrency(fixedFee)}`;
+                                                estimatedCharge = fixedFee;
+                                            } else if (feeType === 'both') {
+                                                feeText = `${percentageFee}% + ${formatCurrency(fixedFee)}`;
+                                                estimatedCharge = ((basicSalary * percentageFee) / 100) + fixedFee;
+                                            }
+
+                                            return (
+                                                <div className="mt-3 p-3 bg-slate-50 border border-slate-100 rounded-lg text-sm flex flex-col gap-1">
+                                                    <div className="flex justify-between items-center">
+                                                        <span className="text-slate-500 font-medium">{t('Transaction Fee')}:</span>
+                                                        <span className="font-semibold text-slate-800">{feeText}</span>
+                                                    </div>
+                                                    {basicSalary > 0 && (
+                                                        <div className="flex justify-between items-center border-t border-slate-200/60 pt-1 mt-1">
+                                                            <span className="text-slate-500 font-medium">{t('Estimated Charge')}:</span>
+                                                            <span className="font-bold text-primary">{formatCurrency(estimatedCharge)}</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })()}
                                     </div>
                                 </div>
 
@@ -1502,6 +1551,12 @@ export default function Create() {
                                             required
                                         />
                                         <InputError message={errors.basic_salary} />
+                                        {data.salary_type === 'yearly' && data.basic_salary && !isNaN(parseFloat(data.basic_salary)) && (
+                                            <div className="mt-2 text-xs font-semibold text-slate-500 flex justify-between">
+                                                <span>{t('Monthly Equivalent:')}</span>
+                                                <span className="text-primary font-bold">{formatCurrency(parseFloat(data.basic_salary) / 12)}</span>
+                                            </div>
+                                        )}
                                     </div>
 
                                     <div>

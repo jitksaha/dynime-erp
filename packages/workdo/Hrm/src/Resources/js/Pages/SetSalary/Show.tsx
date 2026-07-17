@@ -302,26 +302,36 @@ export default function Show() {
                                         </div>
                                     </form>
                                 ) : (
-                                    <div className="flex items-center gap-2">
-                                        <p className="text-2xl font-bold text-green-600">
-                                            {formatCurrency(employee.basic_salary ?? 0)}
-                                        </p>
-                                        {auth.user?.permissions?.includes('edit-set-salary') && (
-                                            <TooltipProvider>
-                                                <Tooltip delayDuration={0}>
-                                                    <TooltipTrigger asChild>
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            onClick={() => setIsEditing(true)}
-                                                            className="h-8 w-8 p-0 text-green-600 hover:text-green-700"
-                                                        >
-                                                            <Edit className="h-4 w-4" />
-                                                        </Button>
-                                                    </TooltipTrigger>
-                                                    <TooltipContent><p>{t('Edit')}</p></TooltipContent>
-                                                </Tooltip>
-                                            </TooltipProvider>
+                                    <div className="flex flex-col">
+                                        <div className="flex items-center gap-2">
+                                            <p className="text-2xl font-bold text-green-600">
+                                                {formatCurrency(employee.basic_salary ?? 0)}
+                                            </p>
+                                            <span className="text-xs text-muted-foreground font-semibold uppercase">
+                                                {employee.salary_type === 'yearly' ? t('/ Yearly') : t('/ Monthly')}
+                                            </span>
+                                            {auth.user?.permissions?.includes('edit-set-salary') && (
+                                                <TooltipProvider>
+                                                    <Tooltip delayDuration={0}>
+                                                        <TooltipTrigger asChild>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                onClick={() => setIsEditing(true)}
+                                                                className="h-8 w-8 p-0 text-green-600 hover:text-green-700"
+                                                            >
+                                                                <Edit className="h-4 w-4" />
+                                                            </Button>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent><p>{t('Edit')}</p></TooltipContent>
+                                                    </Tooltip>
+                                                </TooltipProvider>
+                                            )}
+                                        </div>
+                                        {employee.salary_type === 'yearly' && (
+                                            <p className="text-xs text-slate-500 font-semibold mt-1">
+                                                {t('Monthly Equivalent:')} {formatCurrency((employee.basic_salary ?? 0) / 12)}
+                                            </p>
                                         )}
                                     </div>
                                 )}

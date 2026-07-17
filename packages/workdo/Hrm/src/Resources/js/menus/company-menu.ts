@@ -24,6 +24,11 @@ export const hrmCompanyMenu = (t: (key: string) => string) => [
                 permission: 'manage-employees',
             },
             {
+                title: t('Payroll Requests'),
+                href: route('hrm.payroll-requests.index'),
+                permission: 'manage-employees',
+            },
+            {
                 title: t('Payslip'),
                 permission: 'manage-payrolls',
                 children: [

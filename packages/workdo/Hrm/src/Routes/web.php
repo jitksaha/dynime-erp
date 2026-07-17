@@ -77,6 +77,7 @@ use Workdo\Hrm\Http\Controllers\BranchController;
 use Workdo\Hrm\Http\Controllers\HrmDocumentController;
 use Workdo\Hrm\Http\Controllers\WorkingDaysController;
 use Workdo\Hrm\Http\Controllers\DocumentBuilderController;
+use Workdo\Hrm\Http\Controllers\PayrollChangeRequestController;
 
 Route::middleware(['web', 'auth', 'verified', 'PlanModuleCheck:Hrm'])->group(function () {
     Route::get('/dashboard/hrm', [DashboardController::class, 'index'])->name('hrm.index');
@@ -127,6 +128,14 @@ Route::middleware(['web', 'auth', 'verified', 'PlanModuleCheck:Hrm'])->group(fun
 
     // Delete employee document
     Route::delete('hrm/employees/{employeeId}/documents/{document}', [EmployeeController::class, 'deleteDocument'])->name('hrm.employee-documents.destroy');
+
+    // Payroll Info Change Requests
+    Route::prefix('hrm/payroll-requests')->name('hrm.payroll-requests.')->group(function () {
+        Route::get('/', [PayrollChangeRequestController::class, 'index'])->name('index');
+        Route::post('/', [PayrollChangeRequestController::class, 'store'])->name('store');
+        Route::patch('/{payrollRequest}/approve', [PayrollChangeRequestController::class, 'approve'])->name('approve');
+        Route::patch('/{payrollRequest}/reject', [PayrollChangeRequestController::class, 'reject'])->name('reject');
+    });
 
     Route::prefix('hrm/award-types')->name('hrm.award-types.')->group(function () {
         Route::get('/', [AwardTypeController::class, 'index'])->name('index');

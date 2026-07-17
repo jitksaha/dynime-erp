@@ -235,6 +235,9 @@ class PayrollController extends Controller
     {
         // Get employee basic salary
         $basicSalary = $employee->basic_salary ?? 0;
+        if (($employee->salary_type ?? 'yearly') === 'yearly') {
+            $basicSalary = $basicSalary / 12;
+        }
         
         // Apply probation percentage if employee is on probation
         if (($employee->employment_status ?? 'probation') === 'probation') {
