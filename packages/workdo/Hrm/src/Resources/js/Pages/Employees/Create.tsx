@@ -183,7 +183,7 @@ export default function Create() {
     };
 
 
-    const { data, setData, post, setError, processing, errors, clearStorage } = usePersistentForm<CreateEmployeeFormData>('employee_create_form', {
+    const { data, setData, post, setError, processing, errors, clearStorage, transform } = usePersistentForm<CreateEmployeeFormData>('employee_create_form', {
         employee_id: generatedEmployeeId,
         avatar: null,
         date_of_birth: '',
@@ -409,6 +409,17 @@ export default function Create() {
     const biometricFields = useFormFields('biometricEmployeeIdFields', data, setData, errors, 'create');
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
+
+        transform((data) => {
+            const transformed = { ...data };
+            if (transformed.avatar === null || transformed.avatar === 'null') {
+                delete transformed.avatar;
+            }
+            if (transformed.documents) {
+                transformed.documents = transformed.documents.filter(doc => doc.file && doc.document_type_id);
+            }
+            return transformed;
+        });
 
         post(route('hrm.employees.store'), {
             forceFormData: true,

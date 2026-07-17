@@ -15,11 +15,18 @@ class UpdateUserRequest extends FormRequest
     {
         $userId = $this->route('user')->id;
 
-        return [
+        $rules = [
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email,' . $userId,
             'mobile_no' => 'nullable|string|regex:/^\+\d{1,3}\d{9,13}$/',
             'is_enable_login' => 'boolean',
+            'avatar' => 'nullable',
         ];
+
+        if ($this->hasFile('avatar')) {
+            $rules['avatar'] = 'nullable|image|mimes:jpeg,png,jpg|max:2048';
+        }
+
+        return $rules;
     }
 }

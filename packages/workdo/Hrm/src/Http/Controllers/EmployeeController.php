@@ -159,7 +159,7 @@ class EmployeeController extends Controller
                         $user->avatar = $upload['url'];
                         $user->save();
                     }
-                } elseif ($request->has('avatar') && is_string($request->avatar) && !empty($request->avatar)) {
+                } elseif ($request->has('avatar') && is_string($request->avatar) && !empty($request->avatar) && $request->avatar !== 'null') {
                     $avatarPath = parse_url($request->avatar, PHP_URL_PATH);
                     if (strpos($avatarPath, 'avatars/') !== false) {
                         $fileName = 'avatars/' . basename($avatarPath);
@@ -308,7 +308,7 @@ class EmployeeController extends Controller
                         $user->avatar = $upload['url'];
                         $user->save();
                     }
-                } elseif ($request->has('avatar') && is_string($request->avatar) && !empty($request->avatar)) {
+                } elseif ($request->has('avatar') && is_string($request->avatar) && !empty($request->avatar) && $request->avatar !== 'null') {
                     $avatarPath = parse_url($request->avatar, PHP_URL_PATH);
                     if (strpos($avatarPath, 'avatars/') !== false) {
                         $fileName = 'avatars/' . basename($avatarPath);

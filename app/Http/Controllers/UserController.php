@@ -85,6 +85,32 @@ class UserController extends Controller
             $user->created_by = creatorId();
             $user->save();
 
+            // Handle avatar
+            if ($request->hasFile('avatar')) {
+                $file = $request->file('avatar');
+                $filename = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+                $extension = $file->getClientOriginalExtension();
+                $fileNameToStore = 'avatar_' . time() . '.' . $extension;
+                
+                $upload = upload_file($request, 'avatar', $fileNameToStore, 'avatars');
+                if (isset($upload['flag']) && $upload['flag'] == 1 && isset($upload['url'])) {
+                    $user->avatar = $upload['url'];
+                    $user->save();
+                }
+            } elseif ($request->has('avatar')) {
+                $avatarVal = $request->input('avatar');
+                if (is_string($avatarVal) && !empty($avatarVal) && $avatarVal !== 'null' && $avatarVal !== 'avatar.png') {
+                    $avatarPath = parse_url($avatarVal, PHP_URL_PATH);
+                    if (strpos($avatarPath, 'avatars/') !== false) {
+                        $fileName = 'avatars/' . basename($avatarPath);
+                    } else {
+                        $fileName = basename($avatarPath);
+                    }
+                    $user->avatar = $fileName;
+                    $user->save();
+                }
+            }
+
             if(Auth::user()->type == 'superadmin')
             {
                 User::CompanySetting($user->id);
@@ -132,6 +158,45 @@ class UserController extends Controller
             $user->mobile_no = $validated['mobile_no'];
             $user->is_enable_login = $validated['is_enable_login'];
             $user->save();
+
+            // Handle avatar updates
+            if ($request->hasFile('avatar')) {
+                $file = $request->file('avatar');
+                $filename = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+                $extension = $file->getClientOriginalExtension();
+                $fileNameToStore = 'avatar_' . time() . '.' . $extension;
+                
+                $upload = upload_file($request, 'avatar', $fileNameToStore, 'avatars');
+                if (isset($upload['flag']) && $upload['flag'] == 1 && isset($upload['url'])) {
+                    // Delete old avatar if exists and is not default
+                    if ($user->avatar && $user->avatar != 'avatar.png') {
+                        delete_file($user->avatar);
+                    }
+                    $user->avatar = $upload['url'];
+                    $user->save();
+                }
+            } elseif ($request->has('avatar')) {
+                $avatarVal = $request->input('avatar');
+                if (is_string($avatarVal) && !empty($avatarVal) && $avatarVal !== 'null' && $avatarVal !== 'avatar.png') {
+                    $avatarPath = parse_url($avatarVal, PHP_URL_PATH);
+                    if (strpos($avatarPath, 'avatars/') !== false) {
+                        $fileName = 'avatars/' . basename($avatarPath);
+                    } else {
+                        $fileName = basename($avatarPath);
+                    }
+                    if ($user->avatar !== $fileName) {
+                        $user->avatar = $fileName;
+                        $user->save();
+                    }
+                } elseif (empty($avatarVal) || $avatarVal === 'null' || $avatarVal === 'avatar.png') {
+                    // Reset to default avatar
+                    if ($user->avatar && $user->avatar !== 'avatar.png') {
+                        delete_file($user->avatar);
+                    }
+                    $user->avatar = 'avatar.png';
+                    $user->save();
+                }
+            }
 
             return back()->with('success', __('The user details are updated successfully.'));
         }

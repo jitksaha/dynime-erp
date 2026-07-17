@@ -108,7 +108,7 @@ export default function Index() {
             header: t('Avatar'),
             render: (value: string) => (
                 <div className="w-10 h-10 rounded-lg overflow-hidden bg-gray-100 border flex items-center justify-center">
-                    {value ? (
+                    {value && value !== 'null' ? (
                         <img
                              src={getImagePath(value)}
                              alt="Avatar"
@@ -406,7 +406,7 @@ export default function Index() {
                                             <div className="p-4">
                                                 <div className="flex items-center gap-3 mb-3">
                                                     <div className="w-10 h-10 rounded-lg overflow-hidden bg-gray-100 border flex-shrink-0">
-                                                        {user.avatar ? (
+                                                        {user.avatar && user.avatar !== 'null' ? (
                                                             <img
                                                                 src={getImagePath(user.avatar)}
                                                                 alt={user.name}

@@ -94,7 +94,7 @@ export default function Edit() {
     };
 
 
-    const { data, setData, put, processing, errors } = useForm<EditEmployeeFormData>({
+    const { data, setData, put, processing, errors, transform } = useForm<EditEmployeeFormData>({
         employee_id: employee.employee_id ?? '',
         mobile_no: employee.user?.mobile_no ?? '',
         avatar: employee.user?.avatar || null,
@@ -312,10 +312,10 @@ export default function Edit() {
 
         const { documents, ...employeeData } = data;
 
-        // Check if there are documents with actual files or a new avatar
+        // Check if there are documents with actual files
         const documentsWithFiles = documents.filter(doc => doc.file && doc.document_type_id);
 
-        if (documentsWithFiles.length > 0 || data.avatar) {
+        if (documentsWithFiles.length > 0) {
             // Use FormData
             const formData = new FormData();
 
@@ -335,8 +335,8 @@ export default function Edit() {
                 }
             });
 
-            // Append avatar if present
-            if (data.avatar) {
+            // Append avatar if present and not 'null'
+            if (data.avatar && data.avatar !== 'null') {
                 formData.append('avatar', data.avatar);
             }
 
@@ -353,9 +353,17 @@ export default function Edit() {
                 preserveState: false,
             });
         } else {
-            // If no documents with files and no avatar, send regular form data
+            // If no documents with files, send regular form data via JSON PUT
+            transform((data) => {
+                const { documents, ...employeeData } = data;
+                if (employeeData.avatar === 'null') {
+                    employeeData.avatar = null;
+                }
+                return employeeData as any;
+            });
+
             put(route('hrm.employees.update', employee.id), {
-                data: employeeData
+                preserveState: false,
             });
         }
     };

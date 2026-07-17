@@ -21,6 +21,7 @@ export interface CreateUserFormData {
     mobile_no: string;
     type: string;
     is_enable_login: boolean;
+    avatar?: string | null;
 }
 
 export interface EditUserFormData {
@@ -28,6 +29,7 @@ export interface EditUserFormData {
     email: string;
     mobile_no: string;
     is_enable_login: boolean;
+    avatar?: string | null;
 }
 
 export interface ChangePasswordFormData {
