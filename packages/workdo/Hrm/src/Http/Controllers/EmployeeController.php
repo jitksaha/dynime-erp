@@ -570,4 +570,35 @@ class EmployeeController extends Controller
         }
         return response()->json(['base64' => '']);
     }
+
+    public function sendCredentials($employeeId)
+    {
+        if (\Auth::user()->can('edit-employees')) {
+            $employee = Employee::with('user')->find($employeeId);
+            if (!$employee || !$employee->user) {
+                return redirect()->back()->with('error', __('Employee user not found.'));
+            }
+
+            // Generate temporary password
+            $password = \Str::random(10);
+            $user = $employee->user;
+            $user->password = \Hash::make($password);
+            $user->save();
+
+            // Set SMTP Config
+            try {
+                \App\Services\MailConfigService::setDynamicConfig(creatorId());
+                
+                \Mail::to($user->email)->send(new \App\Mail\SendCredentialsMail($user, $password));
+                
+                return redirect()->back()->with('success', __('Login credentials sent successfully to ') . $user->name);
+            } catch (\Exception $e) {
+                \Log::error('Send credentials failed: ' . $e->getMessage());
+                return redirect()->back()->with('error', __('SMTP Configuration Error: ') . $e->getMessage());
+            }
+        } else {
+            return redirect()->back()->with('error', __('Permission denied.'));
+        }
+    }
 }
+

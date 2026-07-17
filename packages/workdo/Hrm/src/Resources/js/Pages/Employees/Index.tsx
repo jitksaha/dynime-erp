@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/data-table";
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
-import { Plus, Edit as EditIcon, Trash2, Eye, Users as UsersIcon, Lock, Download, FileImage, FileText } from "lucide-react";
+import { Plus, Edit as EditIcon, Trash2, Eye, Users as UsersIcon, Lock, Download, FileImage, FileText, Mail } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { FilterButton } from '@/components/ui/filter-button';
 import { Pagination } from "@/components/ui/pagination";
@@ -109,8 +109,11 @@ export default function Index() {
         });
         router.get(route('hrm.employees.index'), { per_page: perPage, view: viewMode });
     };
-
-
+    const handleSendCredentials = (employeeId: number) => {
+        if (confirm(t('Are you sure you want to reset password and email the login credentials to this employee?'))) {
+            router.post(route('hrm.employees.send-credentials', employeeId));
+        }
+    };
 
     const tableColumns = [
         {
@@ -217,6 +220,18 @@ export default function Index() {
                                     </TooltipTrigger>
                                     <TooltipContent>
                                         <p>{t('Document Builder')}</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            )}
+                            {auth.user?.permissions?.includes('edit-employees') && (
+                                <Tooltip delayDuration={0}>
+                                    <TooltipTrigger asChild>
+                                        <Button variant="ghost" size="sm" onClick={() => handleSendCredentials(employee.id)} className="h-8 w-8 p-0 text-amber-600 hover:text-amber-700">
+                                            <Mail className="h-4 w-4" />
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p>{t('Send Credentials')}</p>
                                     </TooltipContent>
                                 </Tooltip>
                             )}
