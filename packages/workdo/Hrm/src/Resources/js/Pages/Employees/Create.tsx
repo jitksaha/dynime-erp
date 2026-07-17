@@ -17,6 +17,7 @@ import { useEffect, useState } from 'react';
 import { useFormFields } from '@/hooks/useFormFields';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import MediaLibraryModal from "@/components/MediaLibraryModal";
+import MediaPicker from "@/components/MediaPicker";
 import { getImagePath, formatCurrency } from "@/utils/helpers";
 import axios from 'axios';
 import { usePersistentForm } from "@/hooks/usePersistentForm";
@@ -240,7 +241,7 @@ export default function Create() {
     // (File objects can't survive localStorage serialization and are saved as null)
     useEffect(() => {
         if (data.documents && data.documents.length > 0) {
-            const validDocs = data.documents.filter((doc: any) => doc.file instanceof File);
+            const validDocs = data.documents.filter((doc: any) => (doc.file instanceof File) || (typeof doc.file === 'string' && doc.file !== ''));
             if (validDocs.length !== data.documents.length) {
                 setData('documents', validDocs);
             }
@@ -1664,19 +1665,14 @@ export default function Create() {
                                                 <InputError message={errors[`documents.${index}.document_type_id`]} />
                                             </div>
                                             <div>
-                                                <Label required>{t('Document File')}</Label>
-                                                <Input
-                                                    type="file"
-                                                    onChange={(e) => {
-                                                        const file = e.target.files?.[0];
-                                                        updateDocument(index, 'file', file);
-                                                    }}                                                    
+                                                <MediaPicker
+                                                    label={t('Document File')}
+                                                    value={document.file}
+                                                    onChange={(value) => updateDocument(index, 'file', value)}
+                                                    placeholder={t('Select or upload document...')}
+                                                    showPreview={true}
+                                                    required
                                                 />
-                                                {document.file && (
-                                                    <p className="text-sm text-muted-foreground mt-1">
-                                                        {document.file.name}
-                                                    </p>
-                                                )}
                                                 <InputError message={errors[`documents.${index}.file`]} />
                                             </div>
                                         </div>

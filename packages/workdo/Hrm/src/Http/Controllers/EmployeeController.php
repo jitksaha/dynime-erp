@@ -194,6 +194,14 @@ class EmployeeController extends Controller
                                 'created_by' => creatorId(),
                             ]);
                         }
+                    } elseif (!empty($document['file']) && !empty($document['document_type_id'])) {
+                        EmployeeDocument::create([
+                            'user_id' => $employee->id,
+                            'document_type_id' => $document['document_type_id'],
+                            'file_path' => $document['file'],
+                            'creator_id' => Auth::id(),
+                            'created_by' => creatorId(),
+                        ]);
                     }
                 }
             }
@@ -345,6 +353,14 @@ class EmployeeController extends Controller
                                 'created_by' => creatorId(),
                             ]);
                         }
+                    } elseif (!empty($document['file']) && !empty($document['document_type_id'])) {
+                        EmployeeDocument::create([
+                            'user_id' => $employee->id,
+                            'document_type_id' => $document['document_type_id'],
+                            'file_path' => $document['file'],
+                            'creator_id' => Auth::id(),
+                            'created_by' => creatorId(),
+                        ]);
                     }
                 }
             }

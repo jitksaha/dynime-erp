@@ -18,6 +18,7 @@ import { router } from '@inertiajs/react';
 import { getImagePath, formatCurrency } from '@/utils/helpers';
 import { useFormFields } from '@/hooks/useFormFields';
 import MediaLibraryModal from "@/components/MediaLibraryModal";
+import MediaPicker from "@/components/MediaPicker";
 
 export default function Edit() {
     const { employee, users, branches, departments, designations, shifts, existingDocuments, documentTypes, companyAllSetting = {} } = usePage<any>().props;
@@ -1600,20 +1601,14 @@ export default function Edit() {
                                                 </Select>
                                             </div>
                                             <div>
-                                                <Label>{t('Document File')}</Label>
-                                                <Input
-                                                    type="file"
-                                                    onChange={(e) => {
-                                                        const file = e.target.files?.[0];
-                                                        updateDocument(index, 'file', file);
-                                                    }}
-                                                    accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif"
+                                                <MediaPicker
+                                                    label={t('Document File')}
+                                                    value={document.file}
+                                                    onChange={(value) => updateDocument(index, 'file', value)}
+                                                    placeholder={t('Select or upload document...')}
+                                                    showPreview={true}
+                                                    required
                                                 />
-                                                {document.file && (
-                                                    <p className="text-sm text-muted-foreground mt-1">
-                                                        {document.file.name}
-                                                    </p>
-                                                )}
                                             </div>
                                         </div>
                                         <div className="flex justify-end mt-4">
