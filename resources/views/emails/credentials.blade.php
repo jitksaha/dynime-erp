@@ -89,6 +89,9 @@
                             </p>
                             <p style="margin: 0 0 4px 0; font-size: 13px; color: #94a3b8;">This email was sent automatically. Please do not reply to this address.</p>
                             <p style="margin: 0; font-size: 13px; color: #94a3b8;">&copy; 2020 - {{ date('Y') }} Dynime LLC. All rights reserved.</p>
+                            <div style="display:none !important; font-size:1px; color:#ffffff; line-height:1px; max-height:0px; max-width:0px; opacity:0; overflow:hidden;">
+                                ID: {{ uniqid() }}
+                            </div>
                         </td>
                     </tr>
                 </table>
