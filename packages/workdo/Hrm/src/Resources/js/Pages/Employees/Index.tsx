@@ -76,6 +76,8 @@ export default function Index() {
         setCpanelModalOpen(true);
     };
 
+    const [isResending, setIsResending] = useState(false);
+
     const handleCreateOfficialEmail = () => {
         if (!selectedEmployee) return;
         setIsCreatingEmail(true);
@@ -94,6 +96,24 @@ export default function Index() {
             },
             onFinish: () => {
                 setIsCreatingEmail(false);
+            }
+        });
+    };
+
+    const handleResendCredentials = () => {
+        if (!selectedEmployee) return;
+        setIsResending(true);
+        router.post(route('hrm.employees.resend-official-email', selectedEmployee.id), {}, {
+            preserveScroll: true,
+            onSuccess: () => {
+                setCpanelModalOpen(false);
+                setIsResending(false);
+            },
+            onError: () => {
+                setIsResending(false);
+            },
+            onFinish: () => {
+                setIsResending(false);
             }
         });
     };
@@ -708,9 +728,21 @@ export default function Index() {
                                 <p className="font-medium text-foreground">{selectedEmployee.user?.name}</p>
                                 <p className="text-xs text-muted-foreground">{t('Employee ID')}: {selectedEmployee.employee_id}</p>
                                 {selectedEmployee.official_email && (
-                                    <p className="text-xs text-emerald-600 font-semibold mt-1">
-                                        {t('Current Official Email')}: {selectedEmployee.official_email}
-                                    </p>
+                                    <div className="mt-2 pt-2 border-t border-emerald-100/50 flex items-center justify-between">
+                                        <p className="text-xs text-emerald-600 font-semibold">
+                                            {t('Official Email')}: {selectedEmployee.official_email}
+                                        </p>
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={handleResendCredentials}
+                                            disabled={isResending}
+                                            className="h-7 px-2.5 text-xs text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border-emerald-200"
+                                        >
+                                            {isResending ? t('Resending...') : t('Resend Credentials')}
+                                        </Button>
+                                    </div>
                                 )}
                             </div>
 

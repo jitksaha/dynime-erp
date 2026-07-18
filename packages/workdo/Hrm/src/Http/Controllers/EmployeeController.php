@@ -654,5 +654,35 @@ class EmployeeController extends Controller
             return redirect()->back()->with('error', __('Permission denied.'));
         }
     }
+
+    public function resendOfficialEmailCredentials($employeeId)
+    {
+        if (\Auth::user()->can('edit-employees')) {
+            $employee = Employee::with('user')->find($employeeId);
+            if (!$employee || !$employee->user) {
+                return redirect()->back()->with('error', __('Employee not found.'));
+            }
+
+            if (empty($employee->official_email) || empty($employee->official_email_password)) {
+                return redirect()->back()->with('error', __('Official email has not been created yet for this employee.'));
+            }
+
+            try {
+                \App\Services\MailConfigService::setDynamicConfig(creatorId());
+                \Mail::to($employee->user->email)->send(new \App\Mail\SendOfficialEmailCredentialsMail(
+                    $employee->user,
+                    $employee->official_email,
+                    $employee->official_email_password
+                ));
+
+                return redirect()->back()->with('success', __('Official email credentials resent successfully to ') . $employee->user->name);
+            } catch (\Exception $e) {
+                \Log::error('Resend official email credentials failed: ' . $e->getMessage());
+                return redirect()->back()->with('error', __('SMTP Configuration Error: ') . $e->getMessage());
+            }
+        } else {
+            return redirect()->back()->with('error', __('Permission denied.'));
+        }
+    }
 }
 

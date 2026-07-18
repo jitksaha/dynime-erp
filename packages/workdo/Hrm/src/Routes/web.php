@@ -124,6 +124,7 @@ Route::middleware(['web', 'auth', 'verified', 'PlanModuleCheck:Hrm'])->group(fun
         Route::get('/{employee}/avatar-base64', [EmployeeController::class, 'getAvatarBase64'])->name('avatar-base64');
         Route::post('/{employee}/send-credentials', [EmployeeController::class, 'sendCredentials'])->name('send-credentials');
         Route::post('/{employee}/create-official-email', [EmployeeController::class, 'createOfficialEmail'])->name('create-official-email');
+        Route::post('/{employee}/resend-official-email', [EmployeeController::class, 'resendOfficialEmailCredentials'])->name('resend-official-email');
         Route::get('/seal-base64', [EmployeeController::class, 'getSealBase64'])->name('seal-base64');
         Route::get('/{employee}', [EmployeeController::class, 'show'])->name('show');
     });
