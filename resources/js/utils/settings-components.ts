@@ -10,6 +10,7 @@ const coreComponents = {
   'seo-settings': lazy(() => import('@/pages/settings/components/seo-settings')),
   'storage-settings': lazy(() => import('@/pages/settings/components/storage-settings')),
   'email-settings': lazy(() => import('@/pages/settings/components/email-settings')),
+  'cpanel-email-settings': lazy(() => import('@/pages/settings/components/cpanel-email-settings')),
   'pusher-settings': lazy(() => import('@/pages/settings/components/pusher-settings')),
   'email-notification-settings': lazy(() => import('@/pages/settings/components/email-notification-settings')),
   'cookie-settings': lazy(() => import('@/pages/settings/components/cookie-settings')),

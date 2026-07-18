@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/data-table";
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
-import { Plus, Edit as EditIcon, Trash2, Eye, Users as UsersIcon, Lock, Download, FileImage, FileText, Mail } from "lucide-react";
+import { Plus, Edit as EditIcon, Trash2, Eye, Users as UsersIcon, Lock, Download, FileImage, FileText, Mail, Globe, RefreshCw } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { FilterButton } from '@/components/ui/filter-button';
 import { Pagination } from "@/components/ui/pagination";
@@ -19,6 +19,9 @@ import NoRecordsFound from '@/components/no-records-found';
 import { Employee, EmployeesIndexProps, EmployeeFilters } from './types';
 import { formatDate, getImagePath } from '@/utils/helpers';
 import { usePageButtons } from '@/hooks/usePageButtons';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 
 export default function Index() {
     const { t } = useTranslation();
@@ -44,6 +47,56 @@ export default function Index() {
     const [filteredDepartments, setFilteredDepartments] = useState(departments || []);
     const [filteredDesignations, setFilteredDesignations] = useState(designations || []);
     const [showFilters, setShowFilters] = useState(false);
+
+    const { globalSettings = {} } = usePage().props as any;
+    const [cpanelModalOpen, setCpanelModalOpen] = useState(false);
+    const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
+    const [emailPrefix, setEmailPrefix] = useState('');
+    const [emailPassword, setEmailPassword] = useState('');
+    const [emailQuota, setEmailQuota] = useState('0');
+    const [isCreatingEmail, setIsCreatingEmail] = useState(false);
+
+    const generateRandomPassword = () => {
+        const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#%^&*";
+        let pass = "";
+        for (let i = 0; i < 12; i++) {
+            pass += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return pass;
+    };
+
+    const openCpanelModal = (employee: Employee) => {
+        setSelectedEmployee(employee);
+        const cleanedName = employee.user?.name
+            ? employee.user.name.toLowerCase().trim().replace(/\s+/g, '.').replace(/[^a-z0-9.]/g, '')
+            : '';
+        setEmailPrefix(cleanedName);
+        setEmailPassword(generateRandomPassword());
+        setEmailQuota(globalSettings?.cpanel_quota || '0');
+        setCpanelModalOpen(true);
+    };
+
+    const handleCreateOfficialEmail = () => {
+        if (!selectedEmployee) return;
+        setIsCreatingEmail(true);
+        router.post(route('hrm.employees.create-official-email', selectedEmployee.id), {
+            email_prefix: emailPrefix,
+            password: emailPassword,
+            quota: emailQuota
+        }, {
+            preserveScroll: true,
+            onSuccess: () => {
+                setCpanelModalOpen(false);
+                setIsCreatingEmail(false);
+            },
+            onError: () => {
+                setIsCreatingEmail(false);
+            },
+            onFinish: () => {
+                setIsCreatingEmail(false);
+            }
+        });
+    };
 
     // Handle dependent dropdown for department filters
     useEffect(() => {
@@ -232,6 +285,18 @@ export default function Index() {
                                     </TooltipTrigger>
                                     <TooltipContent>
                                         <p>{t('Send Credentials')}</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            )}
+                            {auth.user?.permissions?.includes('edit-employees') && (
+                                <Tooltip delayDuration={0}>
+                                    <TooltipTrigger asChild>
+                                        <Button variant="ghost" size="sm" onClick={() => openCpanelModal(employee)} className="h-8 w-8 p-0 text-indigo-600 hover:text-indigo-700">
+                                            <Globe className="h-4 w-4" />
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p>{t('Issue Official Email')}</p>
                                     </TooltipContent>
                                 </Tooltip>
                             )}
@@ -556,6 +621,18 @@ export default function Index() {
                                                                 </TooltipContent>
                                                             </Tooltip>
                                                         )}
+                                                        {auth.user?.permissions?.includes('edit-employees') && (
+                                                            <Tooltip delayDuration={300}>
+                                                                <TooltipTrigger asChild>
+                                                                    <Button variant="ghost" size="sm" onClick={() => openCpanelModal(employee)} className="h-9 w-9 p-0 text-indigo-600 hover:text-indigo-700">
+                                                                        <Globe className="h-4 w-4" />
+                                                                    </Button>
+                                                                </TooltipTrigger>
+                                                                <TooltipContent>
+                                                                    <p>{t('Issue Official Email')}</p>
+                                                                </TooltipContent>
+                                                            </Tooltip>
+                                                        )}
                                                         {auth.user?.permissions?.includes('delete-employees') && (
                                                             <Tooltip delayDuration={300}>
                                                                 <TooltipTrigger asChild>
@@ -608,6 +685,97 @@ export default function Index() {
 
 
 
+
+            <Dialog open={cpanelModalOpen} onOpenChange={setCpanelModalOpen}>
+                <DialogContent className="sm:max-w-[450px]">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Globe className="h-5 w-5 text-indigo-600" />
+                            {t('Issue Official Email')}
+                        </DialogTitle>
+                    </DialogHeader>
+                    {selectedEmployee && (
+                        <div className="space-y-4 py-4">
+                            <div className="bg-muted/40 p-3 rounded-lg border text-sm space-y-1">
+                                <p className="font-medium text-foreground">{selectedEmployee.user?.name}</p>
+                                <p className="text-xs text-muted-foreground">{t('Employee ID')}: {selectedEmployee.employee_id}</p>
+                                {selectedEmployee.official_email && (
+                                    <p className="text-xs text-emerald-600 font-semibold mt-1">
+                                        {t('Current Official Email')}: {selectedEmployee.official_email}
+                                    </p>
+                                )}
+                            </div>
+
+                            <div className="space-y-1.5">
+                                <Label htmlFor="email_prefix" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t('Email Username Prefix')}</Label>
+                                <div className="flex items-center gap-2">
+                                    <Input
+                                        id="email_prefix"
+                                        value={emailPrefix}
+                                        onChange={(e) => setEmailPrefix(e.target.value.toLowerCase().replace(/[^a-z0-9.]/g, ''))}
+                                        placeholder="e.g. john.doe"
+                                        className="flex-1"
+                                    />
+                                    <span className="text-sm font-semibold text-muted-foreground">
+                                        @{globalSettings?.cpanel_domain || 'yourdomain.com'}
+                                    </span>
+                                </div>
+                                <p className="text-[11px] text-muted-foreground">{t('Lowercase letters, numbers, and dots only.')}</p>
+                            </div>
+
+                            <div className="space-y-1.5">
+                                <Label htmlFor="email_password" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t('Email Password')}</Label>
+                                <div className="flex items-center gap-2">
+                                    <Input
+                                        id="email_password"
+                                        value={emailPassword}
+                                        onChange={(e) => setEmailPassword(e.target.value)}
+                                        placeholder="Min 8 characters"
+                                        className="flex-1 font-mono"
+                                    />
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setEmailPassword(generateRandomPassword())}
+                                        className="flex-shrink-0"
+                                    >
+                                        <RefreshCw className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                            </div>
+
+                            <div className="space-y-1.5">
+                                <Label htmlFor="email_quota" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t('Mailbox Quota (MB)')}</Label>
+                                <Input
+                                    id="email_quota"
+                                    type="number"
+                                    value={emailQuota}
+                                    onChange={(e) => setEmailQuota(e.target.value)}
+                                    placeholder="0 for unlimited"
+                                />
+                                <p className="text-[11px] text-muted-foreground">{t('Storage limit in Megabytes. 0 is unlimited.')}</p>
+                            </div>
+                        </div>
+                    )}
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => setCpanelModalOpen(false)}
+                            disabled={isCreatingEmail}
+                        >
+                            {t('Cancel')}
+                        </Button>
+                        <Button
+                            onClick={handleCreateOfficialEmail}
+                            disabled={isCreatingEmail || !emailPrefix || !emailPassword}
+                            className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                        >
+                            {t(isCreatingEmail ? 'Creating...' : 'Create Email')}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
             <ConfirmationDialog
                 open={deleteState.isOpen}

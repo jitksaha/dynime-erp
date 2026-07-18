@@ -67,6 +67,8 @@ export interface Employee {
     department?: Department;
     designation_id?: number;
     designation?: Designation;
+    official_email?: string;
+    official_email_password?: string;
     created_at: string;
 }
 

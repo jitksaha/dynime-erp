@@ -67,6 +67,14 @@ export const getCompanySettings = (t: (key: string) => string): SettingMenuItem[
     component: 'email-notification-settings'
   },
   {
+    order: 520,
+    title: t('cPanel Email Settings'),
+    href: '#cpanel-email-settings',
+    icon: Mail,
+    permission: 'manage-company-settings',
+    component: 'cpanel-email-settings'
+  },
+  {
     order: 1000,
     title: t('Bank Transfer Settings'),
     href: '#bank-transfer-settings',

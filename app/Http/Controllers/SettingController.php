@@ -825,4 +825,27 @@ class SettingController extends Controller
         }
         return redirect()->back()->with('success', __('Mail Notification Setting save sucessfully.'));
     }
+
+    public function updateCPanelEmailSettings(Request $request)
+    {
+        if (\Auth::user()->can('manage-company-settings')) {
+            $request->validate([
+                'settings.cpanel_host' => 'required|string|max:255',
+                'settings.cpanel_username' => 'required|string|max:255',
+                'settings.cpanel_api_token' => 'required|string|max:255',
+                'settings.cpanel_domain' => 'required|string|max:255',
+                'settings.cpanel_quota' => 'nullable|integer|min:0',
+            ]);
+
+            $settings = $request->input('settings');
+
+            foreach ($settings as $key => $value) {
+                setSetting($key, $value, null, false);
+            }
+
+            return redirect()->back()->with('success', __('cPanel Email settings saved successfully.'));
+        } else {
+            return back()->with('error', __('Permission denied'));
+        }
+    }
 }

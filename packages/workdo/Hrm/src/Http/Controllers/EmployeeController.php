@@ -600,5 +600,57 @@ class EmployeeController extends Controller
             return redirect()->back()->with('error', __('Permission denied.'));
         }
     }
+
+    public function createOfficialEmail(Request $request, $employeeId)
+    {
+        if (\Auth::user()->can('edit-employees')) {
+            $employee = Employee::with('user')->find($employeeId);
+            if (!$employee || !$employee->user) {
+                return redirect()->back()->with('error', __('Employee not found.'));
+            }
+
+            $request->validate([
+                'email_prefix' => 'required|string|alpha_dash|max:50',
+                'password' => 'required|string|min:8',
+                'quota' => 'nullable|integer|min:0',
+            ]);
+
+            $emailPrefix = $request->input('email_prefix');
+            $password = $request->input('password');
+            $quota = $request->input('quota') ?: 0;
+
+            $domain = company_setting('cpanel_domain', creatorId());
+            if (empty($domain)) {
+                return redirect()->back()->with('error', __('cPanel Domain is not configured in settings.'));
+            }
+
+            $officialEmail = $emailPrefix . '@' . $domain;
+
+            // Call cPanel API
+            $response = \App\Services\CPanelEmailService::createEmail($emailPrefix, $password, $quota, creatorId());
+
+            if ($response['success']) {
+                // Update employee record
+                $employee->official_email = $officialEmail;
+                $employee->official_email_password = $password;
+                $employee->save();
+
+                // Send Email Notification to Employee's Personal Email
+                try {
+                    \App\Services\MailConfigService::setDynamicConfig(creatorId());
+                    \Mail::to($employee->user->email)->send(new \App\Mail\SendOfficialEmailCredentialsMail($employee->user, $officialEmail, $password));
+                } catch (\Exception $e) {
+                    \Log::error('Send official email credentials failed: ' . $e->getMessage());
+                    return redirect()->back()->with('success', __('Official email created successfully, but notification email failed to send.'));
+                }
+
+                return redirect()->back()->with('success', __('Official cPanel email account created successfully: ') . $officialEmail);
+            } else {
+                return redirect()->back()->with('error', $response['message']);
+            }
+        } else {
+            return redirect()->back()->with('error', __('Permission denied.'));
+        }
+    }
 }
 

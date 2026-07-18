@@ -144,6 +144,7 @@ Route::middleware(['auth', 'verified', 'PlanModuleCheck'])->group(function () {
     Route::post('settings/pusher', [SettingController::class, 'updatePusherSettings'])->name('settings.pusher.update');
     Route::post('settings/bank-transfer', [SettingController::class, 'updateBankTransferSettings'])->name('settings.bank-transfer.update');
     Route::post('email-notification-settings-save', [SettingController::class, 'mailNotificationStore'])->name('email.notification.setting.store');
+    Route::post('settings/cpanel-email', [SettingController::class, 'updateCPanelEmailSettings'])->name('settings.cpanel-email.update');
 
     // Redirect Bank Transfer Payment routes to dashboard
     Route::any('bank-transfer/{any?}', function() { return redirect()->route('dashboard'); })->where('any', '.*');
