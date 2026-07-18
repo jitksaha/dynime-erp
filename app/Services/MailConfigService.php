@@ -37,5 +37,7 @@ class MailConfigService
             'mail.from.address' => $settings['fromAddress'],
             'mail.from.name' => $settings['fromName'],
         ]);
+
+        \Illuminate\Support\Facades\Mail::purge();
     }
 }

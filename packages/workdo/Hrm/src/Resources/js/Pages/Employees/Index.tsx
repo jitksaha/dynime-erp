@@ -199,7 +199,12 @@ export default function Index() {
                             className="w-8 h-8 rounded-full object-cover flex-shrink-0"
                         />
                     )}
-                    <span>{row.user?.name || '-'}</span>
+                    <div className="flex flex-col min-w-0">
+                        <span className="font-medium truncate">{row.user?.name || '-'}</span>
+                        {row.official_email && (
+                            <span className="text-[10px] text-emerald-600 font-semibold truncate mt-0.5">{row.official_email}</span>
+                        )}
+                    </div>
                 </div>
             )
         },
@@ -291,12 +296,12 @@ export default function Index() {
                             {auth.user?.permissions?.includes('edit-employees') && (
                                 <Tooltip delayDuration={0}>
                                     <TooltipTrigger asChild>
-                                        <Button variant="ghost" size="sm" onClick={() => openCpanelModal(employee)} className="h-8 w-8 p-0 text-indigo-600 hover:text-indigo-700">
+                                        <Button variant="ghost" size="sm" onClick={() => openCpanelModal(employee)} className={`h-8 w-8 p-0 ${employee.official_email ? "text-emerald-600 hover:text-emerald-700" : "text-indigo-600 hover:text-indigo-700"}`}>
                                             <Globe className="h-4 w-4" />
                                         </Button>
                                     </TooltipTrigger>
                                     <TooltipContent>
-                                        <p>{t('Issue Official Email')}</p>
+                                        <p>{employee.official_email ? `${t('Manage Official Email')} (${employee.official_email})` : t('Issue Official Email')}</p>
                                     </TooltipContent>
                                 </Tooltip>
                             )}
@@ -539,10 +544,13 @@ export default function Index() {
                                             {/* Body */}
                                             <div className="p-4 flex-1 min-h-0">
                                                 <div className="grid grid-cols-2 gap-4 mb-4">
-                                                    <div className="text-xs min-w-0">
-                                                        <p className="text-muted-foreground mb-1 text-xs uppercase tracking-wide">{t('Employee Name')}</p>
-                                                        <p className="font-medium text-xs">{employee.user?.name || '-'}</p>
-                                                    </div>
+                                                     <div className="text-xs min-w-0">
+                                                         <p className="text-muted-foreground mb-1 text-xs uppercase tracking-wide">{t('Employee Name')}</p>
+                                                         <p className="font-medium text-xs truncate" title={employee.user?.name}>{employee.user?.name || '-'}</p>
+                                                         {employee.official_email && (
+                                                             <p className="text-[10px] text-emerald-600 font-semibold truncate mt-0.5" title={employee.official_email}>{employee.official_email}</p>
+                                                         )}
+                                                     </div>
                                                     <div className="text-xs min-w-0">
                                                         <p className="text-muted-foreground mb-1 text-xs uppercase tracking-wide">{t('Branch')}</p>
                                                         <p className="font-medium text-xs">{employee.branch?.branch_name || '-'}</p>
@@ -624,12 +632,12 @@ export default function Index() {
                                                         {auth.user?.permissions?.includes('edit-employees') && (
                                                             <Tooltip delayDuration={300}>
                                                                 <TooltipTrigger asChild>
-                                                                    <Button variant="ghost" size="sm" onClick={() => openCpanelModal(employee)} className="h-9 w-9 p-0 text-indigo-600 hover:text-indigo-700">
+                                                                    <Button variant="ghost" size="sm" onClick={() => openCpanelModal(employee)} className={`h-9 w-9 p-0 ${employee.official_email ? "text-emerald-600 hover:text-emerald-700" : "text-indigo-600 hover:text-indigo-700"}`}>
                                                                         <Globe className="h-4 w-4" />
                                                                     </Button>
                                                                 </TooltipTrigger>
                                                                 <TooltipContent>
-                                                                    <p>{t('Issue Official Email')}</p>
+                                                                    <p>{employee.official_email ? `${t('Manage Official Email')} (${employee.official_email})` : t('Issue Official Email')}</p>
                                                                 </TooltipContent>
                                                             </Tooltip>
                                                         )}
