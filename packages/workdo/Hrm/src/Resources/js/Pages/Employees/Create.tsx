@@ -184,7 +184,7 @@ export default function Create() {
     };
 
 
-    const { data, setData, post, setError, processing, errors, clearStorage, transform } = usePersistentForm<CreateEmployeeFormData>('employee_create_form', {
+    const { data, setData, post, setError, processing, errors, clearStorage, transform, clearErrors } = usePersistentForm<CreateEmployeeFormData>('employee_create_form', {
         employee_id: generatedEmployeeId,
         avatar: null,
         date_of_birth: '',
@@ -399,12 +399,15 @@ export default function Create() {
     const removeDocument = (index: number) => {
         const newDocuments = data.documents.filter((_, i) => i !== index);
         setData('documents', newDocuments);
+        clearErrors(`documents.${index}.file`);
+        clearErrors(`documents.${index}.document_type_id`);
     };
 
     const updateDocument = (index: number, field: string, value: any) => {
         const newDocuments = [...data.documents];
         newDocuments[index] = { ...newDocuments[index], [field]: value };
         setData('documents', newDocuments);
+        clearErrors(`documents.${index}.${field}`);
     };
 
     const biometricFields = useFormFields('biometricEmployeeIdFields', data, setData, errors, 'create');

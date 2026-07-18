@@ -95,7 +95,7 @@ export default function Edit() {
     };
 
 
-    const { data, setData, put, processing, errors, transform } = useForm<EditEmployeeFormData>({
+    const { data, setData, put, processing, errors, transform, clearErrors } = useForm<EditEmployeeFormData>({
         employee_id: employee.employee_id ?? '',
         mobile_no: employee.user?.mobile_no ?? '',
         avatar: employee.user?.avatar || null,
@@ -298,12 +298,15 @@ export default function Edit() {
     const removeDocument = (index: number) => {
         const newDocuments = data.documents.filter((_, i) => i !== index);
         setData('documents', newDocuments);
+        clearErrors(`documents.${index}.file`);
+        clearErrors(`documents.${index}.document_type_id`);
     };
 
     const updateDocument = (index: number, field: string, value: any) => {
         const newDocuments = [...data.documents];
         newDocuments[index] = { ...newDocuments[index], [field]: value };
         setData('documents', newDocuments);
+        clearErrors(`documents.${index}.${field}`);
     };
 
     const biometricFields = useFormFields('biometricEmployeeIdFields', data, setData, errors, 'edit');

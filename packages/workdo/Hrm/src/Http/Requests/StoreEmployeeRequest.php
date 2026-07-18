@@ -56,8 +56,17 @@ class StoreEmployeeRequest extends FormRequest
             'designation_id' => 'required|exists:designations,id',
             'documents' => 'nullable|array',
             'documents.*.document_type_id' => 'required_with:documents.*.file|nullable|exists:employee_document_types,id',
-            'documents.*.file' => 'nullable|file|mimes:pdf,doc,docx,jpg,jpeg,png|max:2048'
         ];
+
+        if ($this->has('documents')) {
+            foreach ($this->input('documents', []) as $index => $doc) {
+                if ($this->hasFile("documents.{$index}.file")) {
+                    $rules["documents.{$index}.file"] = 'required|file|mimes:pdf,doc,docx,jpg,jpeg,png|max:2048';
+                } else {
+                    $rules["documents.{$index}.file"] = 'nullable|string';
+                }
+            }
+        }
         
         if ($this->hasFile('avatar')) {
             $rules['avatar'] = 'nullable|image|mimes:jpeg,png,jpg|max:2048';
