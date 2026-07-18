@@ -68,6 +68,8 @@ class EmployeeController extends Controller
                 'departments' => Department::where('created_by', creatorId())->select('id', 'department_name', 'branch_id')->get(),
                 'designations' => Designation::where('created_by', creatorId())->select('id', 'designation_name', 'branch_id', 'department_id')->get(),
                 'shifts' => Shift::where('created_by', creatorId())->select('id', 'shift_name')->get(),
+                'cpanel_domain' => company_setting('cpanel_domain', creatorId()),
+                'cpanel_quota' => company_setting('cpanel_quota', creatorId()),
             ]);
         } else {
             return back()->with('error', __('Permission denied'));

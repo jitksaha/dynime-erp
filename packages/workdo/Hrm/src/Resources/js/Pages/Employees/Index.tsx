@@ -48,7 +48,7 @@ export default function Index() {
     const [filteredDesignations, setFilteredDesignations] = useState(designations || []);
     const [showFilters, setShowFilters] = useState(false);
 
-    const { globalSettings = {} } = usePage().props as any;
+    const { cpanel_domain = '', cpanel_quota = '0' } = usePage().props as any;
     const [cpanelModalOpen, setCpanelModalOpen] = useState(false);
     const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
     const [emailPrefix, setEmailPrefix] = useState('');
@@ -72,7 +72,7 @@ export default function Index() {
             : '';
         setEmailPrefix(cleanedName);
         setEmailPassword(generateRandomPassword());
-        setEmailQuota(globalSettings?.cpanel_quota || '0');
+        setEmailQuota(cpanel_quota || '0');
         setCpanelModalOpen(true);
     };
 
@@ -717,7 +717,7 @@ export default function Index() {
                                         className="flex-1"
                                     />
                                     <span className="text-sm font-semibold text-muted-foreground">
-                                        @{globalSettings?.cpanel_domain || 'yourdomain.com'}
+                                        @{cpanel_domain || 'yourdomain.com'}
                                     </span>
                                 </div>
                                 <p className="text-[11px] text-muted-foreground">{t('Lowercase letters, numbers, and dots only.')}</p>
