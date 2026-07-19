@@ -18,6 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Separator } from '@/components/ui/separator';
+import { PAYMENT_STATUSES, OPERATIONAL_STATUSES, PROJECT_CATEGORIES, PROJECT_STATUS_MAP } from './utils';
 import { CalendarDays, Building2, User, FileText, Package } from 'lucide-react';
 import QuickCreateCustomerDialog from '@/components/QuickCreateCustomerDialog';
 import MiniCalculator from '@/components/MiniCalculator';
@@ -48,6 +49,10 @@ export default function Create() {
         sync_to_google_calendar: false,
         payment_method: 'Bank Transfer',
         currency: 'USD',
+        payment_status: 'Unpaid',
+        operational_status: 'Pending',
+        project_category: '',
+        project_status: '',
         items: [{
             product_id: 0,
             quantity: 1,
@@ -313,6 +318,97 @@ export default function Create() {
                                         </SelectContent>
                                     </Select>
                                     <InputError message={errors.currency} />
+                                </div>
+
+                                <div>
+                                    <Label htmlFor="payment_status">
+                                        {t('Payment Status')}
+                                    </Label>
+                                    <Select value={data.payment_status} onValueChange={(value) => setData('payment_status', value)}>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder={t('Select Payment Status')} />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {PAYMENT_STATUSES.map((status) => (
+                                                <SelectItem key={status} value={status}>{t(status)}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <InputError message={errors.payment_status} />
+                                </div>
+
+                                <div>
+                                    <Label htmlFor="operational_status">
+                                        {t('Operational Status')}
+                                    </Label>
+                                    <Select value={data.operational_status} onValueChange={(value) => setData('operational_status', value)}>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder={t('Select Operational Status')} />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {OPERATIONAL_STATUSES.map((status) => (
+                                                <SelectItem key={status} value={status}>{t(status)}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <InputError message={errors.operational_status} />
+                                </div>
+
+                                <div>
+                                    <Label htmlFor="project_category">
+                                        {t('Project Category')}
+                                    </Label>
+                                    <Select 
+                                        value={data.project_category} 
+                                        onValueChange={(value) => {
+                                            setData((prev) => ({
+                                                ...prev,
+                                                project_category: value,
+                                                project_status: ''
+                                            }));
+                                        }}
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue placeholder={t('Select Category (Optional)')} />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="N/A">{t('None')}</SelectItem>
+                                            {PROJECT_CATEGORIES.map((cat) => (
+                                                <SelectItem key={cat} value={cat}>{t(cat)}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <InputError message={errors.project_category} />
+                                </div>
+
+                                <div>
+                                    <Label htmlFor="project_status">
+                                        {t('Project Status')}
+                                    </Label>
+                                    <Select 
+                                        value={data.project_status || ''} 
+                                        onValueChange={(value) => setData('project_status', value)}
+                                        disabled={!data.project_category || data.project_category === 'N/A' || data.project_category === ''}
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue placeholder={t('Select Project Status')} />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {data.project_category && PROJECT_STATUS_MAP[data.project_category] ? (
+                                                PROJECT_STATUS_MAP[data.project_category].map((st) => (
+                                                    <SelectItem key={st.label} value={st.label}>
+                                                        <div className="flex flex-col text-left">
+                                                            <span className="font-medium text-xs">{t(st.label)}</span>
+                                                            <span className="text-[10px] text-muted-foreground">{t(st.desc)}</span>
+                                                        </div>
+                                                    </SelectItem>
+                                                ))
+                                            ) : (
+                                                <SelectItem value="N/A">{t('Select Category First')}</SelectItem>
+                                            )}
+                                        </SelectContent>
+                                    </Select>
+                                    <InputError message={errors.project_status} />
                                 </div>
 
                                 <div className="md:col-span-2 lg:col-span-4">

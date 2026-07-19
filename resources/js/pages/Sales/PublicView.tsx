@@ -22,6 +22,7 @@ import {
     RefreshCw
 } from 'lucide-react';
 import { SalesInvoice } from './types';
+import { getPaymentStatusBadgeClasses, getOperationalStatusBadgeClasses, getProjectStatusBadgeClasses, PROJECT_STATUS_MAP } from './utils';
 
 interface PublicViewProps {
     invoice: SalesInvoice;
@@ -335,7 +336,7 @@ export default function PublicView({ invoice, companySettings }: PublicViewProps
                         </div>
 
                         {/* Meta Fields Grid */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-16 gap-y-4 border-t border-b border-slate-100 py-6 mb-8">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-x-12 gap-y-4 border-t border-b border-slate-100 py-6 mb-8">
                             {/* Col 1 */}
                             <div className="space-y-3.5">
                                 <div className="flex justify-between items-center text-[13px]">
@@ -368,6 +369,36 @@ export default function PublicView({ invoice, companySettings }: PublicViewProps
                                         {estDeliveryDate}
                                     </span>
                                 </div>
+                            </div>
+                            {/* Col 3 */}
+                            <div className="space-y-3.5">
+                                <div className="flex justify-between items-center text-[13px]">
+                                    <span className="text-slate-400">Payment status</span>
+                                    <span className={getPaymentStatusBadgeClasses(invoice.payment_status || 'Unpaid')}>
+                                        {invoice.payment_status || 'Unpaid'}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between items-center text-[13px]">
+                                    <span className="text-slate-400">Operational status</span>
+                                    <span className={getOperationalStatusBadgeClasses(invoice.operational_status || 'Pending')}>
+                                        {invoice.operational_status || 'Pending'}
+                                    </span>
+                                </div>
+                                {invoice.project_category && invoice.project_category !== 'N/A' && (
+                                    <div className="flex justify-between items-start text-[13px] gap-2">
+                                        <span className="text-slate-400 mt-1">Project status</span>
+                                        <div className="flex flex-col items-end text-right">
+                                            <span className={getProjectStatusBadgeClasses(invoice.project_status || '')}>
+                                                {invoice.project_status || 'N/A'}
+                                            </span>
+                                            {invoice.project_status && PROJECT_STATUS_MAP[invoice.project_category]?.find(x => x.label === invoice.project_status)?.desc && (
+                                                <span className="text-[10px] text-slate-400 mt-1 max-w-[150px] leading-tight">
+                                                    {PROJECT_STATUS_MAP[invoice.project_category].find(x => x.label === invoice.project_status)?.desc}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
 

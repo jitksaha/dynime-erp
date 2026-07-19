@@ -70,8 +70,27 @@ class SalesInvoiceController extends Controller
                     $query->where('status', $request->status);
                 }
             }
+            if ($request->payment_status) {
+                $query->where('payment_status', $request->payment_status);
+            }
+            if ($request->operational_status) {
+                $query->where('operational_status', $request->operational_status);
+            }
+            if ($request->project_category) {
+                $query->where('project_category', $request->project_category);
+            }
+            if ($request->project_status) {
+                $query->where('project_status', $request->project_status);
+            }
             if ($request->search) {
-                $query->where('invoice_number', 'like', '%' . $request->search . '%');
+                $search = $request->search;
+                $query->where(function($q) use ($search) {
+                    $q->where('invoice_number', 'like', '%' . $search . '%')
+                      ->orWhere('payment_status', 'like', '%' . $search . '%')
+                      ->orWhere('operational_status', 'like', '%' . $search . '%')
+                      ->orWhere('project_category', 'like', '%' . $search . '%')
+                      ->orWhere('project_status', 'like', '%' . $search . '%');
+                });
             }
             if ($request->date_range) {
                 $dates = explode(' - ', $request->date_range);
@@ -101,7 +120,7 @@ class SalesInvoiceController extends Controller
                 'invoices' => $invoices,
                 'customers' => $customers,
                 'warehouses' => $warehouses,
-                'filters' => $request->only(['customer_id', 'warehouse_id', 'status', 'search', 'date_range'])
+                'filters' => $request->only(['customer_id', 'warehouse_id', 'status', 'payment_status', 'operational_status', 'project_category', 'project_status', 'search', 'date_range'])
             ]);
         }
         else{
@@ -148,6 +167,17 @@ class SalesInvoiceController extends Controller
             $invoice->payment_terms = $request->payment_terms;
             $invoice->notes = $request->notes;
             $invoice->estimated_delivery_date = $request->estimated_delivery_date;
+            $invoice->payment_status = $request->payment_status ?? 'Unpaid';
+            $invoice->operational_status = $request->operational_status ?? 'Pending';
+            $invoice->project_category = $request->project_category;
+            $invoice->project_status = $request->project_status;
+            if ($invoice->payment_status === 'Paid') {
+                $invoice->status = 'paid';
+            } elseif ($invoice->payment_status === 'Partially Paid') {
+                $invoice->status = 'partial';
+            } else {
+                $invoice->status = 'posted';
+            }
             $serviceBrief = [];
             if ($request->has('whats_included')) {
                 $lines = array_values(array_filter(array_map('trim', explode("\n", $request->whats_included))));
@@ -239,9 +269,6 @@ class SalesInvoiceController extends Controller
     public function update(UpdateSalesInvoiceRequest $request, SalesInvoice $salesInvoice)
     {
         if(Auth::user()->can('edit-sales-invoices') && $salesInvoice->created_by == creatorId()){
-            if ($salesInvoice->status != 'draft') {
-                return redirect()->route('sales-invoices.index')->with('error', __('Cannot update posted invoice.'));
-            }
             $items = $request->items;
             foreach ($items as &$item) {
                 $item['product_id'] = \App\Helpers\PaidItemsHelper::resolveProductId($item['product_id'], creatorId());
@@ -257,6 +284,26 @@ class SalesInvoiceController extends Controller
             $salesInvoice->payment_terms = $request->payment_terms;
             $salesInvoice->notes = $request->notes;
             $salesInvoice->estimated_delivery_date = $request->estimated_delivery_date;
+            
+            if ($request->has('payment_status')) {
+                $salesInvoice->payment_status = $request->payment_status;
+                if ($request->payment_status === 'Paid') {
+                    $salesInvoice->status = 'paid';
+                } elseif ($request->payment_status === 'Partially Paid') {
+                    $salesInvoice->status = 'partial';
+                } else {
+                    $salesInvoice->status = 'posted';
+                }
+            }
+            if ($request->has('operational_status')) {
+                $salesInvoice->operational_status = $request->operational_status;
+            }
+            if ($request->has('project_category')) {
+                $salesInvoice->project_category = $request->project_category;
+            }
+            if ($request->has('project_status')) {
+                $salesInvoice->project_status = $request->project_status;
+            }
             $serviceBrief = $salesInvoice->service_brief ?? [];
             if ($request->has('whats_included')) {
                 $lines = array_values(array_filter(array_map('trim', explode("\n", $request->whats_included))));
@@ -497,17 +544,43 @@ class SalesInvoiceController extends Controller
     {
         if (Auth::user()->can('edit-sales-invoices') && $salesInvoice->created_by == creatorId()) {
             $request->validate([
-                'status' => 'required|in:draft,posted,partial,paid,overdue'
+                'payment_status' => 'nullable|string|in:Unpaid,Authorized,Partially Paid,Paid,Refunded,Failed',
+                'operational_status' => 'nullable|string|in:Pending,Processing,In Review,Action Required,Delivered,Completed,Cancelled',
+                'project_category' => 'nullable|string',
+                'project_status' => 'nullable|string'
             ]);
 
-            $salesInvoice->status = $request->status;
-            if ($request->status === 'paid') {
-                $salesInvoice->paid_amount = $salesInvoice->total_amount;
-                $salesInvoice->balance_amount = 0;
-            } elseif ($request->status === 'draft' || $request->status === 'posted') {
-                $salesInvoice->paid_amount = 0;
-                $salesInvoice->balance_amount = $salesInvoice->total_amount;
+            if ($request->has('payment_status')) {
+                $salesInvoice->payment_status = $request->payment_status;
+                if ($request->payment_status === 'Paid') {
+                    $salesInvoice->status = 'paid';
+                    $salesInvoice->paid_amount = $salesInvoice->total_amount;
+                    $salesInvoice->balance_amount = 0;
+                } elseif ($request->payment_status === 'Partially Paid') {
+                    $salesInvoice->status = 'partial';
+                } elseif ($request->payment_status === 'Unpaid' || $request->payment_status === 'Failed') {
+                    $salesInvoice->status = 'posted';
+                    $salesInvoice->paid_amount = 0;
+                    $salesInvoice->balance_amount = $salesInvoice->total_amount;
+                }
             }
+
+            if ($request->has('operational_status')) {
+                $salesInvoice->operational_status = $request->operational_status;
+            }
+
+            if ($request->has('project_category')) {
+                $salesInvoice->project_category = $request->project_category;
+                // Default project status for new category if category is changing
+                if (empty($request->project_status)) {
+                    $salesInvoice->project_status = null;
+                }
+            }
+
+            if ($request->has('project_status')) {
+                $salesInvoice->project_status = $request->project_status;
+            }
+
             $salesInvoice->save();
 
             return redirect()->back()->with('success', __('Invoice status updated successfully.'));

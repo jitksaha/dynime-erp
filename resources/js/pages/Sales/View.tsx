@@ -11,6 +11,7 @@ import { FileText, Download, Share2 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { usePageButtons } from '@/hooks/usePageButtons';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { PAYMENT_STATUSES, OPERATIONAL_STATUSES, PROJECT_CATEGORIES, PROJECT_STATUS_MAP, getPaymentStatusBadgeClasses, getOperationalStatusBadgeClasses, getProjectStatusBadgeClasses } from './utils';
 
 interface ViewProps {
     invoice: SalesInvoice;
@@ -53,37 +54,116 @@ export default function View() {
                             <div>
                                 <p className="text-lg text-muted-foreground">#{invoice.invoice_number}</p>
                             </div>
-                            <div className="flex items-center gap-4">
-                                {auth.user?.permissions?.includes('edit-sales-invoices') ? (
+                            <div className="flex flex-wrap md:flex-nowrap items-center gap-6">
+                                <div className="flex flex-wrap items-center gap-4 md:gap-6 bg-slate-50/50 p-3 rounded-lg border border-slate-100">
                                     <div className="flex items-center gap-2">
-                                        <span className="text-xs text-muted-foreground font-medium">{t('Status')}:</span>
-                                        <Select
-                                            value={invoice.status}
-                                            onValueChange={(value) => {
-                                                router.post(route('sales-invoices.update-status', invoice.id), { status: value }, {
-                                                    onSuccess: () => {
-                                                        // Page will reload with updated status
-                                                    }
-                                                });
-                                            }}
-                                        >
-                                            <SelectTrigger className="w-[120px] h-8 text-xs font-semibold capitalize border border-slate-200 bg-white">
-                                                <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="draft">{t('Draft')}</SelectItem>
-                                                <SelectItem value="posted">{t('Posted')}</SelectItem>
-                                                <SelectItem value="partial">{t('Partial')}</SelectItem>
-                                                <SelectItem value="paid">{t('Paid')}</SelectItem>
-                                                <SelectItem value="overdue">{t('Overdue')}</SelectItem>
-                                            </SelectContent>
-                                        </Select>
+                                        <span className="text-xs text-muted-foreground font-medium">{t('Payment')}:</span>
+                                        {auth.user?.permissions?.includes('edit-sales-invoices') ? (
+                                            <Select
+                                                value={invoice.payment_status || 'Unpaid'}
+                                                onValueChange={(value) => {
+                                                    router.post(route('sales-invoices.update-status', invoice.id), { payment_status: value });
+                                                }}
+                                            >
+                                                <SelectTrigger className="w-[130px] h-8 text-xs font-semibold capitalize border border-slate-200 bg-white">
+                                                    <SelectValue />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {PAYMENT_STATUSES.map((status) => (
+                                                        <SelectItem key={status} value={status}>{t(status)}</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        ) : (
+                                            <span className={getPaymentStatusBadgeClasses(invoice.payment_status || 'Unpaid')}>
+                                                {t(invoice.payment_status || 'Unpaid')}
+                                            </span>
+                                        )}
                                     </div>
-                                ) : (
-                                    <span className={getStatusBadgeClasses(invoice.status)}>
-                                        {t(invoice.status.toUpperCase())}
-                                    </span>
-                                )}
+
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-xs text-muted-foreground font-medium">{t('Operational')}:</span>
+                                        {auth.user?.permissions?.includes('edit-sales-invoices') ? (
+                                            <Select
+                                                value={invoice.operational_status || 'Pending'}
+                                                onValueChange={(value) => {
+                                                    router.post(route('sales-invoices.update-status', invoice.id), { operational_status: value });
+                                                }}
+                                            >
+                                                <SelectTrigger className="w-[130px] h-8 text-xs font-semibold capitalize border border-slate-200 bg-white">
+                                                    <SelectValue />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {OPERATIONAL_STATUSES.map((status) => (
+                                                        <SelectItem key={status} value={status}>{t(status)}</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        ) : (
+                                            <span className={getOperationalStatusBadgeClasses(invoice.operational_status || 'Pending')}>
+                                                {t(invoice.operational_status || 'Pending')}
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-xs text-muted-foreground font-medium">{t('Category')}:</span>
+                                        {auth.user?.permissions?.includes('edit-sales-invoices') ? (
+                                            <Select
+                                                value={invoice.project_category || 'N/A'}
+                                                onValueChange={(value) => {
+                                                    router.post(route('sales-invoices.update-status', invoice.id), { project_category: value });
+                                                }}
+                                            >
+                                                <SelectTrigger className="w-[150px] h-8 text-xs font-semibold capitalize border border-slate-200 bg-white">
+                                                    <SelectValue />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="N/A">{t('None')}</SelectItem>
+                                                    {PROJECT_CATEGORIES.map((cat) => (
+                                                        <SelectItem key={cat} value={cat}>{t(cat)}</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        ) : (
+                                            <span className="text-xs font-semibold px-2 py-1 rounded bg-slate-100 border border-slate-200">
+                                                {invoice.project_category ? t(invoice.project_category) : t('None')}
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    {invoice.project_category && invoice.project_category !== 'N/A' && (
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-xs text-muted-foreground font-medium">{t('Stage')}:</span>
+                                            {auth.user?.permissions?.includes('edit-sales-invoices') ? (
+                                                <Select
+                                                    value={invoice.project_status || ''}
+                                                    onValueChange={(value) => {
+                                                        router.post(route('sales-invoices.update-status', invoice.id), { project_status: value });
+                                                    }}
+                                                >
+                                                    <SelectTrigger className="w-[170px] h-8 text-xs font-semibold capitalize border border-slate-200 bg-white">
+                                                        <SelectValue />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {PROJECT_STATUS_MAP[invoice.project_category]?.map((st) => (
+                                                            <SelectItem key={st.label} value={st.label}>
+                                                                <div className="flex flex-col text-left">
+                                                                    <span className="font-medium text-xs">{t(st.label)}</span>
+                                                                    <span className="text-[9px] text-muted-foreground">{t(st.desc)}</span>
+                                                                </div>
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            ) : (
+                                                <span className={getProjectStatusBadgeClasses(invoice.project_status || '')}>
+                                                    {t(invoice.project_status || 'N/A')}
+                                                </span>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
                                 <div className="text-right">
                                     <div className="text-2xl font-bold">{formatCurrency(invoice.total_amount)}</div>
                                     <div className="text-sm text-muted-foreground">{t('Total Amount')}</div>

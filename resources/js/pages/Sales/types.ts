@@ -13,6 +13,10 @@ export interface SalesInvoice {
     paid_amount: number;
     balance_amount: number;
     status: 'draft' | 'posted' | 'partial' | 'paid' | 'overdue';
+    payment_status?: string;
+    operational_status?: string;
+    project_category?: string;
+    project_status?: string;
     display_status: 'draft' | 'posted' | 'partial' | 'paid' | 'overdue';
     payment_terms?: string;
     notes?: string;
@@ -105,6 +109,10 @@ export interface SalesFilters {
     customer_id?: string;
     warehouse_id?: string;
     status?: string;
+    payment_status?: string;
+    operational_status?: string;
+    project_category?: string;
+    project_status?: string;
     search?: string;
     date_range?: string;
 }

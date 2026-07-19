@@ -17,7 +17,7 @@ import { Pagination } from "@/components/ui/pagination";
 import { SearchInput } from "@/components/ui/search-input";
 import { ListGridToggle } from '@/components/ui/list-grid-toggle';
 import { formatCurrency, formatDate } from '@/utils/helpers';
-import { getStatusBadgeClasses } from './utils';
+import { getStatusBadgeClasses, getPaymentStatusBadgeClasses, getOperationalStatusBadgeClasses, getProjectStatusBadgeClasses } from './utils';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
 import NoRecordsFound from '@/components/no-records-found';
 import { SalesInvoice, SalesFilters } from './types';
@@ -105,7 +105,7 @@ export default function Index() {
     };
 
     const clearFilters = () => {
-        setFilters({ search: '', customer_id: '', warehouse_id: '', status: '', date_range: '' });
+        setFilters({ search: '', customer_id: '', warehouse_id: '', status: '', payment_status: '', operational_status: '', project_category: '', project_status: '', date_range: '' });
         router.get(route('sales-invoices.index'), {per_page: perPage, view: viewMode});
     };
 
@@ -177,13 +177,39 @@ export default function Index() {
             render: (value: number) => formatCurrency(value)
         },
         {
-            key: 'status',
-            header: t('Status'),
+            key: 'payment_status',
+            header: t('Payment Status'),
             sortable: true,
-            render: (value: string) => (
-                <span className={getStatusBadgeClasses(value)}>
-                    {t(value.charAt(0).toUpperCase() + value.slice(1))}
+            render: (_: any, invoice: SalesInvoice) => (
+                <span className={getPaymentStatusBadgeClasses(invoice.payment_status || 'Unpaid')}>
+                    {t(invoice.payment_status || 'Unpaid')}
                 </span>
+            )
+        },
+        {
+            key: 'operational_status',
+            header: t('Operational Status'),
+            sortable: true,
+            render: (_: any, invoice: SalesInvoice) => (
+                <span className={getOperationalStatusBadgeClasses(invoice.operational_status || 'Pending')}>
+                    {t(invoice.operational_status || 'Pending')}
+                </span>
+            )
+        },
+        {
+            key: 'project_status',
+            header: t('Project Stage'),
+            render: (_: any, invoice: SalesInvoice) => (
+                invoice.project_category && invoice.project_category !== 'N/A' ? (
+                    <div className="flex flex-col gap-1 items-start">
+                        <span className="text-[10px] text-muted-foreground uppercase tracking-wide font-semibold">{t(invoice.project_category)}</span>
+                        <span className={getProjectStatusBadgeClasses(invoice.project_status || '')}>
+                            {t(invoice.project_status || 'N/A')}
+                        </span>
+                    </div>
+                ) : (
+                    <span className="text-xs text-muted-foreground">-</span>
+                )
             )
         },
         ...(auth.user?.permissions?.some((p: string) => ['view-sales-invoices', 'edit-sales-invoices', 'delete-sales-invoices', 'post-sales-invoices', 'print-sales-invoices'].includes(p)) ? [{
