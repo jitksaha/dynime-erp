@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Order;
 use Inertia\Inertia;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class OrderController extends Controller
@@ -39,5 +40,20 @@ class OrderController extends Controller
         else{
             return back()->with('error', __('Permission denied'));
         }
+    }
+
+    public function updateStatus(Request $request, Order $order)
+    {
+        if (Auth::user()->can('manage-orders')) {
+            $request->validate([
+                'payment_status' => 'required|in:pending,succeeded,failed'
+            ]);
+
+            $order->payment_status = $request->payment_status;
+            $order->save();
+
+            return redirect()->back()->with('success', __('Order status updated successfully.'));
+        }
+        return redirect()->back()->with('error', __('Permission denied'));
     }
 }

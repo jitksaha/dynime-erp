@@ -115,7 +115,8 @@ Route::middleware(['auth', 'verified', 'PlanModuleCheck'])->group(function () {
     // Redirect SaaS plan and order routes to dashboard to optimize load times
     Route::any('plans/{any?}', function() { return redirect()->route('dashboard'); })->where('any', '.*');
     Route::resource('coupons', CouponController::class);
-    Route::any('orders/{any?}', function() { return redirect()->route('dashboard'); })->where('any', '.*');
+    Route::get('orders', [OrderController::class, 'index'])->name('orders.index');
+    Route::post('orders/{order}/status', [OrderController::class, 'updateStatus'])->name('orders.update-status');
     Route::any('subscriptions/{any?}', function() { return redirect()->route('dashboard'); })->where('any', '.*');
 
     // Add-on management routes
@@ -147,8 +148,9 @@ Route::middleware(['auth', 'verified', 'PlanModuleCheck'])->group(function () {
     Route::post('email-notification-settings-save', [SettingController::class, 'mailNotificationStore'])->name('email.notification.setting.store');
     Route::post('settings/cpanel-email', [SettingController::class, 'updateCPanelEmailSettings'])->name('settings.cpanel-email.update');
 
-    // Redirect Bank Transfer Payment routes to dashboard
-    Route::any('bank-transfer/{any?}', function() { return redirect()->route('dashboard'); })->where('any', '.*');
+    // Bank Transfer Payment routes
+    Route::get('bank-transfer', [BankTransferPaymentController::class, 'index'])->name('bank-transfer.index');
+    Route::post('bank-transfer/{id}', [BankTransferPaymentController::class, 'update'])->name('bank-transfer.update');
 
     // Language management routes
     Route::get('/languages/manage', [TranslationController::class, 'manage'])->name('languages.manage');

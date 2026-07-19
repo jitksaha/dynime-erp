@@ -13,6 +13,7 @@ import { PerPageSelector } from '@/components/ui/per-page-selector';
 import { FilterButton } from '@/components/ui/filter-button';
 import { Eye, ShoppingCart } from 'lucide-react';
 import NoRecordsFound from '@/components/no-records-found';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface Order {
     id: number;
@@ -159,7 +160,31 @@ key: 'coupon_code',
             key: 'payment_status',
             header: t('Status'),
             sortable: true,
-            render: (_: any, order: Order) => getStatusBadge(order.payment_status)
+            render: (_: any, order: Order) => {
+                return pageProps.auth?.user?.type === 'superadmin' ? (
+                    <Select
+                        value={order.payment_status}
+                        onValueChange={(value) => {
+                            router.post(route('orders.update-status', order.id), { payment_status: value }, {
+                                onSuccess: () => {
+                                    // Status updated
+                                }
+                            });
+                        }}
+                    >
+                        <SelectTrigger className="w-[120px] h-8 text-xs font-semibold capitalize border border-slate-200 bg-white">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="pending">{t('Pending')}</SelectItem>
+                            <SelectItem value="succeeded">{t('Succeeded')}</SelectItem>
+                            <SelectItem value="failed">{t('Failed')}</SelectItem>
+                        </SelectContent>
+                    </Select>
+                ) : (
+                    getStatusBadge(order.payment_status)
+                );
+            }
         },
         {
             key: 'payment_type',
