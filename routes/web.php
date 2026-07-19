@@ -76,6 +76,7 @@ Route::middleware(['auth', 'verified', 'PlanModuleCheck'])->group(function () {
     // sales invoices
     Route::resource('sales-invoices', SalesInvoiceController::class);
     Route::post('sales-invoices/{salesInvoice}/post', [SalesInvoiceController::class, 'post'])->name('sales-invoices.post');
+    Route::post('sales-invoices/{salesInvoice}/status', [SalesInvoiceController::class, 'updateStatus'])->name('sales-invoices.update-status');
     Route::get('sales-invoices/{salesInvoice}/print', [SalesInvoiceController::class, 'print'])->name('sales-invoices.print');
     Route::get('sales-invoices/warehouse/products', [SalesInvoiceController::class, 'getWarehouseProducts'])->name('sales-invoices.warehouse.products');
     Route::get('sales-invoices/services/list', [SalesInvoiceController::class, 'getServices'])->name('sales-invoices.services');

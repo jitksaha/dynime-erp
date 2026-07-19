@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { FileText, Download, Share2 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { usePageButtons } from '@/hooks/usePageButtons';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface ViewProps {
     invoice: SalesInvoice;
@@ -53,9 +54,36 @@ export default function View() {
                                 <p className="text-lg text-muted-foreground">#{invoice.invoice_number}</p>
                             </div>
                             <div className="flex items-center gap-4">
-                                <span className={getStatusBadgeClasses(invoice.status)}>
-                                    {t(invoice.status.toUpperCase())}
-                                </span>
+                                {auth.user?.permissions?.includes('edit-sales-invoices') ? (
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-xs text-muted-foreground font-medium">{t('Status')}:</span>
+                                        <Select
+                                            value={invoice.status}
+                                            onValueChange={(value) => {
+                                                router.post(route('sales-invoices.update-status', invoice.id), { status: value }, {
+                                                    onSuccess: () => {
+                                                        // Page will reload with updated status
+                                                    }
+                                                });
+                                            }}
+                                        >
+                                            <SelectTrigger className="w-[120px] h-8 text-xs font-semibold capitalize border border-slate-200 bg-white">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="draft">{t('Draft')}</SelectItem>
+                                                <SelectItem value="posted">{t('Posted')}</SelectItem>
+                                                <SelectItem value="partial">{t('Partial')}</SelectItem>
+                                                <SelectItem value="paid">{t('Paid')}</SelectItem>
+                                                <SelectItem value="overdue">{t('Overdue')}</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                ) : (
+                                    <span className={getStatusBadgeClasses(invoice.status)}>
+                                        {t(invoice.status.toUpperCase())}
+                                    </span>
+                                )}
                                 <div className="text-right">
                                     <div className="text-2xl font-bold">{formatCurrency(invoice.total_amount)}</div>
                                     <div className="text-sm text-muted-foreground">{t('Total Amount')}</div>

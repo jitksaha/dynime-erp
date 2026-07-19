@@ -493,6 +493,28 @@ class SalesInvoiceController extends Controller
         }
     }
 
+    public function updateStatus(Request $request, SalesInvoice $salesInvoice)
+    {
+        if (Auth::user()->can('edit-sales-invoices') && $salesInvoice->created_by == creatorId()) {
+            $request->validate([
+                'status' => 'required|in:draft,posted,partial,paid,overdue'
+            ]);
+
+            $salesInvoice->status = $request->status;
+            if ($request->status === 'paid') {
+                $salesInvoice->paid_amount = $salesInvoice->total_amount;
+                $salesInvoice->balance_amount = 0;
+            } elseif ($request->status === 'draft' || $request->status === 'posted') {
+                $salesInvoice->paid_amount = 0;
+                $salesInvoice->balance_amount = $salesInvoice->total_amount;
+            }
+            $salesInvoice->save();
+
+            return redirect()->back()->with('success', __('Invoice status updated successfully.'));
+        }
+        return redirect()->back()->with('error', __('Permission denied'));
+    }
+
     public function publicView($invoiceNumber)
     {
         $salesInvoice = SalesInvoice::where('invoice_number', $invoiceNumber)->first();
