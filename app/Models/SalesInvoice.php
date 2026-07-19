@@ -12,6 +12,7 @@ class SalesInvoice extends Model
         'invoice_number',
         'invoice_date',
         'due_date',
+        'estimated_delivery_date',
         'customer_id',
         'warehouse_id',
         'subtotal',
@@ -24,6 +25,7 @@ class SalesInvoice extends Model
         'type',
         'payment_terms',
         'notes',
+        'service_brief',
         'creator_id',
         'created_by'
     ];
@@ -36,7 +38,8 @@ class SalesInvoice extends Model
         'discount_amount' => 'decimal:2',
         'total_amount' => 'decimal:2',
         'paid_amount' => 'decimal:2',
-        'balance_amount' => 'decimal:2'
+        'balance_amount' => 'decimal:2',
+        'service_brief' => 'array'
     ];
 
     protected $appends = ['display_status'];

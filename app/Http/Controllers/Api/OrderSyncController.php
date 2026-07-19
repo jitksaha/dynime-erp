@@ -36,6 +36,8 @@ class OrderSyncController extends Controller
             'tax_amount' => 'nullable|numeric|min:0',
             'total_amount' => 'nullable|numeric|min:0',
             'paid_amount' => 'nullable|numeric|min:0',
+            'estimated_delivery_date' => 'nullable|string|max:100',
+            'service_brief' => 'nullable|array',
             'items' => 'required|array|min:1',
             'items.*.name' => 'required|string',
             'items.*.sku' => 'required|string',
@@ -154,6 +156,7 @@ class OrderSyncController extends Controller
             }
             $invoice->invoice_date = now();
             $invoice->due_date = now()->addDays(7); // default 7 days due date
+            $invoice->estimated_delivery_date = $validated['estimated_delivery_date'] ?? null;
             $invoice->customer_id = $customer->id;
             $invoice->warehouse_id = null;
             $invoice->type = $validated['type'];
@@ -166,6 +169,7 @@ class OrderSyncController extends Controller
             $invoice->paid_amount = isset($validated['paid_amount']) ? $validated['paid_amount'] : ($status === 'paid' ? $invoice->total_amount : 0);
             $invoice->balance_amount = $invoice->total_amount - $invoice->paid_amount;
             $invoice->status = $status;
+            $invoice->service_brief = $validated['service_brief'] ?? null;
             $invoice->creator_id = $companyUserId;
             $invoice->created_by = $companyUserId;
             $invoice->save();
