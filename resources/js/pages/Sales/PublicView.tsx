@@ -300,20 +300,20 @@ export default function PublicView({ invoice, companySettings }: PublicViewProps
                     {/* ============================================================== */}
                     {/* PAGE 1 CONTENT */}
                     {/* ============================================================== */}
-                    <div className="p-8 sm:p-12 pb-4 print:p-0 print:pb-0">
+                    <div className="p-6 sm:p-10 pb-4 print:p-0 print:pb-0">
                         {/* Golden/Orange Accent top bar */}
                         <div className="absolute top-0 left-0 right-0 h-[6px] bg-[#E59700]" />
 
                         {/* Logo & Invoice Title Header */}
-                        <div className="flex flex-col sm:flex-row justify-between items-start gap-6 mb-8 mt-4">
+                        <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-6 mt-2">
                             <div>
-                                <h1 className="text-[44px] font-extrabold tracking-tight text-slate-900 leading-none mb-4">Invoice</h1>
+                                <h1 className="text-[38px] font-extrabold tracking-tight text-slate-900 leading-none mb-3">Invoice</h1>
                                 <div className="flex items-center gap-4">
                                     <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${getStatusBadgeStyles(invoice.status)}`}>
                                         {getStatusIcon(invoice.status)}
                                         {getStatusText(invoice.status)}
                                     </span>
-                                    <span className="text-slate-500 text-[14px]">Due {dateDue}</span>
+                                    <span className="text-slate-500 text-[13px]">Due {dateDue}</span>
                                 </div>
                             </div>
                             <div className="sm:text-right">
@@ -322,47 +322,47 @@ export default function PublicView({ invoice, companySettings }: PublicViewProps
                                         <img 
                                             src={logoUrl} 
                                             alt={companyName} 
-                                            className="h-[28px] object-contain mb-2 sm:ml-auto" 
+                                            className="h-[26px] object-contain mb-1.5 sm:ml-auto" 
                                         />
-                                        <p className="text-slate-500 text-[12px]">{companyDomain}</p>
+                                        <p className="text-slate-500 text-[11px]">{companyDomain}</p>
                                     </>
                                 ) : (
                                     <>
-                                        <p className="font-bold text-slate-800 text-[14px] leading-tight mb-1">{companyName}</p>
-                                        <p className="text-slate-500 text-[12px]">{companyDomain}</p>
+                                        <p className="font-bold text-slate-800 text-[13px] leading-tight mb-0.5">{companyName}</p>
+                                        <p className="text-slate-500 text-[11px]">{companyDomain}</p>
                                     </>
                                 )}
                             </div>
                         </div>
 
                         {/* Meta Fields Grid */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-x-12 gap-y-4 border-t border-b border-slate-100 py-6 mb-8">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 print:grid-cols-3 gap-x-6 md:gap-x-12 gap-y-3 border-t border-b border-slate-100 py-4 mb-6">
                             {/* Col 1 */}
-                            <div className="space-y-3.5">
-                                <div className="flex justify-between items-center text-[13px]">
+                            <div className="space-y-2.5">
+                                <div className="flex justify-between items-center text-[12.5px]">
                                     <span className="text-slate-400">Invoice number</span>
                                     <span className="font-bold text-slate-900">{invoice.invoice_number}</span>
                                 </div>
-                                <div className="flex justify-between items-center text-[13px]">
+                                <div className="flex justify-between items-center text-[12.5px]">
                                     <span className="text-slate-400">Date of issue</span>
                                     <span className="font-bold text-slate-900">{dateOfIssue}</span>
                                 </div>
-                                <div className="flex justify-between items-center text-[13px]">
+                                <div className="flex justify-between items-center text-[12.5px]">
                                     <span className="text-slate-400">Payment method</span>
                                     <span className="font-bold text-slate-900">{invoice.service_brief?.payment_method || 'Bank Transfer'}</span>
                                 </div>
                             </div>
                             {/* Col 2 */}
-                            <div className="space-y-3.5">
-                                <div className="flex justify-between items-center text-[13px]">
+                            <div className="space-y-2.5">
+                                <div className="flex justify-between items-center text-[12.5px]">
                                     <span className="text-slate-400">Currency</span>
                                     <span className="font-bold text-slate-900">{invoice.service_brief?.currency || 'USD'}</span>
                                 </div>
-                                <div className="flex justify-between items-center text-[13px]">
+                                <div className="flex justify-between items-center text-[12.5px]">
                                     <span className="text-slate-400">Date due</span>
                                     <span className="font-bold text-slate-900">{dateDue}</span>
                                 </div>
-                                <div className="flex justify-between items-center text-[13px]">
+                                <div className="flex justify-between items-center text-[12.5px]">
                                     <span className="text-slate-400">Est. Delivery Date</span>
                                     <span className="font-bold text-[#4F46E5] flex items-center gap-1.5">
                                         {(invoice.type === 'service' || !invoice.warehouse_id) ? <CalendarCheck className="h-4 w-4" /> : <Truck className="h-4 w-4" />}
@@ -371,28 +371,28 @@ export default function PublicView({ invoice, companySettings }: PublicViewProps
                                 </div>
                             </div>
                             {/* Col 3 */}
-                            <div className="space-y-3.5">
-                                <div className="flex justify-between items-center text-[13px]">
+                            <div className="space-y-2.5">
+                                <div className="flex justify-between items-center text-[12.5px]">
                                     <span className="text-slate-400">Payment status</span>
                                     <span className={getPaymentStatusBadgeClasses(invoice.payment_status || 'Unpaid')}>
                                         {invoice.payment_status || 'Unpaid'}
                                     </span>
                                 </div>
-                                <div className="flex justify-between items-center text-[13px]">
+                                <div className="flex justify-between items-center text-[12.5px]">
                                     <span className="text-slate-400">Operational status</span>
                                     <span className={getOperationalStatusBadgeClasses(invoice.operational_status || 'Pending')}>
                                         {invoice.operational_status || 'Pending'}
                                     </span>
                                 </div>
                                 {invoice.project_category && invoice.project_category !== 'N/A' && (
-                                    <div className="flex justify-between items-start text-[13px] gap-2">
-                                        <span className="text-slate-400 mt-1">Project status</span>
+                                    <div className="flex justify-between items-start text-[12.5px] gap-2">
+                                        <span className="text-slate-400 mt-0.5">Project status</span>
                                         <div className="flex flex-col items-end text-right">
                                             <span className={getProjectStatusBadgeClasses(invoice.project_status || '')}>
                                                 {invoice.project_status || 'N/A'}
                                             </span>
                                             {invoice.project_status && PROJECT_STATUS_MAP[invoice.project_category]?.find(x => x.label === invoice.project_status)?.desc && (
-                                                <span className="text-[10px] text-slate-400 mt-1 max-w-[150px] leading-tight">
+                                                <span className="text-[10px] text-slate-400 mt-0.5 max-w-[150px] leading-tight">
                                                     {PROJECT_STATUS_MAP[invoice.project_category].find(x => x.label === invoice.project_status)?.desc}
                                                 </span>
                                             )}
@@ -403,15 +403,15 @@ export default function PublicView({ invoice, companySettings }: PublicViewProps
                         </div>
 
                         {/* From & Billed To Addresses */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-10 mb-8 print-avoid-break">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 print:grid-cols-2 gap-8 mb-6 print-avoid-break">
                             {/* FROM */}
                             <div>
-                                <div className="text-[12px] font-extrabold uppercase tracking-wider text-slate-400 mb-3.5 flex items-center gap-1.5">
+                                <div className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 mb-2.5 flex items-center gap-1.5">
                                     <Building2 className="h-3.5 w-3.5" />
                                     FROM
                                 </div>
-                                <div className="space-y-2 text-[13px] text-slate-600">
-                                    <p className="font-bold text-slate-900 text-[14px]">{companyName}</p>
+                                <div className="space-y-1.5 text-[12.5px] text-slate-600">
+                                    <p className="font-bold text-slate-900 text-[13.5px]">{companyName}</p>
                                     <p className="flex items-center gap-2"><Mail className="h-3.5 w-3.5 text-slate-400" /> {companyEmail}</p>
                                     <p className="flex items-center gap-2"><Phone className="h-3.5 w-3.5 text-slate-400" /> {companyPhone}</p>
                                     <p className="flex items-start gap-2">
@@ -422,12 +422,12 @@ export default function PublicView({ invoice, companySettings }: PublicViewProps
                             </div>
                             {/* BILLED TO */}
                             <div>
-                                <div className="text-[12px] font-extrabold uppercase tracking-wider text-slate-400 mb-3.5 flex items-center gap-1.5">
+                                <div className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 mb-2.5 flex items-center gap-1.5">
                                     <Building2 className="h-3.5 w-3.5" />
                                     BILLED TO
                                 </div>
-                                <div className="space-y-2 text-[13px] text-slate-600">
-                                    <p className="font-bold text-slate-900 text-[14px] flex items-center gap-2">
+                                <div className="space-y-1.5 text-[12.5px] text-slate-600">
+                                    <p className="font-bold text-slate-900 text-[13.5px] flex items-center gap-2">
                                         <User className="h-3.5 w-3.5 text-slate-400" />
                                         {invoice.customer?.name}
                                     </p>
@@ -437,53 +437,55 @@ export default function PublicView({ invoice, companySettings }: PublicViewProps
                             </div>
                         </div>
 
-                        {/* Amount Due banner block */}
-                        <div className="mb-8">
-                            <div className="border-t border-slate-100 pt-6 pb-2">
-                                <span className="text-[12px] font-bold text-slate-400 uppercase tracking-wider block mb-1">AMOUNT DUE</span>
+                        {/* Amount Due & Delivery Date Block */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 print:grid-cols-2 gap-6 border-t border-slate-100 pt-4 pb-4 mb-6">
+                            {/* Amount Due */}
+                            <div className="flex flex-col justify-center">
+                                <span className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider block mb-1">AMOUNT DUE</span>
                                 <div className="flex items-baseline gap-2">
-                                    <span className="text-[36px] font-extrabold text-slate-900 tracking-tight leading-none">
+                                    <span className="text-[30px] font-black text-slate-900 tracking-tight leading-none">
                                         {formatCurrency(invoice.total_amount)}
                                     </span>
-                                    <span className="text-[14px] text-slate-400">due {dateDue}</span>
+                                    <span className="text-[13px] text-slate-400">due {dateDue}</span>
                                 </div>
                             </div>
 
-                            <div className="bg-[#EEF2F6]/60 border border-slate-100 rounded-2xl p-4 flex items-center gap-3.5 print-avoid-break">
-                                <div className="bg-white p-2.5 rounded-full shadow-sm text-[#4F46E5]">
-                                    {(invoice.type === 'service' || !invoice.warehouse_id) ? <CalendarCheck className="h-5 w-5" /> : <Truck className="h-5 w-5" />}
+                            {/* Estimated Delivery Date */}
+                            <div className="bg-[#EEF2F6]/60 border border-slate-100 rounded-xl p-3 flex items-center gap-3 print-avoid-break">
+                                <div className="bg-white p-2 rounded-full shadow-sm text-[#4F46E5] shrink-0">
+                                    {(invoice.type === 'service' || !invoice.warehouse_id) ? <CalendarCheck className="h-4.5 w-4.5" /> : <Truck className="h-4.5 w-4.5" />}
                                 </div>
                                 <div>
-                                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">ESTIMATED DELIVERY DATE</span>
-                                    <span className="text-[14px] font-bold text-[#4F46E5]">{estDeliveryDate}</span>
+                                    <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">ESTIMATED DELIVERY DATE</span>
+                                    <span className="text-[13px] font-bold text-[#4F46E5]">{estDeliveryDate}</span>
                                 </div>
                             </div>
                         </div>
 
                         <div className="print-avoid-break">
                             {/* Items Table */}
-                            <div className="mb-10 overflow-hidden">
+                            <div className="mb-6 overflow-hidden">
                                 <table className="w-full text-slate-700 border-collapse">
                                     <thead>
-                                        <tr className="border-t-[1.5px] border-b-[1.5px] border-slate-900 text-[12px] font-bold uppercase text-slate-800">
-                                            <th className="py-3.5 text-left font-bold w-3/5">DESCRIPTION</th>
-                                            <th className="py-3.5 text-center font-bold">QTY</th>
-                                            <th className="py-3.5 text-right font-bold">UNIT PRICE</th>
-                                            <th className="py-3.5 text-right font-bold">AMOUNT</th>
+                                        <tr className="border-t-[1.5px] border-b-[1.5px] border-slate-900 text-[11px] font-bold uppercase text-slate-800">
+                                            <th className="py-2.5 text-left font-bold w-3/5">DESCRIPTION</th>
+                                            <th className="py-2.5 text-center font-bold">QTY</th>
+                                            <th className="py-2.5 text-right font-bold">UNIT PRICE</th>
+                                            <th className="py-2.5 text-right font-bold">AMOUNT</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {invoice.items?.map((item, index) => (
-                                            <tr key={index} className="border-b border-slate-100 text-[13.5px]">
-                                                <td className="py-5 pr-4 text-slate-900">
+                                            <tr key={index} className="border-b border-slate-100 text-[13px]">
+                                                <td className="py-3 pr-4 text-slate-900">
                                                     <div className="font-semibold leading-tight">{item.product?.name}</div>
                                                     {item.product?.sku && (
-                                                        <div className="text-[11px] text-slate-400 mt-1 uppercase tracking-wide">SKU: {item.product.sku}</div>
+                                                        <div className="text-[10px] text-slate-400 mt-1 uppercase tracking-wide">SKU: {item.product.sku}</div>
                                                     )}
                                                 </td>
-                                                <td className="py-5 text-center text-slate-700">{item.quantity}</td>
-                                                <td className="py-5 text-right text-slate-600">{formatCurrency(item.unit_price)}</td>
-                                                <td className="py-5 text-right font-bold text-slate-950">{formatCurrency(item.total_amount)}</td>
+                                                <td className="py-3 text-center text-slate-700">{item.quantity}</td>
+                                                <td className="py-3 text-right text-slate-600">{formatCurrency(item.unit_price)}</td>
+                                                <td className="py-3 text-right font-bold text-slate-950">{formatCurrency(item.total_amount)}</td>
                                             </tr>
                                         ))}
                                     </tbody>
@@ -491,9 +493,9 @@ export default function PublicView({ invoice, companySettings }: PublicViewProps
                             </div>
 
                             {/* Table Totals aligned right */}
-                            <div className="flex justify-end mb-8">
-                                <div className="w-[320px] space-y-3.5 text-[13.5px]">
-                                    <div className="flex justify-between border-t border-slate-100 pt-3.5 text-slate-600">
+                            <div className="flex justify-end mb-6">
+                                <div className="w-[320px] space-y-2.5 text-[13px]">
+                                    <div className="flex justify-between border-t border-slate-100 pt-2.5 text-slate-600">
                                         <span>Subtotal</span>
                                         <span className="font-medium text-slate-900">{formatCurrency(invoice.subtotal)}</span>
                                     </div>
@@ -511,7 +513,7 @@ export default function PublicView({ invoice, companySettings }: PublicViewProps
                                         <span>Tax</span>
                                         <span className="font-medium text-slate-900">{formatCurrency(invoice.tax_amount)}</span>
                                     </div>
-                                    <div className="flex justify-between border-t-[1.5px] border-slate-900 pt-3.5 text-[15.5px] font-black text-black">
+                                    <div className="flex justify-between border-t-[1.5px] border-slate-900 pt-2.5 text-[14.5px] font-black text-black">
                                         <span>Total</span>
                                         <span>{formatCurrency(invoice.total_amount)}</span>
                                     </div>
@@ -522,7 +524,7 @@ export default function PublicView({ invoice, companySettings }: PublicViewProps
                             {/* ============================================================== */}
                     {/* LIVE CURRENCY CONVERTER (Screen Only) */}
                     {/* ============================================================== */}
-                    <div className="px-8 sm:px-12 py-3 bg-[#FAFBFD] border-t border-b border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 print:hidden text-xs text-slate-500 font-medium">
+                    <div className="px-6 sm:px-10 py-2.5 bg-[#FAFBFD] border-t border-b border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 print:hidden text-xs text-slate-500 font-medium">
                         <div className="flex items-center gap-1.5">
                             <ArrowLeftRight className="w-3.5 h-3.5 text-indigo-500" />
                             <span>Currency Converter:</span>
@@ -580,7 +582,7 @@ export default function PublicView({ invoice, companySettings }: PublicViewProps
                                 <option value="RUB">RUB — Russian Ruble</option>
                                 <option value="UAH">UAH — Ukrainian Hryvnia</option>
                                 <option value="ILS">ILS — Israeli New Shekel</option>
-                            </select>
+                             </select>
                             </div>
                             {isFetchingRates && <RefreshCw className="w-3.5 h-3.5 animate-spin text-slate-400 ml-1" />}
                         </div>
@@ -589,22 +591,22 @@ export default function PublicView({ invoice, companySettings }: PublicViewProps
                     {/* ============================================================== */}
                     {/* PAGE 2 CONTENT (Prints on page 2 via page-break styling) */}
                     {/* ============================================================== */}
-                    <div className="p-8 sm:p-12 pt-10 print:p-0 print:pt-10 print-page-break print-page-break-container border-t border-slate-50 print:border-none">
+                    <div className="p-6 sm:p-10 pt-8 print:p-0 print:pt-8 print-page-break print-page-break-container border-t border-slate-50 print:border-none">
                         
                         {includedServices.length > 0 && (
                             <>
                                 {/* Inclusion title */}
-                                <div className="mb-8">
-                                    <h2 className="text-[12px] font-extrabold uppercase tracking-widest text-slate-400 flex items-center gap-2">
+                                <div className="mb-4">
+                                    <h2 className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400 flex items-center gap-2">
                                         <CheckCircle2 className="h-4 w-4 text-slate-400" />
                                         WHAT'S INCLUDED
                                     </h2>
                                 </div>
 
                                 {/* 2-Column inclusions grid */}
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4 mb-10 pb-10 border-b border-slate-100">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 print:grid-cols-2 gap-x-12 gap-y-3 mb-6 pb-6 border-b border-slate-100">
                                     {includedServices.map((service: string, index: number) => (
-                                        <div key={index} className="flex items-start gap-3 text-[13px] text-slate-700 leading-tight">
+                                        <div key={index} className="flex items-start gap-3 text-[12.5px] text-slate-700 leading-tight">
                                             <div className="bg-[#ECFDF5] border border-emerald-100 p-0.5 rounded-full mt-0.5 text-emerald-600">
                                                 <Check className="h-3 w-3 stroke-[3]" />
                                             </div>
@@ -617,41 +619,41 @@ export default function PublicView({ invoice, companySettings }: PublicViewProps
 
                         <div className="print-avoid-break">
                             {/* Project Brief Columns */}
-                            <div className="mb-12">
-                                <h3 className="text-[12px] font-extrabold uppercase tracking-widest text-slate-400 mb-6 flex items-center gap-2">
+                            <div className="mb-8">
+                                <h3 className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400 mb-4 flex items-center gap-2">
                                     <Briefcase className="h-4 w-4 text-slate-400" />
                                     PROJECT BRIEF
                                 </h3>
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                                    <div className="space-y-1">
-                                        <span className="text-[12px] text-slate-400 uppercase font-semibold">Due Date</span>
-                                        <p className="text-[14px] font-bold text-slate-800">{invoice.due_date ? formatMockDate(invoice.due_date) : 'July 1, 2026'}</p>
+                                <div className="grid grid-cols-1 sm:grid-cols-3 print:grid-cols-3 gap-6">
+                                    <div className="space-y-0.5">
+                                        <span className="text-[11px] text-slate-400 uppercase font-semibold">Due Date</span>
+                                        <p className="text-[13.5px] font-bold text-slate-800">{invoice.due_date ? formatMockDate(invoice.due_date) : 'July 1, 2026'}</p>
                                     </div>
-                                    <div className="space-y-1">
-                                        <span className="text-[12px] text-slate-400 uppercase font-semibold">Amount Due</span>
-                                        <p className="text-[14px] font-bold text-slate-800">{formatCurrency(invoice.total_amount)}</p>
+                                    <div className="space-y-0.5">
+                                        <span className="text-[11px] text-slate-400 uppercase font-semibold">Amount Due</span>
+                                        <p className="text-[13.5px] font-bold text-slate-800">{formatCurrency(invoice.total_amount)}</p>
                                     </div>
-                                    <div className="space-y-1">
-                                        <span className="text-[12px] text-slate-400 uppercase font-semibold">Estimated Delivery Date</span>
-                                        <p className="text-[14px] font-bold text-slate-800">{estDeliveryDate}</p>
+                                    <div className="space-y-0.5">
+                                        <span className="text-[11px] text-slate-400 uppercase font-semibold">Estimated Delivery Date</span>
+                                        <p className="text-[13.5px] font-bold text-slate-800">{estDeliveryDate}</p>
                                     </div>
                                 </div>
                             </div>
 
                             {/* Page 2 Footer / Signature */}
-                            <div className="border-t border-slate-100 pt-8 text-center space-y-5">
-                                <div className="flex items-center justify-center text-[14px] font-bold text-slate-800">
+                            <div className="border-t border-slate-100 pt-6 text-center space-y-3.5">
+                                <div className="flex items-center justify-center text-[13px] font-bold text-slate-800">
                                     {logoUrl ? (
-                                        <img src={logoUrl} alt={companyName} className="h-6 object-contain" />
+                                        <img src={logoUrl} alt={companyName} className="h-5.5 object-contain" />
                                     ) : (
                                         <span>{companyName}</span>
                                     )}
                                 </div>
-                                <p className="text-[13px] text-slate-600 font-medium">Thank you for choosing <span className="font-bold">Dynime</span>.</p>
-                                <p className="text-[12px] text-slate-400">
+                                <p className="text-[12.5px] text-slate-600 font-medium">Thank you for choosing <span className="font-bold">Dynime</span>.</p>
+                                <p className="text-[11.5px] text-slate-400">
                                     Questions? Email <span className="text-slate-600 font-medium">{companyEmail}</span> · Reference #{invoice.invoice_number}
                                 </p>
-                                <p className="text-[11px] text-slate-300 font-semibold">{companyDomain}</p>
+                                <p className="text-[10px] text-slate-300 font-semibold">{companyDomain}</p>
                             </div>
                         </div>
 
@@ -668,20 +670,27 @@ export default function PublicView({ invoice, companySettings }: PublicViewProps
 
             </div>
             
-            {/* Custom print styling to inject clean page break */}
+            {/* Custom print styling to inject clean page break and custom page setup */}
             <style dangerouslySetInnerHTML={{__html: `
                 @media print {
+                    @page {
+                        size: auto;
+                        margin: 1.2cm 1.5cm 1.2cm 1.5cm;
+                    }
+                    body {
+                        background-color: white !important;
+                        margin: 0 !important;
+                        padding: 0 !important;
+                    }
                     .print-page-break-container {
                         page-break-before: always !important;
                         break-before: page !important;
-                        margin-top: 2rem !important;
+                        margin-top: 1.5rem !important;
+                        padding-top: 1.5rem !important;
                     }
                     .print-avoid-break {
                         page-break-inside: avoid !important;
                         break-inside: avoid !important;
-                    }
-                    body {
-                        background-color: white !important;
                     }
                 }
             `}} />
