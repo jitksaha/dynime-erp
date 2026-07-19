@@ -27,8 +27,15 @@ class OrderSyncController extends Controller
             'customer_name' => 'required|string|max:255',
             'customer_email' => 'required|email|max:255',
             'order_id' => 'required|string|max:100', // Unique order reference from customer site
+            'invoice_number' => 'nullable|string|max:100',
+            'status' => 'nullable|string|max:50',
             'type' => 'required|in:product,service',
             'notes' => 'nullable|string',
+            'subtotal' => 'nullable|numeric|min:0',
+            'discount_amount' => 'nullable|numeric|min:0',
+            'tax_amount' => 'nullable|numeric|min:0',
+            'total_amount' => 'nullable|numeric|min:0',
+            'paid_amount' => 'nullable|numeric|min:0',
             'items' => 'required|array|min:1',
             'items.*.name' => 'required|string',
             'items.*.sku' => 'required|string',
@@ -83,10 +90,26 @@ class OrderSyncController extends Controller
                 ];
             }
 
-            $totalAmount = $subtotal + $totalTax - $totalDiscount;
+            $calculatedTotal = $subtotal + $totalTax - $totalDiscount;
+
+            // Determine status
+            $status = 'posted';
+            if (isset($validated['status'])) {
+                $statusLower = strtolower($validated['status']);
+                if ($statusLower === 'completed' || $statusLower === 'paid') {
+                    $status = 'paid';
+                } elseif ($statusLower === 'cancelled') {
+                    $status = 'cancelled';
+                } elseif ($statusLower === 'partial') {
+                    $status = 'partial';
+                }
+            }
 
             // Create SalesInvoice
             $invoice = new SalesInvoice();
+            if (!empty($validated['invoice_number'])) {
+                $invoice->invoice_number = $validated['invoice_number'];
+            }
             $invoice->invoice_date = now();
             $invoice->due_date = now()->addDays(7); // default 7 days due date
             $invoice->customer_id = $customer->id;
@@ -94,13 +117,13 @@ class OrderSyncController extends Controller
             $invoice->type = $validated['type'];
             $invoice->payment_terms = 'Due on Receipt';
             $invoice->notes = $validated['notes'] ?? ('Synced from Main Customer Site: ' . $validated['order_id']);
-            $invoice->subtotal = $subtotal;
-            $invoice->tax_amount = $totalTax;
-            $invoice->discount_amount = $totalDiscount;
-            $invoice->total_amount = $totalAmount;
-            $invoice->paid_amount = 0;
-            $invoice->balance_amount = $totalAmount;
-            $invoice->status = 'posted'; // Directly post it since it's processed from live site
+            $invoice->subtotal = isset($validated['subtotal']) ? $validated['subtotal'] : $subtotal;
+            $invoice->tax_amount = isset($validated['tax_amount']) ? $validated['tax_amount'] : $totalTax;
+            $invoice->discount_amount = isset($validated['discount_amount']) ? $validated['discount_amount'] : $totalDiscount;
+            $invoice->total_amount = isset($validated['total_amount']) ? $validated['total_amount'] : $calculatedTotal;
+            $invoice->paid_amount = isset($validated['paid_amount']) ? $validated['paid_amount'] : ($status === 'paid' ? $invoice->total_amount : 0);
+            $invoice->balance_amount = $invoice->total_amount - $invoice->paid_amount;
+            $invoice->status = $status;
             $invoice->creator_id = 1; // Super Admin ID
             $invoice->created_by = 1; // Super Admin ID
             $invoice->save();
