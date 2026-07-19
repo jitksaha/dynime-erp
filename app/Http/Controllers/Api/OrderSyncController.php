@@ -58,6 +58,11 @@ class OrderSyncController extends Controller
                 $customer->type = 'client';
                 $customer->created_by = 1; // Default creator (super admin or company creator)
                 $customer->save();
+            } else {
+                if ($customer->name !== $validated['customer_name']) {
+                    $customer->name = $validated['customer_name'];
+                    $customer->save();
+                }
             }
 
             // Calculate totals
@@ -70,7 +75,23 @@ class OrderSyncController extends Controller
             foreach ($validated['items'] as $item) {
                 // Find matching product/service in ERP by SKU
                 $product = ProductServiceItem::where('sku', $item['sku'])->first();
-                $productId = $product ? $product->id : 1; // Fallback or throw error
+                if (!$product) {
+                    $product = new ProductServiceItem();
+                    $product->name = $item['name'];
+                    $product->sku = $item['sku'];
+                    $product->tax_ids = [];
+                    $product->category_id = 1; // Default category
+                    $product->description = null;
+                    $product->sale_price = $item['unit_price'];
+                    $product->purchase_price = 0;
+                    $product->unit = 1; // Default unit
+                    $product->type = 'service';
+                    $product->is_active = true;
+                    $product->creator_id = 1; // Super Admin ID
+                    $product->created_by = 1; // Super Admin ID
+                    $product->save();
+                }
+                $productId = $product->id;
 
                 $lineTotal = $item['quantity'] * $item['unit_price'];
                 $discountAmount = ($lineTotal * ($item['discount_percentage'] ?? 0)) / 100;
@@ -105,10 +126,19 @@ class OrderSyncController extends Controller
                 }
             }
 
-            // Create SalesInvoice
-            $invoice = new SalesInvoice();
+            // Create or update SalesInvoice
+            $invoice = null;
             if (!empty($validated['invoice_number'])) {
-                $invoice->invoice_number = $validated['invoice_number'];
+                $invoice = SalesInvoice::where('invoice_number', $validated['invoice_number'])->first();
+            }
+            if (!$invoice) {
+                $invoice = new SalesInvoice();
+                if (!empty($validated['invoice_number'])) {
+                    $invoice->invoice_number = $validated['invoice_number'];
+                }
+            } else {
+                // Delete old items to recreate
+                SalesInvoiceItem::where('invoice_id', $invoice->id)->delete();
             }
             $invoice->invoice_date = now();
             $invoice->due_date = now()->addDays(7); // default 7 days due date
