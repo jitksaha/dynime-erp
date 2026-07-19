@@ -336,7 +336,7 @@ export default function PublicView({ invoice, companySettings }: PublicViewProps
                         </div>
 
                         {/* Meta Fields Grid */}
-                        <div className="meta-fields-grid-print grid grid-cols-1 sm:grid-cols-3 print:grid-cols-3 gap-x-6 md:gap-x-12 gap-y-3 border-t border-b border-slate-100 py-4 mb-6">
+                        <div className="meta-fields-grid-print grid grid-cols-1 sm:grid-cols-2 print:grid-cols-2 gap-x-6 md:gap-x-12 gap-y-3 border-t border-b border-slate-100 py-4 mb-6">
                             {/* Col 1 */}
                             <div className="space-y-2.5">
                                 <div className="flex justify-between items-center text-[12.5px]">
@@ -365,41 +365,51 @@ export default function PublicView({ invoice, companySettings }: PublicViewProps
                                 <div className="flex justify-between items-center text-[12.5px]">
                                     <span className="text-slate-400">Est. Delivery Date</span>
                                     <span className="font-bold text-[#4F46E5] flex items-center gap-1.5">
-                                        {(invoice.type === 'service' || !invoice.warehouse_id) ? <CalendarCheck className="h-4 w-4" /> : <Truck className="h-4 w-4" />}
+                                        {(invoice.type === 'service' || !invoice.warehouse_id) ? <CalendarCheck className="h-4 w-4 shrink-0" /> : <Truck className="h-4 w-4 shrink-0" />}
                                         {estDeliveryDate}
                                     </span>
                                 </div>
                             </div>
-                            {/* Col 3 */}
-                            <div className="space-y-2.5">
-                                <div className="flex justify-between items-center text-[12.5px]">
-                                    <span className="text-slate-400">Payment status</span>
+                        </div>
+
+                        {/* Statuses Horizontal Banner */}
+                        <div className={`status-banner-grid-print grid grid-cols-1 ${invoice.project_category && invoice.project_category !== 'N/A' ? 'sm:grid-cols-3 print:grid-cols-3' : 'sm:grid-cols-2 print:grid-cols-2'} gap-6 bg-slate-50/50 border border-slate-100 rounded-xl p-4 mb-6`}>
+                            {/* Payment Status */}
+                            <div className="space-y-1">
+                                <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">Payment status</span>
+                                <div className="flex items-center">
                                     <span className={getPaymentStatusBadgeClasses(invoice.payment_status || 'Unpaid')}>
                                         {invoice.payment_status || 'Unpaid'}
                                     </span>
                                 </div>
-                                <div className="flex justify-between items-center text-[12.5px]">
-                                    <span className="text-slate-400">Operational status</span>
+                            </div>
+
+                            {/* Operational Status */}
+                            <div className="space-y-1">
+                                <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">Operational status</span>
+                                <div className="flex items-center">
                                     <span className={getOperationalStatusBadgeClasses(invoice.operational_status || 'Pending')}>
                                         {invoice.operational_status || 'Pending'}
                                     </span>
                                 </div>
-                                {invoice.project_category && invoice.project_category !== 'N/A' && (
-                                    <div className="flex justify-between items-start text-[12.5px] gap-2">
-                                        <span className="text-slate-400 mt-0.5">Project status</span>
-                                        <div className="flex flex-col items-end text-right">
-                                            <span className={getProjectStatusBadgeClasses(invoice.project_status || '')}>
-                                                {invoice.project_status || 'N/A'}
-                                            </span>
-                                            {invoice.project_status && PROJECT_STATUS_MAP[invoice.project_category]?.find(x => x.label === invoice.project_status)?.desc && (
-                                                <span className="text-[10px] text-slate-400 mt-0.5 max-w-[150px] leading-tight">
-                                                    {PROJECT_STATUS_MAP[invoice.project_category].find(x => x.label === invoice.project_status)?.desc}
-                                                </span>
-                                            )}
-                                        </div>
-                                    </div>
-                                )}
                             </div>
+
+                            {/* Project Status */}
+                            {invoice.project_category && invoice.project_category !== 'N/A' && (
+                                <div className="space-y-1">
+                                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">Project status</span>
+                                    <div className="flex flex-col items-start">
+                                        <span className={getProjectStatusBadgeClasses(invoice.project_status || '')}>
+                                            {invoice.project_status || 'N/A'}
+                                        </span>
+                                        {invoice.project_status && PROJECT_STATUS_MAP[invoice.project_category]?.find(x => x.label === invoice.project_status)?.desc && (
+                                            <span className="text-[11px] text-slate-500 mt-1 max-w-[280px] leading-tight block">
+                                                {PROJECT_STATUS_MAP[invoice.project_category].find(x => x.label === invoice.project_status)?.desc}
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         {/* From & Billed To Addresses */}
@@ -407,15 +417,15 @@ export default function PublicView({ invoice, companySettings }: PublicViewProps
                             {/* FROM */}
                             <div>
                                 <div className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 mb-2.5 flex items-center gap-1.5">
-                                    <Building2 className="h-3.5 w-3.5" />
+                                    <Building2 className="h-3.5 w-3.5 shrink-0" />
                                     FROM
                                 </div>
                                 <div className="space-y-1.5 text-[12.5px] text-slate-600">
                                     <p className="font-bold text-slate-900 text-[13.5px]">{companyName}</p>
-                                    <p className="flex items-center gap-2"><Mail className="h-3.5 w-3.5 text-slate-400" /> {companyEmail}</p>
-                                    <p className="flex items-center gap-2"><Phone className="h-3.5 w-3.5 text-slate-400" /> {companyPhone}</p>
+                                    <p className="flex items-center gap-2"><Mail className="h-3.5 w-3.5 text-slate-400 shrink-0" /> {companyEmail}</p>
+                                    <p className="flex items-center gap-2"><Phone className="h-3.5 w-3.5 text-slate-400 shrink-0" /> {companyPhone}</p>
                                     <p className="flex items-start gap-2">
-                                        <MapPin className="h-3.5 w-3.5 text-slate-400 mt-0.5" /> 
+                                        <MapPin className="h-3.5 w-3.5 text-slate-400 mt-0.5 shrink-0" /> 
                                         <span className="leading-tight">{companyAddress}</span>
                                     </p>
                                 </div>
@@ -423,16 +433,16 @@ export default function PublicView({ invoice, companySettings }: PublicViewProps
                             {/* BILLED TO */}
                             <div>
                                 <div className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 mb-2.5 flex items-center gap-1.5">
-                                    <Building2 className="h-3.5 w-3.5" />
+                                    <Building2 className="h-3.5 w-3.5 shrink-0" />
                                     BILLED TO
                                 </div>
                                 <div className="space-y-1.5 text-[12.5px] text-slate-600">
                                     <p className="font-bold text-slate-900 text-[13.5px] flex items-center gap-2">
-                                        <User className="h-3.5 w-3.5 text-slate-400" />
+                                        <User className="h-3.5 w-3.5 text-slate-400 shrink-0" />
                                         {invoice.customer?.name}
                                     </p>
-                                    <p className="flex items-center gap-2"><Mail className="h-3.5 w-3.5 text-slate-400" /> {invoice.customer?.email}</p>
-                                    <p className="flex items-center gap-2"><Briefcase className="h-3.5 w-3.5 text-slate-400" /> Dew Butterflies</p>
+                                    <p className="flex items-center gap-2"><Mail className="h-3.5 w-3.5 text-slate-400 shrink-0" /> {invoice.customer?.email}</p>
+                                    <p className="flex items-center gap-2"><Briefcase className="h-3.5 w-3.5 text-slate-400 shrink-0" /> Dew Butterflies</p>
                                 </div>
                             </div>
                         </div>
@@ -644,7 +654,7 @@ export default function PublicView({ invoice, companySettings }: PublicViewProps
                             <div className="border-t border-slate-100 pt-6 text-center space-y-3.5">
                                 <div className="flex items-center justify-center text-[13px] font-bold text-slate-800">
                                     {logoUrl ? (
-                                        <img src={logoUrl} alt={companyName} className="h-5.5 object-contain" />
+                                        <img src={logoUrl} alt={companyName} className="h-6 object-contain" />
                                     ) : (
                                         <span>{companyName}</span>
                                     )}
@@ -699,7 +709,12 @@ export default function PublicView({ invoice, companySettings }: PublicViewProps
                     }
                     .meta-fields-grid-print {
                         display: grid !important;
-                        grid-template-columns: repeat(3, 1fr) !important;
+                        grid-template-columns: repeat(2, 1fr) !important;
+                        gap: 1.5rem !important;
+                    }
+                    .status-banner-grid-print {
+                        display: grid !important;
+                        grid-template-columns: repeat(${invoice.project_category && invoice.project_category !== 'N/A' ? '3' : '2'}, 1fr) !important;
                         gap: 1.5rem !important;
                     }
                     .addresses-grid-print {
