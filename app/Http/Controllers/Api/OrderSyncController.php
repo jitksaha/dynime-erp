@@ -76,15 +76,18 @@ class OrderSyncController extends Controller
                 // Find matching product/service in ERP by SKU
                 $product = ProductServiceItem::where('sku', $item['sku'])->first();
                 if (!$product) {
+                    $category = \Workdo\ProductService\Models\ProductServiceCategory::first();
+                    $unit = \Workdo\ProductService\Models\ProductServiceUnit::first();
+
                     $product = new ProductServiceItem();
                     $product->name = $item['name'];
                     $product->sku = $item['sku'];
                     $product->tax_ids = [];
-                    $product->category_id = 1; // Default category
+                    $product->category_id = $category ? $category->id : null;
                     $product->description = null;
                     $product->sale_price = $item['unit_price'];
                     $product->purchase_price = 0;
-                    $product->unit = 1; // Default unit
+                    $product->unit = $unit ? $unit->id : null;
                     $product->type = 'service';
                     $product->is_active = true;
                     $product->creator_id = 1; // Super Admin ID
