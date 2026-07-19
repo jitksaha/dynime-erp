@@ -139,7 +139,7 @@ export default function View() {
                                                     variant="outline"
                                                     size="sm"
                                                     onClick={() => {
-                                                        const shareUrl = window.location.origin + '/invoice/' + invoice.invoice_number;
+                                                        const shareUrl = 'https://billing.dynime.com/' + invoice.invoice_number;
                                                         navigator.clipboard.writeText(shareUrl);
                                                         setCopied(true);
                                                         setTimeout(() => setCopied(false), 2000);

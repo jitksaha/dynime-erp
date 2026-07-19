@@ -214,5 +214,9 @@ Route::post('/cookie-consent-log', [SettingController::class, 'logCookieConsent'
 
 Route::get('/invoice/{invoiceNumber}', [App\Http\Controllers\SalesInvoiceController::class, 'publicView'])->name('sales-invoices.public-view');
 
+Route::group(['domain' => 'billing.dynime.com'], function () {
+    Route::get('/{invoiceNumber}', [App\Http\Controllers\SalesInvoiceController::class, 'publicView'])->name('sales-invoices.public-view.short');
+});
+
 require __DIR__.'/installer.php';
 require __DIR__.'/auth.php';

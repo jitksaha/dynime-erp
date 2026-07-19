@@ -234,7 +234,7 @@ export default function Index() {
                                             variant="ghost"
                                             size="sm"
                                             onClick={() => {
-                                                const shareUrl = window.location.origin + '/invoice/' + invoice.invoice_number;
+                                                const shareUrl = 'https://billing.dynime.com/' + invoice.invoice_number;
                                                 navigator.clipboard.writeText(shareUrl);
                                                 alert(t('Shareable link copied to clipboard!'));
                                             }}
@@ -572,7 +572,7 @@ export default function Index() {
                                                                 <Tooltip delayDuration={0}>
                                                                     <TooltipTrigger asChild>
                                                                         <Button variant="ghost" size="sm" onClick={() => {
-                                                                            const shareUrl = window.location.origin + '/invoice/' + invoice.invoice_number;
+                                                                            const shareUrl = 'https://billing.dynime.com/' + invoice.invoice_number;
                                                                             navigator.clipboard.writeText(shareUrl);
                                                                             alert(t('Shareable link copied to clipboard!'));
                                                                         }} className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700">
