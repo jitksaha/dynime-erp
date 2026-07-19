@@ -336,7 +336,7 @@ export default function PublicView({ invoice, companySettings }: PublicViewProps
                         </div>
 
                         {/* Meta Fields Grid */}
-                        <div className="grid grid-cols-1 sm:grid-cols-3 print:grid-cols-3 gap-x-6 md:gap-x-12 gap-y-3 border-t border-b border-slate-100 py-4 mb-6">
+                        <div className="meta-fields-grid-print grid grid-cols-1 sm:grid-cols-3 print:grid-cols-3 gap-x-6 md:gap-x-12 gap-y-3 border-t border-b border-slate-100 py-4 mb-6">
                             {/* Col 1 */}
                             <div className="space-y-2.5">
                                 <div className="flex justify-between items-center text-[12.5px]">
@@ -403,7 +403,7 @@ export default function PublicView({ invoice, companySettings }: PublicViewProps
                         </div>
 
                         {/* From & Billed To Addresses */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 print:grid-cols-2 gap-8 mb-6 print-avoid-break">
+                        <div className="addresses-grid-print grid grid-cols-1 sm:grid-cols-2 print:grid-cols-2 gap-8 mb-6 print-avoid-break">
                             {/* FROM */}
                             <div>
                                 <div className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 mb-2.5 flex items-center gap-1.5">
@@ -438,7 +438,7 @@ export default function PublicView({ invoice, companySettings }: PublicViewProps
                         </div>
 
                         {/* Amount Due & Delivery Date Block */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 print:grid-cols-2 gap-6 border-t border-slate-100 pt-4 pb-4 mb-6">
+                        <div className="amount-delivery-grid-print grid grid-cols-1 sm:grid-cols-2 print:grid-cols-2 gap-6 border-t border-slate-100 pt-4 pb-4 mb-6">
                             {/* Amount Due */}
                             <div className="flex flex-col justify-center">
                                 <span className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider block mb-1">AMOUNT DUE</span>
@@ -604,7 +604,7 @@ export default function PublicView({ invoice, companySettings }: PublicViewProps
                                 </div>
 
                                 {/* 2-Column inclusions grid */}
-                                <div className="grid grid-cols-1 sm:grid-cols-2 print:grid-cols-2 gap-x-12 gap-y-3 mb-6 pb-6 border-b border-slate-100">
+                                <div className="inclusions-grid-print grid grid-cols-1 sm:grid-cols-2 print:grid-cols-2 gap-x-12 gap-y-3 mb-6 pb-6 border-b border-slate-100">
                                     {includedServices.map((service: string, index: number) => (
                                         <div key={index} className="flex items-start gap-3 text-[12.5px] text-slate-700 leading-tight">
                                             <div className="bg-[#ECFDF5] border border-emerald-100 p-0.5 rounded-full mt-0.5 text-emerald-600">
@@ -624,7 +624,7 @@ export default function PublicView({ invoice, companySettings }: PublicViewProps
                                     <Briefcase className="h-4 w-4 text-slate-400" />
                                     PROJECT BRIEF
                                 </h3>
-                                <div className="grid grid-cols-1 sm:grid-cols-3 print:grid-cols-3 gap-6">
+                                <div className="project-brief-grid-print grid grid-cols-1 sm:grid-cols-3 print:grid-cols-3 gap-6">
                                     <div className="space-y-0.5">
                                         <span className="text-[11px] text-slate-400 uppercase font-semibold">Due Date</span>
                                         <p className="text-[13.5px] font-bold text-slate-800">{invoice.due_date ? formatMockDate(invoice.due_date) : 'July 1, 2026'}</p>
@@ -691,6 +691,31 @@ export default function PublicView({ invoice, companySettings }: PublicViewProps
                     .print-avoid-break {
                         page-break-inside: avoid !important;
                         break-inside: avoid !important;
+                    }
+                    .meta-fields-grid-print {
+                        display: grid !important;
+                        grid-template-columns: repeat(3, 1fr) !important;
+                        gap: 1.5rem !important;
+                    }
+                    .addresses-grid-print {
+                        display: grid !important;
+                        grid-template-columns: repeat(2, 1fr) !important;
+                        gap: 2rem !important;
+                    }
+                    .amount-delivery-grid-print {
+                        display: grid !important;
+                        grid-template-columns: repeat(2, 1fr) !important;
+                        gap: 1.5rem !important;
+                    }
+                    .inclusions-grid-print {
+                        display: grid !important;
+                        grid-template-columns: repeat(2, 1fr) !important;
+                        gap: 1rem !important;
+                    }
+                    .project-brief-grid-print {
+                        display: grid !important;
+                        grid-template-columns: repeat(3, 1fr) !important;
+                        gap: 1.5rem !important;
                     }
                 }
             `}} />
