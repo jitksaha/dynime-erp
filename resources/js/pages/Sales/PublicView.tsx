@@ -1,10 +1,23 @@
 import React, { useState } from 'react';
 import { Head } from '@inertiajs/react';
-import { useTranslation } from 'react-i18next';
 import html2pdf from 'html2pdf.js';
-import { formatCurrency, formatDate } from '@/utils/helpers';
 import { Button } from '@/components/ui/button';
-import { Printer, Download, Share2, CheckCircle2, AlertCircle, Clock, FileText } from 'lucide-react';
+import { 
+    Printer, 
+    Download, 
+    Share2, 
+    CheckCircle2, 
+    AlertCircle, 
+    Clock, 
+    Building2, 
+    Mail, 
+    Phone, 
+    MapPin, 
+    User, 
+    Briefcase,
+    Truck,
+    Check
+} from 'lucide-react';
 import { SalesInvoice } from './types';
 
 interface PublicViewProps {
@@ -23,38 +36,23 @@ interface PublicViewProps {
 }
 
 export default function PublicView({ invoice, companySettings }: PublicViewProps) {
-    const { t } = useTranslation();
     const [isDownloading, setIsDownloading] = useState(false);
     const [copied, setCopied] = useState(false);
 
-    const getStatusIcon = (status: string) => {
-        switch (status.toLowerCase()) {
-            case 'paid':
-                return <CheckCircle2 className="h-5 w-5 text-emerald-500" />;
-            case 'overdue':
-                return <AlertCircle className="h-5 w-5 text-rose-500" />;
-            case 'pending':
-            case 'sent':
-            case 'posted':
-                return <Clock className="h-5 w-5 text-amber-500" />;
-            default:
-                return <FileText className="h-5 w-5 text-slate-500" />;
-        }
+    const formatMockDate = (dateStr: any) => {
+        if (!dateStr) return 'N/A';
+        const date = new Date(dateStr);
+        if (isNaN(date.getTime())) return dateStr;
+        return date.toLocaleDateString('en-US', {
+            month: 'long',
+            day: 'numeric',
+            year: 'numeric'
+        });
     };
 
-    const getStatusBadgeClasses = (status: string) => {
-        switch (status.toLowerCase()) {
-            case 'paid':
-                return 'bg-emerald-50 text-emerald-700 border border-emerald-200';
-            case 'overdue':
-                return 'bg-rose-50 text-rose-700 border border-rose-200';
-            case 'pending':
-            case 'sent':
-            case 'posted':
-                return 'bg-amber-50 text-amber-700 border border-amber-200';
-            default:
-                return 'bg-slate-50 text-slate-700 border border-slate-200';
-        }
+    const formatCurrency = (amount: any) => {
+        const num = parseFloat(amount || 0);
+        return '$' + num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     };
 
     const copyLink = () => {
@@ -68,11 +66,11 @@ export default function PublicView({ invoice, companySettings }: PublicViewProps
         const printContent = document.querySelector('.invoice-card-container');
         if (printContent) {
             const opt = {
-                margin: 0.4,
+                margin: 0,
                 filename: `Invoice-${invoice.invoice_number}.pdf`,
                 image: { type: 'jpeg' as const, quality: 0.98 },
-                html2canvas: { scale: 2 },
-                jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' as const }
+                html2canvas: { scale: 2, useCORS: true },
+                jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' as const }
             };
 
             try {
@@ -88,241 +86,366 @@ export default function PublicView({ invoice, companySettings }: PublicViewProps
         window.print();
     };
 
+    // Fallback list of included services to display on Page 2 if not present in DB
+    const defaultInclusions = [
+        "Custom Website Design & Development",
+        "Frontend Development",
+        "Backend Development & Database Setup",
+        "Admin Panel & Order Management System (OMS)",
+        "Point of Sale (POS) Integration",
+        "Responsive Design (Desktop, Tablet & Mobile)",
+        "Cloud Storage Integration (S3 Compatible, if required)",
+        "CDN Setup & Configuration",
+        "Performance Optimization & Speed Enhancement",
+        "Security & SSL Configuration",
+        "Testing, Deployment & Go-Live Support",
+        "Hostinger KVM 8 VPS Hosting (2 Years)",
+        "Performance Target",
+        "Fast-loading website architecture",
+        "Optimized Core Web Vitals",
+        "PageSpeed Performance Target: 90+ Desktop"
+    ];
+
+    const includedServices = invoice.service_brief?.included_services || defaultInclusions;
+
+    // Resolve Billed From details (using official details from mockup)
+    const companyName = "Dynime LLC.";
+    const companyDomain = "dynime.com";
+    const companyEmail = "support@dynime.com";
+    const companyPhone = "+1 (646) 884-0271";
+    const companyAddress = "244 5th Ave, Suite #1964, New York, NY 10001, USA";
+    const logoUrl = "https://cdn.dynime.com/media/KVhzkR7rCJFuzFxBU8ljBqFb2PItfQM5i3omxMNF.png";
+
+    // Format dates
+    const dateOfIssue = formatMockDate(invoice.invoice_date);
+    const dateDue = formatMockDate(invoice.due_date);
+    const estDeliveryDate = invoice.estimated_delivery_date ? formatMockDate(invoice.estimated_delivery_date) : 'Aug 10, 2026';
+
+    const getStatusText = (status: string) => {
+        switch (status.toLowerCase()) {
+            case 'paid':
+                return 'Payment Completed';
+            case 'overdue':
+                return 'Payment Overdue';
+            default:
+                return 'Payment Pending';
+        }
+    };
+
+    const getStatusBadgeStyles = (status: string) => {
+        switch (status.toLowerCase()) {
+            case 'paid':
+                return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+            case 'overdue':
+                return 'bg-rose-50 text-rose-700 border-rose-200';
+            default:
+                return 'bg-amber-50 text-amber-700 border-amber-200';
+        }
+    };
+
+    const getStatusIcon = (status: string) => {
+        switch (status.toLowerCase()) {
+            case 'paid':
+                return <CheckCircle2 className="h-4 w-4 text-emerald-500" />;
+            case 'overdue':
+                return <AlertCircle className="h-4 w-4 text-rose-500" />;
+            default:
+                return <Clock className="h-4 w-4 text-amber-500" />;
+        }
+    };
+
     return (
-        <div className="min-h-screen bg-slate-50 py-12 px-4 sm:px-6 lg:px-8 print:p-0 print:bg-white">
-            <Head title={`${t('Invoice')} ${invoice.invoice_number}`} />
+        <div className="min-h-screen bg-[#F8FAFC] py-12 px-4 sm:px-6 lg:px-8 print:p-0 print:bg-white">
+            <Head title={`Invoice ${invoice.invoice_number}`} />
 
             {isDownloading && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 print:hidden">
                     <div className="bg-white p-6 rounded-2xl shadow-xl flex items-center space-x-3">
                         <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600"></div>
-                        <p className="text-lg font-semibold text-slate-700">{t('Generating PDF...')}</p>
+                        <p className="text-lg font-semibold text-slate-700">Generating PDF...</p>
                     </div>
                 </div>
             )}
 
-            {/* Top Navigation Bar / Quick Actions */}
-            <div className="max-w-4xl mx-auto mb-6 flex flex-col sm:flex-row justify-between items-center gap-4 print:hidden">
+            {/* Quick Action bar (hidden in print) */}
+            <div className="max-w-[850px] mx-auto mb-6 flex flex-col sm:flex-row justify-between items-center gap-4 print:hidden">
                 <div className="flex items-center gap-3">
                     <span className="font-semibold text-slate-700 text-lg tracking-tight flex items-center gap-1.5">
-                        <span className="text-indigo-600 font-extrabold">dynime</span>
+                        <span className="text-[#3B82F6] font-extrabold">dynime</span>
                         <span className="text-slate-400 font-light text-xs lowercase">complete business os</span>
                     </span>
                 </div>
                 <div className="flex flex-wrap justify-center gap-2">
-                    <Button variant="outline" size="sm" onClick={copyLink} className="bg-white">
+                    <Button variant="outline" size="sm" onClick={copyLink} className="bg-white border-slate-200 text-slate-700 hover:bg-slate-50">
                         <Share2 className="h-4 w-4 mr-2 text-slate-500" />
-                        {copied ? t('Copied!') : t('Copy URL')}
+                        {copied ? 'Copied!' : 'Copy URL'}
                     </Button>
-                    <Button variant="outline" size="sm" onClick={downloadPDF} className="bg-white">
+                    <Button variant="outline" size="sm" onClick={downloadPDF} className="bg-white border-slate-200 text-slate-700 hover:bg-slate-50">
                         <Download className="h-4 w-4 mr-2 text-slate-500" />
-                        {t('Download PDF')}
+                        Download PDF
                     </Button>
-                    <Button variant="default" size="sm" onClick={handlePrint} className="bg-indigo-600 hover:bg-indigo-700">
+                    <Button variant="default" size="sm" onClick={handlePrint} className="bg-[#4F46E5] hover:bg-[#4338CA] text-white">
                         <Printer className="h-4 w-4 mr-2" />
-                        {t('Print Invoice')}
+                        Print Invoice
                     </Button>
                 </div>
             </div>
 
-            {/* Main Invoice Card */}
-            <div className="invoice-card-container bg-white shadow-xl rounded-2xl border border-slate-100 max-w-4xl mx-auto overflow-hidden print:shadow-none print:border-none print:my-0">
+            {/* Print Container */}
+            <div className="invoice-card-container max-w-[850px] mx-auto space-y-8 print:space-y-0 print:max-w-full">
                 
-                {/* Visual Accent Top Bar */}
-                <div className="h-2 bg-indigo-600 print:hidden" />
+                {/* ============================================================== */}
+                {/* PAGE 1: INVOICE DETAILS */}
+                {/* ============================================================== */}
+                <div className="bg-white shadow-xl rounded-2xl border border-slate-100 relative overflow-hidden p-8 sm:p-12 print:shadow-none print:border-none print:p-0 print:m-0 page-break-after-always break-after-page">
+                    {/* Golden/Orange Accent top bar */}
+                    <div className="absolute top-0 left-0 right-0 h-[6px] bg-[#E59700]" />
 
-                <div className="p-8 sm:p-12 print:p-0">
-                    
-                    {/* Header: Company and Invoice Details */}
-                    <div className="flex flex-col md:flex-row justify-between items-start gap-8 border-b border-slate-100 pb-8 mb-8">
-                        <div className="space-y-4">
-                            {companySettings.company_logo ? (
-                                <img 
-                                    src={companySettings.company_logo} 
-                                    alt={companySettings.company_name} 
-                                    className="max-h-16 object-contain" 
-                                />
-                            ) : (
-                                <h1 className="text-3xl font-extrabold tracking-tight text-indigo-600">{companySettings.company_name}</h1>
-                            )}
-                            <div className="text-slate-500 text-sm space-y-1">
-                                <p className="font-semibold text-slate-700">{companySettings.company_name}</p>
-                                <p>{companySettings.company_address}</p>
-                                <p>{companySettings.company_city}, {companySettings.company_state} {companySettings.company_zipcode}</p>
-                                <p className="uppercase">{companySettings.company_country}</p>
-                                {companySettings.company_telephone && <p>{t('Phone')}: {companySettings.company_telephone}</p>}
-                                {companySettings.company_email && <p>{t('Email')}: {companySettings.company_email}</p>}
+                    {/* Logo & Invoice Title Header */}
+                    <div className="flex flex-col sm:flex-row justify-between items-start gap-6 mb-8 mt-4">
+                        <div>
+                            <h1 className="text-[44px] font-extrabold tracking-tight text-slate-900 leading-none mb-4">Invoice</h1>
+                            <div className="flex items-center gap-4">
+                                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${getStatusBadgeStyles(invoice.status)}`}>
+                                    {getStatusIcon(invoice.status)}
+                                    {getStatusText(invoice.status)}
+                                </span>
+                                <span className="text-slate-500 text-[14px]">Due {dateDue}</span>
+                            </div>
+                        </div>
+                        <div className="sm:text-right">
+                            <img 
+                                src={logoUrl} 
+                                alt={companyName} 
+                                className="h-[28px] object-contain mb-3 sm:ml-auto" 
+                            />
+                            <p className="font-bold text-slate-800 text-[14px] leading-tight">{companyName}</p>
+                            <p className="text-slate-500 text-[13px]">{companyDomain}</p>
+                        </div>
+                    </div>
+
+                    {/* Meta Fields Grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-16 gap-y-4 border-t border-b border-slate-100 py-6 mb-8">
+                        {/* Col 1 */}
+                        <div className="space-y-3.5">
+                            <div className="flex justify-between items-center text-[13px]">
+                                <span className="text-slate-400">Invoice number</span>
+                                <span className="font-bold text-slate-900">{invoice.invoice_number}</span>
+                            </div>
+                            <div className="flex justify-between items-center text-[13px]">
+                                <span className="text-slate-400">Date of issue</span>
+                                <span className="font-bold text-slate-900">{dateOfIssue}</span>
+                            </div>
+                            <div className="flex justify-between items-center text-[13px]">
+                                <span className="text-slate-400">Payment method</span>
+                                <span className="font-bold text-slate-900">Bank Transfer</span>
+                            </div>
+                        </div>
+                        {/* Col 2 */}
+                        <div className="space-y-3.5">
+                            <div className="flex justify-between items-center text-[13px]">
+                                <span className="text-slate-400">Currency</span>
+                                <span className="font-bold text-slate-900">USD</span>
+                            </div>
+                            <div className="flex justify-between items-center text-[13px]">
+                                <span className="text-slate-400">Date due</span>
+                                <span className="font-bold text-slate-900">{dateDue}</span>
+                            </div>
+                            <div className="flex justify-between items-center text-[13px]">
+                                <span className="text-slate-400">Est. Delivery Date</span>
+                                <span className="font-bold text-[#4F46E5] flex items-center gap-1.5">
+                                    <Truck className="h-4 w-4" />
+                                    {estDeliveryDate}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* From & Billed To Addresses */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-10 mb-8">
+                        {/* FROM */}
+                        <div>
+                            <div className="text-[12px] font-extrabold uppercase tracking-wider text-slate-400 mb-3.5 flex items-center gap-1.5">
+                                <Building2 className="h-3.5 w-3.5" />
+                                FROM
+                            </div>
+                            <div className="space-y-2 text-[13px] text-slate-600">
+                                <p className="font-bold text-slate-900 text-[14px]">{companyName}</p>
+                                <p className="flex items-center gap-2"><Mail className="h-3.5 w-3.5 text-slate-400" /> {companyEmail}</p>
+                                <p className="flex items-center gap-2"><Phone className="h-3.5 w-3.5 text-slate-400" /> {companyPhone}</p>
+                                <p className="flex items-start gap-2">
+                                    <MapPin className="h-3.5 w-3.5 text-slate-400 mt-0.5" /> 
+                                    <span className="leading-tight">{companyAddress}</span>
+                                </p>
+                            </div>
+                        </div>
+                        {/* BILLED TO */}
+                        <div>
+                            <div className="text-[12px] font-extrabold uppercase tracking-wider text-slate-400 mb-3.5 flex items-center gap-1.5">
+                                <Building2 className="h-3.5 w-3.5" />
+                                BILLED TO
+                            </div>
+                            <div className="space-y-2 text-[13px] text-slate-600">
+                                <p className="font-bold text-slate-900 text-[14px] flex items-center gap-2">
+                                    <User className="h-3.5 w-3.5 text-slate-400" />
+                                    {invoice.customer?.name}
+                                </p>
+                                <p className="flex items-center gap-2"><Mail className="h-3.5 w-3.5 text-slate-400" /> {invoice.customer?.email}</p>
+                                <p className="flex items-center gap-2"><Briefcase className="h-3.5 w-3.5 text-slate-400" /> Dew Butterflies</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Amount Due banner block */}
+                    <div className="mb-8">
+                        <div className="border-t border-slate-100 pt-6 pb-2">
+                            <span className="text-[12px] font-bold text-slate-400 uppercase tracking-wider block mb-1">AMOUNT DUE</span>
+                            <div className="flex items-baseline gap-2">
+                                <span className="text-[36px] font-extrabold text-slate-900 tracking-tight leading-none">
+                                    {formatCurrency(invoice.total_amount)}
+                                </span>
+                                <span className="text-[14px] text-slate-400">due {dateDue}</span>
                             </div>
                         </div>
 
-                        <div className="md:text-right space-y-3 md:w-1/2">
-                            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider ${getStatusBadgeClasses(invoice.status)}`}>
-                                {getStatusIcon(invoice.status)}
-                                {t(invoice.status.toUpperCase())}
-                            </span>
+                        {/* Estimated delivery banner */}
+                        <div className="bg-[#EEF2F6]/60 border border-slate-100 rounded-2xl p-4 flex items-center gap-3.5">
+                            <div className="bg-white p-2.5 rounded-full shadow-sm text-[#4F46E5]">
+                                <Truck className="h-5 w-5" />
+                            </div>
                             <div>
-                                <h2 className="text-slate-400 text-xs font-bold uppercase tracking-wider">{t('INVOICE')}</h2>
-                                <p className="text-3xl font-extrabold text-slate-800">#{invoice.invoice_number}</p>
-                            </div>
-                            <div className="text-sm text-slate-500 space-y-1">
-                                <p><span className="text-slate-400">{t('Date')}:</span> <span className="font-semibold text-slate-700">{formatDate(invoice.invoice_date)}</span></p>
-                                <p><span className="text-slate-400">{t('Due')}:</span> <span className={`font-semibold ${invoice.display_status === 'overdue' ? 'text-rose-600' : 'text-slate-700'}`}>{formatDate(invoice.due_date)}</span></p>
+                                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">ESTIMATED DELIVERY DATE</span>
+                                <span className="text-[14px] font-bold text-[#4F46E5]">{estDeliveryDate}</span>
                             </div>
                         </div>
                     </div>
 
-                    {/* Billing Addresses Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10 pb-8 border-b border-slate-100">
-                        <div>
-                            <h3 className="text-slate-400 text-xs font-bold uppercase tracking-wider mb-3">{t('BILL TO')}</h3>
-                            <div className="text-slate-600 text-sm space-y-1">
-                                <p className="font-bold text-slate-800 text-base">{invoice.customer?.name}</p>
-                                <p>{invoice.customer?.email}</p>
-                                {invoice.customer_details?.billing_address && (
-                                    <>
-                                        <p>{invoice.customer_details.billing_address.name}</p>
-                                        <p>{invoice.customer_details.billing_address.address_line_1}</p>
-                                        <p>{invoice.customer_details.billing_address.city}, {invoice.customer_details.billing_address.state} {invoice.customer_details.billing_address.zip_code}</p>
-                                    </>
-                                )}
-                            </div>
-                        </div>
-                        <div>
-                            <h3 className="text-slate-400 text-xs font-bold uppercase tracking-wider mb-3">{t('SHIP TO')}</h3>
-                            <div className="text-slate-600 text-sm space-y-1">
-                                {invoice.customer_details?.shipping_address ? (
-                                    <>
-                                        <p className="font-bold text-slate-800 text-base">{invoice.customer_details.shipping_address.name}</p>
-                                        <p>{invoice.customer_details.shipping_address.address_line_1}</p>
-                                        <p>{invoice.customer_details.shipping_address.city}, {invoice.customer_details.shipping_address.state} {invoice.customer_details.shipping_address.zip_code}</p>
-                                    </>
-                                ) : (
-                                    <p className="text-slate-400 italic">{t('Same as billing address')}</p>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Invoice Items Table */}
-                    <div className="mb-10 overflow-x-auto">
-                        <table className="w-full text-sm text-left text-slate-600">
-                            <thead className="text-xs text-slate-400 uppercase bg-slate-50 rounded-lg print:bg-white">
-                                <tr className="border-b border-slate-100">
-                                    <th className="py-3 px-4 font-bold text-left">{t('ITEM')}</th>
-                                    {invoice.type === 'product' && (
-                                        <th className="py-3 px-4 font-bold text-center">{t('QTY')}</th>
-                                    )}
-                                    <th className="py-3 px-4 font-bold text-right">{t('PRICE')}</th>
-                                    <th className="py-3 px-4 font-bold text-right">{t('DISCOUNT')}</th>
-                                    <th className="py-3 px-4 font-bold text-right">{t('TAX')}</th>
-                                    <th className="py-3 px-4 font-bold text-right">{t('TOTAL')}</th>
+                    {/* Items Table */}
+                    <div className="mb-10 overflow-hidden">
+                        <table className="w-full text-slate-700 border-collapse">
+                            <thead>
+                                <tr className="border-t-[1.5px] border-b-[1.5px] border-slate-900 text-[12px] font-bold uppercase text-slate-800">
+                                    <th className="py-3.5 text-left font-bold w-3/5">DESCRIPTION</th>
+                                    <th className="py-3.5 text-center font-bold">QTY</th>
+                                    <th className="py-3.5 text-right font-bold">UNIT PRICE</th>
+                                    <th className="py-3.5 text-right font-bold">AMOUNT</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {invoice.items?.map((item, index) => (
-                                    <tr key={index} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors duration-150 print:border-slate-100">
-                                        <td className="py-4 px-4 font-medium text-slate-800">
-                                            <div className="font-semibold">{item.product?.name}</div>
+                                    <tr key={index} className="border-b border-slate-100 text-[13.5px]">
+                                        <td className="py-5 pr-4 text-slate-900">
+                                            <div className="font-semibold leading-tight">{item.product?.name}</div>
                                             {item.product?.sku && (
-                                                <div className="text-xs text-slate-400">{t('SKU')}: {item.product.sku}</div>
+                                                <div className="text-[11px] text-slate-400 mt-1 uppercase tracking-wide">SKU: {item.product.sku}</div>
                                             )}
                                         </td>
-                                        {invoice.type === 'product' && (
-                                            <td className="py-4 px-4 text-center">{item.quantity}</td>
-                                        )}
-                                        <td className="py-4 px-4 text-right">{formatCurrency(item.unit_price)}</td>
-                                        <td className="py-4 px-4 text-right">
-                                            {item.discount_percentage > 0 ? (
-                                                <div className="space-y-0.5">
-                                                    <div className="text-xs text-slate-400">{item.discount_percentage}%</div>
-                                                    <div className="font-semibold text-rose-600">-{formatCurrency(item.discount_amount)}</div>
-                                                </div>
-                                            ) : (
-                                                <span className="text-slate-400">0%</span>
-                                            )}
-                                        </td>
-                                        <td className="py-4 px-4 text-right">
-                                            {item.taxes && item.taxes.length > 0 ? (
-                                                <div className="space-y-0.5">
-                                                    {item.taxes.map((tax, taxIndex) => (
-                                                        <div key={taxIndex} className="text-xs text-slate-400">{tax.tax_name} ({tax.tax_rate}%)</div>
-                                                    ))}
-                                                    <div className="font-semibold text-slate-700">{formatCurrency(item.tax_amount)}</div>
-                                                </div>
-                                            ) : item.tax_percentage > 0 ? (
-                                                <div className="space-y-0.5">
-                                                    <div className="text-xs text-slate-400">{item.tax_percentage}%</div>
-                                                    <div className="font-semibold text-slate-700">{formatCurrency(item.tax_amount)}</div>
-                                                </div>
-                                            ) : (
-                                                <span className="text-slate-400">0%</span>
-                                            )}
-                                        </td>
-                                        <td className="py-4 px-4 text-right font-bold text-slate-900">{formatCurrency(item.total_amount)}</td>
+                                        <td className="py-5 text-center text-slate-700">{item.quantity}</td>
+                                        <td className="py-5 text-right text-slate-600">{formatCurrency(item.unit_price)}</td>
+                                        <td className="py-5 text-right font-bold text-slate-950">{formatCurrency(item.total_amount)}</td>
                                     </tr>
                                 ))}
                             </tbody>
                         </table>
                     </div>
 
-                    {/* Totals Section */}
-                    <div className="flex justify-end mb-8 page-break-inside-avoid">
-                        <div className="w-full sm:w-80">
-                            <div className="border border-slate-100 rounded-xl bg-slate-50/50 p-6 space-y-3 print:bg-white print:border-slate-200">
-                                <div className="flex justify-between text-sm">
-                                    <span className="text-slate-500">{t('Subtotal')}</span>
-                                    <span className="font-semibold text-slate-700">{formatCurrency(invoice.subtotal)}</span>
+                    {/* Table Totals aligned right */}
+                    <div className="flex justify-end mb-4">
+                        <div className="w-[320px] space-y-3.5 text-[13.5px]">
+                            <div className="flex justify-between border-t border-slate-100 pt-3.5 text-slate-600">
+                                <span>Subtotal</span>
+                                <span className="font-medium text-slate-900">{formatCurrency(invoice.subtotal)}</span>
+                            </div>
+                            {invoice.discount_amount > 0 && (
+                                <div className="flex justify-between text-[#10B981] font-semibold">
+                                    <span>Discount</span>
+                                    <span>-{formatCurrency(invoice.discount_amount)}</span>
                                 </div>
-                                {invoice.discount_amount > 0 && (
-                                    <div className="flex justify-between text-sm">
-                                        <span className="text-slate-500">{t('Discount')}</span>
-                                        <span className="font-semibold text-rose-600">-{formatCurrency(invoice.discount_amount)}</span>
-                                    </div>
-                                )}
-                                {invoice.tax_amount > 0 && (
-                                    <div className="flex justify-between text-sm">
-                                        <span className="text-slate-500">{t('Tax')}</span>
-                                        <span className="font-semibold text-slate-700">{formatCurrency(invoice.tax_amount)}</span>
-                                    </div>
-                                )}
-                                <div className="border-t border-slate-100 pt-3 mt-3">
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-base font-extrabold text-slate-800">{t('TOTAL')}</span>
-                                        <span className="text-xl font-extrabold text-indigo-600">{formatCurrency(invoice.total_amount)}</span>
-                                    </div>
+                            )}
+                            <div className="flex justify-between text-slate-600">
+                                <span>Total excluding tax</span>
+                                <span className="font-medium text-slate-900">{formatCurrency(invoice.total_amount)}</span>
+                            </div>
+                            <div className="flex justify-between text-slate-600">
+                                <span>Tax</span>
+                                <span className="font-medium text-slate-900">{formatCurrency(invoice.tax_amount)}</span>
+                            </div>
+                            <div className="flex justify-between border-t-[1.5px] border-slate-900 pt-3.5 text-[15px] font-bold text-slate-950">
+                                <span>Total</span>
+                                <span>{formatCurrency(invoice.total_amount)}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* ============================================================== */}
+                {/* PAGE 2: WHAT'S INCLUDED & PROJECT BRIEF */}
+                {/* ============================================================== */}
+                <div className="bg-[#FAFBFD] shadow-xl rounded-2xl border border-slate-100 p-8 sm:p-12 relative overflow-hidden print:shadow-none print:border-none print:p-0 print:m-0 print:mt-10 break-before-page">
+                    
+                    {/* Top Right Black Amount Banner */}
+                    <div className="absolute top-0 right-0 bg-[#0F172A] text-white px-6 py-4 rounded-bl-2xl font-bold flex items-center gap-6 shadow-sm print:hidden">
+                        <span className="text-[11px] uppercase tracking-wider text-slate-400">AMOUNT DUE</span>
+                        <span className="text-[18px] font-extrabold">{formatCurrency(invoice.total_amount)}</span>
+                    </div>
+
+                    {/* Inclusion title */}
+                    <div className="mt-4 mb-8">
+                        <h2 className="text-[12px] font-extrabold uppercase tracking-widest text-slate-400 flex items-center gap-2">
+                            <CheckCircle2 className="h-4 w-4 text-slate-400" />
+                            WHAT'S INCLUDED
+                        </h2>
+                    </div>
+
+                    {/* 2-Column inclusions grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4 mb-10 pb-10 border-b border-slate-100">
+                        {includedServices.map((service: string, index: number) => (
+                            <div key={index} className="flex items-start gap-3 text-[13px] text-slate-700 leading-tight">
+                                <div className="bg-[#ECFDF5] border border-emerald-100 p-0.5 rounded-full mt-0.5 text-emerald-600">
+                                    <Check className="h-3 w-3 stroke-[3]" />
                                 </div>
-                                <div className="border-t border-slate-100 pt-3">
-                                    <div className="flex justify-between text-sm">
-                                        <span className="text-slate-500">{t('Paid')}</span>
-                                        <span className="font-semibold text-emerald-600">{formatCurrency(invoice.paid_amount)}</span>
-                                    </div>
-                                    <div className="flex justify-between text-sm mt-1">
-                                        <span className="text-slate-500">{t('Balance Due')}</span>
-                                        <span className="font-extrabold text-slate-900">{formatCurrency(invoice.balance_amount)}</span>
-                                    </div>
-                                </div>
+                                <span>{service}</span>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Project Brief Columns */}
+                    <div className="mb-12">
+                        <h3 className="text-[12px] font-extrabold uppercase tracking-widest text-slate-400 mb-6 flex items-center gap-2">
+                            <Briefcase className="h-4 w-4 text-slate-400" />
+                            PROJECT BRIEF
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                            <div className="space-y-1">
+                                <span className="text-[12px] text-slate-400 uppercase font-semibold">Due Date</span>
+                                <p className="text-[14px] font-bold text-slate-800">{invoice.due_date ? formatMockDate(invoice.due_date) : 'July 1, 2026'}</p>
+                            </div>
+                            <div className="space-y-1">
+                                <span className="text-[12px] text-slate-400 uppercase font-semibold">Amount Due</span>
+                                <p className="text-[14px] font-bold text-slate-800">{invoice.total_amount}</p>
+                            </div>
+                            <div className="space-y-1">
+                                <span className="text-[12px] text-slate-400 uppercase font-semibold">Estimated Delivery Date</span>
+                                <p className="text-[14px] font-bold text-slate-800">{estDeliveryDate}</p>
                             </div>
                         </div>
                     </div>
 
-                    {/* Terms and Notes Footer */}
-                    <div className="border-t border-slate-100 pt-8 text-center space-y-4">
-                        {invoice.payment_terms && (
-                            <p className="text-slate-600 text-sm font-semibold">
-                                {t('PAYMENT TERMS')}: {invoice.payment_terms}
-                            </p>
-                        )}
-                        {invoice.notes && (
-                            <div className="text-slate-400 text-xs max-w-lg mx-auto italic">
-                                {invoice.notes}
-                            </div>
-                        )}
-                        <p className="text-slate-400 text-xs font-semibold uppercase tracking-wider">
-                            {t('Thank you for choosing Dynime!')}
+                    {/* Page 2 Footer */}
+                    <div className="border-t border-slate-100 pt-8 text-center space-y-5">
+                        <div className="flex items-center justify-center gap-2 text-[14px] font-bold text-slate-800">
+                            <img src={logoUrl} alt={companyName} className="h-5 object-contain" />
+                            <span>{companyName}</span>
+                        </div>
+                        <p className="text-[13px] text-slate-600 font-medium">Thank you for choosing <span className="font-bold">Dynime</span>.</p>
+                        <p className="text-[12px] text-slate-400">
+                            Questions? Email <span className="text-slate-600 font-medium">{companyEmail}</span> · Reference #{invoice.invoice_number}
                         </p>
+                        <p className="text-[11px] text-slate-300 font-semibold">{companyDomain}</p>
                     </div>
 
                 </div>
+
             </div>
         </div>
     );

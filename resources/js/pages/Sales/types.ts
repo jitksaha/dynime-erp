@@ -18,6 +18,16 @@ export interface SalesInvoice {
     notes?: string;
     creator_id: number;
     created_by: number;
+    estimated_delivery_date?: string;
+    service_brief?: {
+        manual_invoice?: boolean;
+        due_date?: string;
+        partially_paid?: boolean;
+        amount_paid?: number;
+        amount_due?: number;
+        partial_payments?: any[];
+        included_services?: string[];
+    };
     created_at: string;
     updated_at: string;
     customer?: User;
