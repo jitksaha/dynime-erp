@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Head, usePage, router } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
 import { SalesInvoice } from './types';
@@ -7,7 +7,7 @@ import { formatCurrency, formatDate } from '@/utils/helpers';
 import { getStatusBadgeClasses } from './utils';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { FileText, Download } from 'lucide-react';
+import { FileText, Download, Share2 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { usePageButtons } from '@/hooks/usePageButtons';
 
@@ -20,6 +20,7 @@ interface ViewProps {
 export default function View() {
     const { t } = useTranslation();
     const { invoice, auth } = usePage<ViewProps>().props;
+    const [copied, setCopied] = useState(false);
 
     const pageButtons = usePageButtons('zatcaQRCodeBtn', invoice);
 
@@ -131,6 +132,21 @@ export default function View() {
                                                 >
                                                     <Download className="h-4 w-4 mr-2" />
                                                     {t('Download PDF')}
+                                                </Button>
+                                            )}
+                                            {auth.user?.permissions?.includes('view-sales-invoices') && (
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => {
+                                                        const shareUrl = window.location.origin + '/invoice/' + invoice.invoice_number;
+                                                        navigator.clipboard.writeText(shareUrl);
+                                                        setCopied(true);
+                                                        setTimeout(() => setCopied(false), 2000);
+                                                    }}
+                                                >
+                                                    <Share2 className="h-4 w-4 mr-2" />
+                                                    {copied ? t('Copied!') : t('Copy Share Link')}
                                                 </Button>
                                             )}
                                             {invoice.status === 'draft' && auth.user?.permissions?.includes('post-sales-invoices') && (

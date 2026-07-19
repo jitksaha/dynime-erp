@@ -212,5 +212,7 @@ Route::middleware(['auth', 'verified', 'PlanModuleCheck'])->group(function () {
 Route::get('/translations/{locale}', [TranslationController::class, 'getTranslations'])->name('languages.translations');
 Route::post('/cookie-consent-log', [SettingController::class, 'logCookieConsent'])->name('cookie.consent.log');
 
+Route::get('/invoice/{invoiceNumber}', [App\Http\Controllers\SalesInvoiceController::class, 'publicView'])->name('sales-invoices.public-view');
+
 require __DIR__.'/installer.php';
 require __DIR__.'/auth.php';

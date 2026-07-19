@@ -466,4 +466,33 @@ class SalesInvoiceController extends Controller
             return back()->with('error', __('Permission denied'));
         }
     }
+
+    public function publicView($invoiceNumber)
+    {
+        $salesInvoice = SalesInvoice::where('invoice_number', $invoiceNumber)->first();
+        if (!$salesInvoice) {
+            $salesInvoice = SalesInvoice::where('invoice_number', 'like', '%' . $invoiceNumber)->first();
+        }
+
+        if (!$salesInvoice) {
+            abort(404, 'Invoice not found.');
+        }
+
+        $salesInvoice->load(['customer', 'customerDetails', 'items.product', 'items.taxes', 'warehouse']);
+
+        return Inertia::render('Sales/PublicView', [
+            'invoice' => $salesInvoice,
+            'companySettings' => [
+                'company_name' => company_setting('company_name', $salesInvoice->created_by) ?: 'Dynime Inc.',
+                'company_address' => company_setting('company_address', $salesInvoice->created_by) ?: '1209 Mountain Road Pl Ne Ste R',
+                'company_city' => company_setting('company_city', $salesInvoice->created_by) ?: 'Albuquerque',
+                'company_state' => company_setting('company_state', $salesInvoice->created_by) ?: 'NM',
+                'company_zipcode' => company_setting('company_zipcode', $salesInvoice->created_by) ?: '87110',
+                'company_country' => company_setting('company_country', $salesInvoice->created_by) ?: 'USA',
+                'company_telephone' => company_setting('company_telephone', $salesInvoice->created_by),
+                'company_email' => company_setting('company_email', $salesInvoice->created_by),
+                'company_logo' => company_setting('company_logo', $salesInvoice->created_by),
+            ]
+        ]);
+    }
 }

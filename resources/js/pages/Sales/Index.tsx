@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/data-table";
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
-import { Plus, Edit as EditIcon, Trash2, Eye, FileText, Receipt, Download } from "lucide-react";
+import { Plus, Edit as EditIcon, Trash2, Eye, FileText, Receipt, Download, Share2 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { FilterButton } from '@/components/ui/filter-button';
 import { Pagination } from "@/components/ui/pagination";
@@ -212,21 +212,42 @@ export default function Index() {
                         )}
                         <InvoiceActionButtons invoice={invoice} />
                         {auth.user?.permissions?.includes('view-sales-invoices') && (
-                            <Tooltip delayDuration={0}>
-                                <TooltipTrigger asChild>
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => router.get(route('sales-invoices.show', invoice.id))}
-                                        className="h-8 w-8 p-0 text-green-600 hover:text-green-700"
-                                    >
-                                        <Eye className="h-4 w-4" />
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    <p>{t('View')}</p>
-                                </TooltipContent>
-                            </Tooltip>
+                            <>
+                                <Tooltip delayDuration={0}>
+                                    <TooltipTrigger asChild>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => router.get(route('sales-invoices.show', invoice.id))}
+                                            className="h-8 w-8 p-0 text-green-600 hover:text-green-700"
+                                        >
+                                            <Eye className="h-4 w-4" />
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p>{t('View')}</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                                <Tooltip delayDuration={0}>
+                                    <TooltipTrigger asChild>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => {
+                                                const shareUrl = window.location.origin + '/invoice/' + invoice.invoice_number;
+                                                navigator.clipboard.writeText(shareUrl);
+                                                alert(t('Shareable link copied to clipboard!'));
+                                            }}
+                                            className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700"
+                                        >
+                                            <Share2 className="h-4 w-4" />
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p>{t('Copy Public Share Link')}</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </>
                         )}
                         {invoice.status === 'draft' && (
                             <>
@@ -539,14 +560,28 @@ export default function Index() {
                                                             </Tooltip>
                                                         )}
                                                         {auth.user?.permissions?.includes('view-sales-invoices') && (
-                                                            <Tooltip delayDuration={0}>
-                                                                <TooltipTrigger asChild>
-                                                                    <Button variant="ghost" size="sm" onClick={() => router.get(route('sales-invoices.show', invoice.id))} className="h-8 w-8 p-0 text-green-600 hover:text-green-700">
-                                                                        <Eye className="h-4 w-4" />
-                                                                    </Button>
-                                                                </TooltipTrigger>
-                                                                <TooltipContent><p>{t('View')}</p></TooltipContent>
-                                                            </Tooltip>
+                                                            <>
+                                                                <Tooltip delayDuration={0}>
+                                                                    <TooltipTrigger asChild>
+                                                                        <Button variant="ghost" size="sm" onClick={() => router.get(route('sales-invoices.show', invoice.id))} className="h-8 w-8 p-0 text-green-600 hover:text-green-700">
+                                                                            <Eye className="h-4 w-4" />
+                                                                        </Button>
+                                                                    </TooltipTrigger>
+                                                                    <TooltipContent><p>{t('View')}</p></TooltipContent>
+                                                                </Tooltip>
+                                                                <Tooltip delayDuration={0}>
+                                                                    <TooltipTrigger asChild>
+                                                                        <Button variant="ghost" size="sm" onClick={() => {
+                                                                            const shareUrl = window.location.origin + '/invoice/' + invoice.invoice_number;
+                                                                            navigator.clipboard.writeText(shareUrl);
+                                                                            alert(t('Shareable link copied to clipboard!'));
+                                                                        }} className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700">
+                                                                            <Share2 className="h-4 w-4" />
+                                                                        </Button>
+                                                                    </TooltipTrigger>
+                                                                    <TooltipContent><p>{t('Copy Public Share Link')}</p></TooltipContent>
+                                                                </Tooltip>
+                                                            </>
                                                         )}
                                                     </TooltipProvider>
                                                 </div>
