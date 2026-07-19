@@ -88,6 +88,21 @@ export default function Kanban() {
     const handleMove = async (taskId: number, fromStatus: string, toStatus: string) => {
         const stageId = stages.find(stage => stage.name.toLowerCase().replace(/\s+/g, '-') === toStatus)?.id;
         if (stageId) {
+            // Find task to move
+            const taskToMove = currentTasks[fromStatus]?.find(t => t.id === taskId);
+            if (!taskToMove) return;
+
+            // Optimistically update the UI
+            setCurrentTasks(prev => {
+                const newFromTasks = prev[fromStatus]?.filter(t => t.id !== taskId) || [];
+                const newToTasks = [...(prev[toStatus] || []), { ...taskToMove, status: toStatus }];
+                return {
+                    ...prev,
+                    [fromStatus]: newFromTasks,
+                    [toStatus]: newToTasks
+                };
+            });
+
             try {
                 const response = await axios.patch(route('project.tasks.move', taskId), { stage_id: stageId });
                 refreshTasks();
@@ -95,7 +110,8 @@ export default function Kanban() {
                     toast.success(t(response.data.message));
                 }
             } catch (error) {
-                console.error('Failed to move task:', error);
+                toast.error(t('Failed to move task'));
+                refreshTasks();
             }
         }
     };

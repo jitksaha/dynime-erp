@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Head, usePage, router } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
 import { useDeleteHandler } from '@/hooks/useDeleteHandler';
@@ -56,6 +56,12 @@ export default function Index() {
     const [sortField, setSortField] = useState(urlParams.get('sort') || '');
     const [sortDirection, setSortDirection] = useState(urlParams.get('direction') || 'asc');
     const [viewMode, setViewMode] = useState<'list' | 'kanban'>(urlParams.get('view') as 'list' | 'kanban' || 'list');
+    const [localLeads, setLocalLeads] = useState(leads);
+
+    useEffect(() => {
+        setLocalLeads(leads);
+    }, [leads]);
+
     const [modalState, setModalState] = useState<LeadModalState>({
         isOpen: false,
         mode: '',
@@ -140,17 +146,33 @@ export default function Index() {
         setModalState({ isOpen: false, mode: '', data: null });
     };
 
-    const handleMove = (leadId: number, fromStage: string, toStage: string) => {
-        router.post(route('lead.leads.order'), {
-            lead_id: leadId,
-            stage_id: toStage,
-            order: [leadId]
-        }, {
-            preserveState: true,
-            onSuccess: () => {
-                router.reload({ only: ['leads'] });
-            }
+    const handleMove = async (leadId: number, fromStage: string, toStage: string) => {
+        // Optimistically update the local leads state
+        setLocalLeads(prev => {
+            if (!prev || !prev.data) return prev;
+            const updatedData = prev.data.map(lead => {
+                if (lead.id === leadId) {
+                    return { ...lead, stage_id: parseInt(toStage) };
+                }
+                return lead;
+            });
+            return { ...prev, data: updatedData };
         });
+
+        try {
+            const response = await axios.post(route('lead.leads.order'), {
+                lead_id: leadId,
+                stage_id: toStage,
+                order: [leadId]
+            });
+            if (response.data.message) {
+                toast.success(t(response.data.message));
+            }
+        } catch (error) {
+            toast.error(t('Failed to move lead'));
+            // Revert state on failure
+            setLocalLeads(leads);
+        }
     };
 
     const stageColors = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#06b6d4', '#f97316', '#84cc16', '#ec4899', '#6366f1'];
@@ -179,7 +201,7 @@ export default function Index() {
             tasksByStage[col.id] = [];
         });
 
-        const filteredLeads = leads?.data?.filter(lead => {
+        const filteredLeads = localLeads?.data?.filter(lead => {
             let isValid = true;
 
             if (filters.user_id && filters.user_id !== '') {

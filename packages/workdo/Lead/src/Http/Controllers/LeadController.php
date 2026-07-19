@@ -822,6 +822,13 @@ class LeadController extends Controller
                     ];
                     $message = EmailTemplate::sendEmailTemplate('Lead Move', $lead_users, $emailData);
                     if($message['is_success'] == false && !empty($message['error'])) {
+                        if ($request->wantsJson()) {
+                            return response()->json([
+                                'success' => true,
+                                'message' => __('The lead moved successfully.'),
+                                'error' => $message['error']
+                            ]);
+                        }
                         return back()
                             ->with('success', __('The lead moved successfully.'))
                             ->with('error', $message['error']);
@@ -834,8 +841,14 @@ class LeadController extends Controller
                 $leads = Lead::where('id', $item)->update(['order' => $key, 'stage_id' => $post['stage_id']]);
             }
             LeadMoved::dispatch($request, $lead, $oldStage);
+            if ($request->wantsJson()) {
+                return response()->json(['success' => true, 'message' => __('The lead moved successfully.')]);
+            }
             return back()->with('success', __('The lead moved successfully.'));
         } else {
+            if ($request->wantsJson()) {
+                return response()->json(['success' => false, 'error' => __('Permission denied.')], 403);
+            }
             return back()->with('error', __('Permission denied.'));
         }
     }
