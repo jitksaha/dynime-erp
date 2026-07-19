@@ -132,7 +132,7 @@ class OrderSyncController extends Controller
                 if ($statusLower === 'completed' || $statusLower === 'paid') {
                     $status = 'paid';
                 } elseif ($statusLower === 'cancelled') {
-                    $status = 'cancelled';
+                    $status = 'posted'; // Fallback since cancelled is not in DB enum
                 } elseif ($statusLower === 'partial') {
                     $status = 'partial';
                 }
