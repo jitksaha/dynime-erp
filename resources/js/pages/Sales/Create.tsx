@@ -46,6 +46,8 @@ export default function Create() {
         estimated_delivery_date: '',
         whats_included: '',
         sync_to_google_calendar: false,
+        payment_method: 'Bank Transfer',
+        currency: 'USD',
         items: [{
             product_id: 0,
             quantity: 1,
@@ -264,16 +266,56 @@ export default function Create() {
                                     <Label htmlFor="estimated_delivery_date">
                                         {t('Estimated Delivery Date')}
                                     </Label>
-                                    <Input
+                                    <DatePicker
                                         id="estimated_delivery_date"
                                         value={data.estimated_delivery_date}
-                                        onChange={(e) => setData('estimated_delivery_date', e.target.value)}
-                                        placeholder={t('e.g., August 10, 2026')}
+                                        onChange={(value) => setData('estimated_delivery_date', value)}
                                     />
                                     <InputError message={errors.estimated_delivery_date} />
                                 </div>
 
-                                <div className="md:col-span-2">
+                                <div>
+                                    <Label htmlFor="payment_method">
+                                        {t('Payment Method')}
+                                    </Label>
+                                    <Select value={data.payment_method} onValueChange={(value) => setData('payment_method', value)}>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder={t('Select Payment Method')} />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="Bank Transfer">{t('Bank Transfer')}</SelectItem>
+                                            <SelectItem value="Stripe">{t('Stripe')}</SelectItem>
+                                            <SelectItem value="PayPal">{t('PayPal')}</SelectItem>
+                                            <SelectItem value="Credit Card">{t('Credit Card')}</SelectItem>
+                                            <SelectItem value="Cash">{t('Cash')}</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <InputError message={errors.payment_method} />
+                                </div>
+
+                                <div>
+                                    <Label htmlFor="currency">
+                                        {t('Currency')}
+                                    </Label>
+                                    <Select value={data.currency} onValueChange={(value) => setData('currency', value)}>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder={t('Select Currency')} />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="USD">USD — US Dollar</SelectItem>
+                                            <SelectItem value="BDT">BDT — Bangladeshi Taka</SelectItem>
+                                            <SelectItem value="EUR">EUR — Euro</SelectItem>
+                                            <SelectItem value="GBP">GBP — British Pound</SelectItem>
+                                            <SelectItem value="AUD">AUD — Australian Dollar</SelectItem>
+                                            <SelectItem value="CAD">CAD — Canadian Dollar</SelectItem>
+                                            <SelectItem value="SGD">SGD — Singapore Dollar</SelectItem>
+                                            <SelectItem value="INR">INR — Indian Rupee</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <InputError message={errors.currency} />
+                                </div>
+
+                                <div className="md:col-span-2 lg:col-span-4">
                                     <Label htmlFor="notes">
                                         {t('Notes')}
                                     </Label>

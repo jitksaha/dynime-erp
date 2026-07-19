@@ -16,6 +16,7 @@ import {
     User, 
     Briefcase,
     Truck,
+    CalendarCheck,
     Check,
     ArrowLeftRight,
     RefreshCw
@@ -94,7 +95,8 @@ export default function PublicView({ invoice, companySettings }: PublicViewProps
 
     useEffect(() => {
         setIsFetchingRates(true);
-        fetch('https://open.er-api.com/v6/latest/USD')
+        const baseCurrency = invoice.service_brief?.currency || 'USD';
+        fetch(`https://open.er-api.com/v6/latest/${baseCurrency}`)
             .then(res => res.json())
             .then(data => {
                 if (data && data.rates) {
@@ -103,7 +105,7 @@ export default function PublicView({ invoice, companySettings }: PublicViewProps
             })
             .catch(err => console.error("Exchange rate fetch failed, using default fallback rates:", err))
             .finally(() => setIsFetchingRates(false));
-    }, []);
+    }, [invoice.service_brief?.currency]);
 
     const formatMockDate = (dateStr: any) => {
         if (!dateStr) return 'N/A';
@@ -118,7 +120,9 @@ export default function PublicView({ invoice, companySettings }: PublicViewProps
 
     const formatCurrency = (amount: any) => {
         const num = parseFloat(amount || 0);
-        return '$' + num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        const baseCurrency = invoice.service_brief?.currency || 'USD';
+        const symbol = getSymbol(baseCurrency);
+        return symbol + ' ' + num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     };
 
     const formatConvertedCurrency = (amount: number, currency: string) => {
@@ -344,14 +348,14 @@ export default function PublicView({ invoice, companySettings }: PublicViewProps
                                 </div>
                                 <div className="flex justify-between items-center text-[13px]">
                                     <span className="text-slate-400">Payment method</span>
-                                    <span className="font-bold text-slate-900">Bank Transfer</span>
+                                    <span className="font-bold text-slate-900">{invoice.service_brief?.payment_method || 'Bank Transfer'}</span>
                                 </div>
                             </div>
                             {/* Col 2 */}
                             <div className="space-y-3.5">
                                 <div className="flex justify-between items-center text-[13px]">
                                     <span className="text-slate-400">Currency</span>
-                                    <span className="font-bold text-slate-900">USD</span>
+                                    <span className="font-bold text-slate-900">{invoice.service_brief?.currency || 'USD'}</span>
                                 </div>
                                 <div className="flex justify-between items-center text-[13px]">
                                     <span className="text-slate-400">Date due</span>
@@ -360,7 +364,7 @@ export default function PublicView({ invoice, companySettings }: PublicViewProps
                                 <div className="flex justify-between items-center text-[13px]">
                                     <span className="text-slate-400">Est. Delivery Date</span>
                                     <span className="font-bold text-[#4F46E5] flex items-center gap-1.5">
-                                        <Truck className="h-4 w-4" />
+                                        {invoice.type === 'service' ? <CalendarCheck className="h-4 w-4" /> : <Truck className="h-4 w-4" />}
                                         {estDeliveryDate}
                                     </span>
                                 </div>
@@ -368,7 +372,7 @@ export default function PublicView({ invoice, companySettings }: PublicViewProps
                         </div>
 
                         {/* From & Billed To Addresses */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-10 mb-8">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-10 mb-8 print-avoid-break">
                             {/* FROM */}
                             <div>
                                 <div className="text-[12px] font-extrabold uppercase tracking-wider text-slate-400 mb-3.5 flex items-center gap-1.5">
@@ -414,10 +418,9 @@ export default function PublicView({ invoice, companySettings }: PublicViewProps
                                 </div>
                             </div>
 
-                            {/* Estimated delivery banner */}
-                            <div className="bg-[#EEF2F6]/60 border border-slate-100 rounded-2xl p-4 flex items-center gap-3.5">
+                            <div className="bg-[#EEF2F6]/60 border border-slate-100 rounded-2xl p-4 flex items-center gap-3.5 print-avoid-break">
                                 <div className="bg-white p-2.5 rounded-full shadow-sm text-[#4F46E5]">
-                                    <Truck className="h-5 w-5" />
+                                    {invoice.type === 'service' ? <CalendarCheck className="h-5 w-5" /> : <Truck className="h-5 w-5" />}
                                 </div>
                                 <div>
                                     <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">ESTIMATED DELIVERY DATE</span>
@@ -426,59 +429,61 @@ export default function PublicView({ invoice, companySettings }: PublicViewProps
                             </div>
                         </div>
 
-                        {/* Items Table */}
-                        <div className="mb-10 overflow-hidden">
-                            <table className="w-full text-slate-700 border-collapse">
-                                <thead>
-                                    <tr className="border-t-[1.5px] border-b-[1.5px] border-slate-900 text-[12px] font-bold uppercase text-slate-800">
-                                        <th className="py-3.5 text-left font-bold w-3/5">DESCRIPTION</th>
-                                        <th className="py-3.5 text-center font-bold">QTY</th>
-                                        <th className="py-3.5 text-right font-bold">UNIT PRICE</th>
-                                        <th className="py-3.5 text-right font-bold">AMOUNT</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {invoice.items?.map((item, index) => (
-                                        <tr key={index} className="border-b border-slate-100 text-[13.5px]">
-                                            <td className="py-5 pr-4 text-slate-900">
-                                                <div className="font-semibold leading-tight">{item.product?.name}</div>
-                                                {item.product?.sku && (
-                                                    <div className="text-[11px] text-slate-400 mt-1 uppercase tracking-wide">SKU: {item.product.sku}</div>
-                                                )}
-                                            </td>
-                                            <td className="py-5 text-center text-slate-700">{item.quantity}</td>
-                                            <td className="py-5 text-right text-slate-600">{formatCurrency(item.unit_price)}</td>
-                                            <td className="py-5 text-right font-bold text-slate-950">{formatCurrency(item.total_amount)}</td>
+                        <div className="print-avoid-break">
+                            {/* Items Table */}
+                            <div className="mb-10 overflow-hidden">
+                                <table className="w-full text-slate-700 border-collapse">
+                                    <thead>
+                                        <tr className="border-t-[1.5px] border-b-[1.5px] border-slate-900 text-[12px] font-bold uppercase text-slate-800">
+                                            <th className="py-3.5 text-left font-bold w-3/5">DESCRIPTION</th>
+                                            <th className="py-3.5 text-center font-bold">QTY</th>
+                                            <th className="py-3.5 text-right font-bold">UNIT PRICE</th>
+                                            <th className="py-3.5 text-right font-bold">AMOUNT</th>
                                         </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
+                                    </thead>
+                                    <tbody>
+                                        {invoice.items?.map((item, index) => (
+                                            <tr key={index} className="border-b border-slate-100 text-[13.5px]">
+                                                <td className="py-5 pr-4 text-slate-900">
+                                                    <div className="font-semibold leading-tight">{item.product?.name}</div>
+                                                    {item.product?.sku && (
+                                                        <div className="text-[11px] text-slate-400 mt-1 uppercase tracking-wide">SKU: {item.product.sku}</div>
+                                                    )}
+                                                </td>
+                                                <td className="py-5 text-center text-slate-700">{item.quantity}</td>
+                                                <td className="py-5 text-right text-slate-600">{formatCurrency(item.unit_price)}</td>
+                                                <td className="py-5 text-right font-bold text-slate-950">{formatCurrency(item.total_amount)}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
 
-                        {/* Table Totals aligned right */}
-                        <div className="flex justify-end mb-8">
-                            <div className="w-[320px] space-y-3.5 text-[13.5px]">
-                                <div className="flex justify-between border-t border-slate-100 pt-3.5 text-slate-600">
-                                    <span>Subtotal</span>
-                                    <span className="font-medium text-slate-900">{formatCurrency(invoice.subtotal)}</span>
-                                </div>
-                                {invoice.discount_amount > 0 && (
-                                    <div className="flex justify-between text-[#10B981] font-semibold">
-                                        <span>Discount</span>
-                                        <span>-{formatCurrency(invoice.discount_amount)}</span>
+                            {/* Table Totals aligned right */}
+                            <div className="flex justify-end mb-8">
+                                <div className="w-[320px] space-y-3.5 text-[13.5px]">
+                                    <div className="flex justify-between border-t border-slate-100 pt-3.5 text-slate-600">
+                                        <span>Subtotal</span>
+                                        <span className="font-medium text-slate-900">{formatCurrency(invoice.subtotal)}</span>
                                     </div>
-                                )}
-                                <div className="flex justify-between text-slate-600">
-                                    <span>Total excluding tax</span>
-                                    <span className="font-medium text-slate-900">{formatCurrency(invoice.total_amount)}</span>
-                                </div>
-                                <div className="flex justify-between text-slate-600">
-                                    <span>Tax</span>
-                                    <span className="font-medium text-slate-900">{formatCurrency(invoice.tax_amount)}</span>
-                                </div>
-                                <div className="flex justify-between border-t-[1.5px] border-slate-900 pt-3.5 text-[15px] font-bold text-slate-950">
-                                    <span>Total</span>
-                                    <span>{formatCurrency(invoice.total_amount)}</span>
+                                    {invoice.discount_amount > 0 && (
+                                        <div className="flex justify-between text-[#10B981] font-semibold">
+                                            <span>Discount</span>
+                                            <span>-{formatCurrency(invoice.discount_amount)}</span>
+                                        </div>
+                                    )}
+                                    <div className="flex justify-between text-slate-600">
+                                        <span>Total excluding tax</span>
+                                        <span className="font-medium text-slate-900">{formatCurrency(invoice.total_amount)}</span>
+                                    </div>
+                                    <div className="flex justify-between text-slate-600">
+                                        <span>Tax</span>
+                                        <span className="font-medium text-slate-900">{formatCurrency(invoice.tax_amount)}</span>
+                                    </div>
+                                    <div className="flex justify-between border-t-[1.5px] border-slate-900 pt-3.5 text-[15.5px] font-black text-black">
+                                        <span>Total</span>
+                                        <span>{formatCurrency(invoice.total_amount)}</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -490,7 +495,7 @@ export default function PublicView({ invoice, companySettings }: PublicViewProps
                         <div className="flex items-center gap-1.5">
                             <ArrowLeftRight className="w-3.5 h-3.5 text-indigo-500" />
                             <span>Currency Converter:</span>
-                            <span className="font-bold text-slate-800">{formatCurrency(invoice.total_amount)} USD</span>
+                            <span className="font-bold text-slate-800">{formatCurrency(invoice.total_amount)} {invoice.service_brief?.currency || 'USD'}</span>
                         </div>
                         <div className="flex items-center gap-2.5">
                             <span className="text-slate-500">is equivalent to</span>
@@ -579,42 +584,44 @@ export default function PublicView({ invoice, companySettings }: PublicViewProps
                             </>
                         )}
 
-                        {/* Project Brief Columns */}
-                        <div className="mb-12">
-                            <h3 className="text-[12px] font-extrabold uppercase tracking-widest text-slate-400 mb-6 flex items-center gap-2">
-                                <Briefcase className="h-4 w-4 text-slate-400" />
-                                PROJECT BRIEF
-                            </h3>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                                <div className="space-y-1">
-                                    <span className="text-[12px] text-slate-400 uppercase font-semibold">Due Date</span>
-                                    <p className="text-[14px] font-bold text-slate-800">{invoice.due_date ? formatMockDate(invoice.due_date) : 'July 1, 2026'}</p>
-                                </div>
-                                <div className="space-y-1">
-                                    <span className="text-[12px] text-slate-400 uppercase font-semibold">Amount Due</span>
-                                    <p className="text-[14px] font-bold text-slate-800">{invoice.total_amount}</p>
-                                </div>
-                                <div className="space-y-1">
-                                    <span className="text-[12px] text-slate-400 uppercase font-semibold">Estimated Delivery Date</span>
-                                    <p className="text-[14px] font-bold text-slate-800">{estDeliveryDate}</p>
+                        <div className="print-avoid-break">
+                            {/* Project Brief Columns */}
+                            <div className="mb-12">
+                                <h3 className="text-[12px] font-extrabold uppercase tracking-widest text-slate-400 mb-6 flex items-center gap-2">
+                                    <Briefcase className="h-4 w-4 text-slate-400" />
+                                    PROJECT BRIEF
+                                </h3>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                                    <div className="space-y-1">
+                                        <span className="text-[12px] text-slate-400 uppercase font-semibold">Due Date</span>
+                                        <p className="text-[14px] font-bold text-slate-800">{invoice.due_date ? formatMockDate(invoice.due_date) : 'July 1, 2026'}</p>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <span className="text-[12px] text-slate-400 uppercase font-semibold">Amount Due</span>
+                                        <p className="text-[14px] font-bold text-slate-800">{invoice.total_amount}</p>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <span className="text-[12px] text-slate-400 uppercase font-semibold">Estimated Delivery Date</span>
+                                        <p className="text-[14px] font-bold text-slate-800">{estDeliveryDate}</p>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
 
-                        {/* Page 2 Footer / Signature */}
-                        <div className="border-t border-slate-100 pt-8 text-center space-y-5">
-                            <div className="flex items-center justify-center text-[14px] font-bold text-slate-800">
-                                {logoUrl ? (
-                                    <img src={logoUrl} alt={companyName} className="h-6 object-contain" />
-                                ) : (
-                                    <span>{companyName}</span>
-                                )}
+                            {/* Page 2 Footer / Signature */}
+                            <div className="border-t border-slate-100 pt-8 text-center space-y-5">
+                                <div className="flex items-center justify-center text-[14px] font-bold text-slate-800">
+                                    {logoUrl ? (
+                                        <img src={logoUrl} alt={companyName} className="h-6 object-contain" />
+                                    ) : (
+                                        <span>{companyName}</span>
+                                    )}
+                                </div>
+                                <p className="text-[13px] text-slate-600 font-medium">Thank you for choosing <span className="font-bold">Dynime</span>.</p>
+                                <p className="text-[12px] text-slate-400">
+                                    Questions? Email <span className="text-slate-600 font-medium">{companyEmail}</span> · Reference #{invoice.invoice_number}
+                                </p>
+                                <p className="text-[11px] text-slate-300 font-semibold">{companyDomain}</p>
                             </div>
-                            <p className="text-[13px] text-slate-600 font-medium">Thank you for choosing <span className="font-bold">Dynime</span>.</p>
-                            <p className="text-[12px] text-slate-400">
-                                Questions? Email <span className="text-slate-600 font-medium">{companyEmail}</span> · Reference #{invoice.invoice_number}
-                            </p>
-                            <p className="text-[11px] text-slate-300 font-semibold">{companyDomain}</p>
                         </div>
 
                     </div>
@@ -636,7 +643,11 @@ export default function PublicView({ invoice, companySettings }: PublicViewProps
                     .print-page-break-container {
                         page-break-before: always !important;
                         break-before: page !important;
-                        margin-top: 4rem !important;
+                        margin-top: 2rem !important;
+                    }
+                    .print-avoid-break {
+                        page-break-inside: avoid !important;
+                        break-inside: avoid !important;
                     }
                     body {
                         background-color: white !important;

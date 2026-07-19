@@ -27,6 +27,8 @@ export interface SalesInvoice {
         amount_due?: number;
         partial_payments?: any[];
         included_services?: string[];
+        payment_method?: string;
+        currency?: string;
     };
     created_at: string;
     updated_at: string;

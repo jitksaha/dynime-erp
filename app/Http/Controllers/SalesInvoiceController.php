@@ -147,6 +147,19 @@ class SalesInvoiceController extends Controller
             $invoice->type = $request->type ?? 'product';
             $invoice->payment_terms = $request->payment_terms;
             $invoice->notes = $request->notes;
+            $invoice->estimated_delivery_date = $request->estimated_delivery_date;
+            $serviceBrief = [];
+            if ($request->has('whats_included')) {
+                $lines = array_values(array_filter(array_map('trim', explode("\n", $request->whats_included))));
+                $serviceBrief['included_services'] = $lines;
+            }
+            if ($request->has('payment_method')) {
+                $serviceBrief['payment_method'] = $request->payment_method;
+            }
+            if ($request->has('currency')) {
+                $serviceBrief['currency'] = $request->currency;
+            }
+            $invoice->service_brief = $serviceBrief;
             $invoice->subtotal = $totals['subtotal'];
             $invoice->tax_amount = $totals['tax_amount'];
             $invoice->discount_amount = $totals['discount_amount'];
@@ -243,6 +256,19 @@ class SalesInvoiceController extends Controller
             $salesInvoice->warehouse_id = $salesInvoice->type === 'product' ? $request->warehouse_id : null;
             $salesInvoice->payment_terms = $request->payment_terms;
             $salesInvoice->notes = $request->notes;
+            $salesInvoice->estimated_delivery_date = $request->estimated_delivery_date;
+            $serviceBrief = $salesInvoice->service_brief ?? [];
+            if ($request->has('whats_included')) {
+                $lines = array_values(array_filter(array_map('trim', explode("\n", $request->whats_included))));
+                $serviceBrief['included_services'] = $lines;
+            }
+            if ($request->has('payment_method')) {
+                $serviceBrief['payment_method'] = $request->payment_method;
+            }
+            if ($request->has('currency')) {
+                $serviceBrief['currency'] = $request->currency;
+            }
+            $salesInvoice->service_brief = $serviceBrief;
             $salesInvoice->subtotal = $totals['subtotal'];
             $salesInvoice->tax_amount = $totals['tax_amount'];
             $salesInvoice->discount_amount = $totals['discount_amount'];
