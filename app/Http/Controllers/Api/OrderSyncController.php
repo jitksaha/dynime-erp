@@ -48,6 +48,10 @@ class OrderSyncController extends Controller
         try {
             DB::beginTransaction();
 
+            // Find the company owner to associate with
+            $companyUser = User::where('type', 'company')->first();
+            $companyUserId = $companyUser ? $companyUser->id : 1;
+
             // Find or create customer
             $customer = User::where('email', $validated['customer_email'])->first();
             if (!$customer) {
@@ -56,11 +60,16 @@ class OrderSyncController extends Controller
                 $customer->email = $validated['customer_email'];
                 $customer->password = bcrypt(\Illuminate\Support\Str::random(16));
                 $customer->type = 'client';
-                $customer->created_by = 1; // Default creator (super admin or company creator)
+                $customer->created_by = $companyUserId;
                 $customer->save();
             } else {
                 if ($customer->name !== $validated['customer_name']) {
                     $customer->name = $validated['customer_name'];
+                    $customer->save();
+                }
+                // Ensure customer belongs to company workspace
+                if ($customer->created_by != $companyUserId) {
+                    $customer->created_by = $companyUserId;
                     $customer->save();
                 }
             }
@@ -90,8 +99,8 @@ class OrderSyncController extends Controller
                     $product->unit = $unit ? $unit->id : null;
                     $product->type = 'service';
                     $product->is_active = true;
-                    $product->creator_id = 1; // Super Admin ID
-                    $product->created_by = 1; // Super Admin ID
+                    $product->creator_id = $companyUserId;
+                    $product->created_by = $companyUserId;
                     $product->save();
                 }
                 $productId = $product->id;
@@ -157,8 +166,8 @@ class OrderSyncController extends Controller
             $invoice->paid_amount = isset($validated['paid_amount']) ? $validated['paid_amount'] : ($status === 'paid' ? $invoice->total_amount : 0);
             $invoice->balance_amount = $invoice->total_amount - $invoice->paid_amount;
             $invoice->status = $status;
-            $invoice->creator_id = 1; // Super Admin ID
-            $invoice->created_by = 1; // Super Admin ID
+            $invoice->creator_id = $companyUserId;
+            $invoice->created_by = $companyUserId;
             $invoice->save();
 
             // Create SalesInvoiceItems
