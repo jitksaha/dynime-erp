@@ -38,6 +38,8 @@ export default function Edit() {
         customer_id: invoice.customer_id.toString(),
         warehouse_id: invoice.warehouse_id?.toString() || '',
         type: invoice.type || 'product',
+        estimated_delivery_date: invoice.estimated_delivery_date || '',
+        whats_included: (invoice.service_brief?.included_services || []).join('\n'),
         items: (invoice.items || []).map(item => {
             const calculations = calculateLineItemAmounts(
                 item.quantity,
@@ -196,7 +198,7 @@ export default function Edit() {
                                 )}
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
                                 <div>
                                     <Label htmlFor="payment_terms">
                                         {t('Payment Terms')}
@@ -207,9 +209,23 @@ export default function Edit() {
                                         onChange={(e) => setData('payment_terms', e.target.value)}
                                         placeholder={t('e.g., Net 30')}
                                     />
+                                    <InputError message={errors.payment_terms} />
                                 </div>
 
                                 <div>
+                                    <Label htmlFor="estimated_delivery_date">
+                                        {t('Estimated Delivery Date')}
+                                    </Label>
+                                    <Input
+                                        id="estimated_delivery_date"
+                                        value={data.estimated_delivery_date}
+                                        onChange={(e) => setData('estimated_delivery_date', e.target.value)}
+                                        placeholder={t('e.g., August 10, 2026')}
+                                    />
+                                    <InputError message={errors.estimated_delivery_date} />
+                                </div>
+
+                                <div className="md:col-span-2">
                                     <Label htmlFor="notes">
                                         {t('Notes')}
                                     </Label>
@@ -220,7 +236,22 @@ export default function Edit() {
                                         rows={2}
                                         placeholder={t('Additional notes...')}
                                     />
+                                    <InputError message={errors.notes} />
                                 </div>
+                            </div>
+
+                            <div className="mt-4">
+                                <Label htmlFor="whats_included">
+                                    {t("What's Included (One item per line)")}
+                                </Label>
+                                <Textarea
+                                    id="whats_included"
+                                    value={data.whats_included}
+                                    onChange={(e) => setData('whats_included', e.target.value)}
+                                    rows={4}
+                                    placeholder={t("Custom Website Design & Development\nFrontend Development\nBackend Development")}
+                                />
+                                <InputError message={errors.whats_included} />
                             </div>
 
                             {/* Recurring Sales Invoice */}

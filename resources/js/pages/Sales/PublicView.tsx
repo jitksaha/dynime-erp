@@ -37,6 +37,52 @@ interface PublicViewProps {
     };
 }
 
+const getSymbol = (currency: string): string => {
+    const symbols: Record<string, string> = {
+        USD: '$',
+        EUR: '€',
+        GBP: '£',
+        AUD: 'A$',
+        CAD: 'C$',
+        JPY: '¥',
+        SGD: 'S$',
+        INR: '₹',
+        AED: 'د.إ',
+        SAR: 'ر.স',
+        CHF: 'CHF',
+        CNY: '¥',
+        NZD: 'NZ$',
+        HKD: 'HK$',
+        SEK: 'kr',
+        NOK: 'kr',
+        DKK: 'kr',
+        MYR: 'RM',
+        THB: '฿',
+        PHP: '₱',
+        IDR: 'Rp',
+        MXN: 'MX$',
+        BRL: 'R$',
+        ZAR: 'R',
+        TRY: '₺',
+        KRW: '₩',
+        PLN: 'zł',
+        KWD: 'د.ك',
+        QAR: 'ر.ق',
+        OMR: 'ر.ع.',
+        BHD: '.د.ب',
+        EGP: 'E£',
+        PKR: '₨',
+        LKR: 'Rs',
+        NPR: 'Rs',
+        VND: '₫',
+        RUB: '₽',
+        UAH: '₴',
+        ILS: '₪',
+        BDT: '৳'
+    };
+    return symbols[currency] || currency;
+};
+
 export default function PublicView({ invoice, companySettings }: PublicViewProps) {
     const [isDownloading, setIsDownloading] = useState(false);
     const [copied, setCopied] = useState(false);
@@ -143,15 +189,29 @@ export default function PublicView({ invoice, companySettings }: PublicViewProps
         "PageSpeed Performance Target: 90+ Desktop"
     ];
 
-    const includedServices = invoice.service_brief?.included_services || defaultInclusions;
+    const includedServices = invoice.service_brief?.included_services || [];
 
-    // Resolve Billed From details (using official details from mockup)
-    const companyName = "Dynime LLC.";
-    const companyDomain = "dynime.com";
-    const companyEmail = "support@dynime.com";
-    const companyPhone = "+1 (646) 884-0271";
-    const companyAddress = "244 5th Ave, Suite #1964, New York, NY 10001, USA";
-    const logoUrl = "https://cdn.dynime.com/media/KVhzkR7rCJFuzFxBU8ljBqFb2PItfQM5i3omxMNF.png";
+    // Resolve Billed From details dynamically
+    const companyName = companySettings?.company_name || "Dynime LLC.";
+    const companyEmail = companySettings?.company_email || "support@dynime.com";
+    const companyPhone = companySettings?.company_telephone || "+1 (646) 884-0271";
+    const companyDomain = companyEmail.split('@')[1] || "dynime.com";
+    
+    const addressParts = [
+        companySettings?.company_address,
+        companySettings?.company_city,
+        companySettings?.company_state,
+        companySettings?.company_zipcode,
+        companySettings?.company_country
+    ].filter(Boolean);
+    const companyAddress = addressParts.length > 0 
+        ? addressParts.join(', ') 
+        : "244 5th Ave, Suite #1964, New York, NY 10001, USA";
+
+    const rawLogo = companySettings?.company_logo;
+    const logoUrl = rawLogo 
+        ? (rawLogo.startsWith('http') ? rawLogo : `/storage/${rawLogo}`)
+        : "https://cdn.dynime.com/media/KVhzkR7rCJFuzFxBU8ljBqFb2PItfQM5i3omxMNF.png";
 
     // Format dates
     const dateOfIssue = formatMockDate(invoice.invoice_date);
@@ -206,28 +266,8 @@ export default function PublicView({ invoice, companySettings }: PublicViewProps
                 </div>
             )}
 
-            {/* Dynime.com Header Navbar Integration (hidden in print) */}
-            <header className="w-full bg-white border-b border-slate-100 py-4 px-6 md:px-12 flex justify-between items-center print:hidden shadow-sm sticky top-0 z-40">
-                <a href="https://dynime.com" className="flex items-center gap-2">
-                    <img src={logoUrl} className="h-7 object-contain" alt="dynime" />
-                </a>
-                <nav className="hidden lg:flex items-center gap-8 text-[14px] font-semibold text-slate-600">
-                    <a href="https://dynime.com" className="hover:text-[#4F46E5] transition-colors">Home</a>
-                    <a href="https://dynime.com/about" className="hover:text-[#4F46E5] transition-colors">About</a>
-                    <a href="https://dynime.com/services" className="hover:text-[#4F46E5] transition-colors">Services</a>
-                    <a href="https://dynime.com/os" className="hover:text-[#4F46E5] transition-colors">Dynime OS</a>
-                    <a href="https://dynime.com/portfolio" className="hover:text-[#4F46E5] transition-colors">Portfolio</a>
-                    <a href="https://dynime.com/blog" className="hover:text-[#4F46E5] transition-colors">Blog</a>
-                </nav>
-                <div className="flex items-center gap-4">
-                    <span className="text-slate-400 text-lg cursor-pointer hover:text-slate-600 transition-colors">☀️</span>
-                    <span className="text-slate-400 text-lg cursor-pointer hover:text-slate-600 transition-colors">👤</span>
-                    <a href="https://dynime.com/contact" className="bg-[#4F46E5] text-white px-5 py-2 rounded-full text-xs font-bold hover:bg-[#4338CA] transition-all">Contact →</a>
-                </div>
-            </header>
-
             {/* Quick Action bar (hidden in print) */}
-            <div className="max-w-[850px] mx-auto mt-8 mb-6 px-4 sm:px-0 flex flex-col sm:flex-row justify-between items-center gap-4 print:hidden">
+            <div className="max-w-[850px] mx-auto mt-12 mb-6 px-4 sm:px-0 flex flex-col sm:flex-row justify-between items-center gap-4 print:hidden">
                 <div className="flex items-center gap-2">
                     <span className="text-sm font-semibold text-slate-400">Share Invoice URL</span>
                 </div>
@@ -272,13 +312,21 @@ export default function PublicView({ invoice, companySettings }: PublicViewProps
                                 </div>
                             </div>
                             <div className="sm:text-right">
-                                <img 
-                                    src={logoUrl} 
-                                    alt={companyName} 
-                                    className="h-[28px] object-contain mb-3 sm:ml-auto" 
-                                />
-                                <p className="font-bold text-slate-800 text-[14px] leading-tight">{companyName}</p>
-                                <p className="text-slate-500 text-[13px]">{companyDomain}</p>
+                                {logoUrl ? (
+                                    <>
+                                        <img 
+                                            src={logoUrl} 
+                                            alt={companyName} 
+                                            className="h-[28px] object-contain mb-2 sm:ml-auto" 
+                                        />
+                                        <p className="text-slate-500 text-[12px]">{companyDomain}</p>
+                                    </>
+                                ) : (
+                                    <>
+                                        <p className="font-bold text-slate-800 text-[14px] leading-tight mb-1">{companyName}</p>
+                                        <p className="text-slate-500 text-[12px]">{companyDomain}</p>
+                                    </>
+                                )}
                             </div>
                         </div>
 
@@ -435,64 +483,68 @@ export default function PublicView({ invoice, companySettings }: PublicViewProps
                             </div>
                         </div>
                     </div>
-
-                    {/* ============================================================== */}
+                            {/* ============================================================== */}
                     {/* LIVE CURRENCY CONVERTER (Screen Only) */}
                     {/* ============================================================== */}
-                    <div className="px-8 sm:px-12 py-8 bg-[#FAFBFD] border-t border-b border-slate-100 print:hidden">
-                        <div className="flex items-center justify-between flex-wrap gap-2 mb-4">
-                            <p className="text-[11px] uppercase tracking-wider text-slate-400 font-extrabold flex items-center gap-1.5">
-                                <ArrowLeftRight className="w-3.5 h-3.5 text-slate-400" /> CURRENCY CONVERTER
-                            </p>
-                            <div className="flex items-center gap-1.5 text-[11px] text-slate-400 font-medium">
-                                {isFetchingRates && <RefreshCw className="w-3 h-3 animate-spin text-slate-400" />}
-                                <span>Live FX rate</span>
-                            </div>
+                    <div className="px-8 sm:px-12 py-3 bg-[#FAFBFD] border-t border-b border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 print:hidden text-xs text-slate-500 font-medium">
+                        <div className="flex items-center gap-1.5">
+                            <ArrowLeftRight className="w-3.5 h-3.5 text-indigo-500" />
+                            <span>Currency Converter:</span>
+                            <span className="font-bold text-slate-800">{formatCurrency(invoice.total_amount)} USD</span>
                         </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_1fr] items-center gap-6">
-                            {/* Invoice side */}
-                            <div className="rounded-xl border border-slate-100 bg-white p-4">
-                                <p className="text-[10px] uppercase tracking-wider text-slate-400 font-bold mb-1">
-                                    Invoice amount
-                                </p>
-                                <p className="text-2xl font-extrabold text-slate-900">
-                                    {formatCurrency(invoice.total_amount)}
-                                </p>
-                                <p className="text-[11px] text-slate-400 mt-1 font-medium">
-                                    US Dollar
-                                </p>
-                            </div>
-
-                            <div className="hidden sm:flex items-center justify-center">
-                                <ArrowLeftRight className="w-5 h-5 text-slate-300" />
-                            </div>
-
-                            {/* Target side */}
-                            <div className="rounded-xl border border-[#4F46E5]/20 bg-[#4F46E5]/[0.02] p-4">
-                                <div className="flex items-center justify-between gap-2 mb-1">
-                                    <p className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">
-                                        Equivalent in
-                                    </p>
-                                    <select
-                                        value={targetCurrency}
-                                        onChange={(e) => setTargetCurrency(e.target.value)}
-                                        className="bg-transparent text-[11px] font-bold text-[#4F46E5] border border-slate-200 rounded-md px-2 py-0.5 focus:outline-none focus:ring-1 focus:ring-[#4F46E5]"
-                                        aria-label="Convert invoice total to currency"
-                                    >
-                                        <option value="BDT">BDT — Bangladeshi Taka</option>
-                                        <option value="USD">USD — US Dollar</option>
-                                        <option value="EUR">EUR — Euro</option>
-                                        <option value="GBP">GBP — British Pound</option>
-                                    </select>
-                                </div>
-                                <p className="text-2xl font-extrabold text-[#4F46E5] tracking-tight">
-                                    {formatConvertedCurrency(convertedAmount, targetCurrency)}
-                                </p>
-                                <p className="text-[11px] text-[#4F46E5]/70 mt-1 font-medium">
-                                    {targetCurrency === 'BDT' ? 'Bangladeshi Taka' : targetCurrency}
-                                </p>
-                            </div>
+                        <div className="flex items-center gap-2">
+                            <span>is equivalent to</span>
+                            <span className="font-extrabold text-indigo-600 text-[14px] min-w-[80px] text-right">
+                                {targetCurrency === 'BDT' ? formatConvertedCurrency(convertedAmount, 'BDT') : `${getSymbol(targetCurrency)} ${formatConvertedCurrency(convertedAmount, targetCurrency)}`}
+                            </span>
+                            <select
+                                value={targetCurrency}
+                                onChange={(e) => setTargetCurrency(e.target.value)}
+                                className="bg-white border border-slate-200 rounded-md px-1.5 py-0.5 text-[11px] font-bold text-[#4F46E5] focus:outline-none focus:ring-1 focus:ring-[#4F46E5] ml-1"
+                                aria-label="Convert invoice total to currency"
+                            >
+                                <option value="BDT">BDT — Bangladeshi Taka</option>
+                                <option value="USD">USD — US Dollar</option>
+                                <option value="EUR">EUR — Euro</option>
+                                <option value="GBP">GBP — British Pound</option>
+                                <option value="AUD">AUD — Australian Dollar</option>
+                                <option value="CAD">CAD — Canadian Dollar</option>
+                                <option value="JPY">JPY — Japanese Yen</option>
+                                <option value="SGD">SGD — Singapore Dollar</option>
+                                <option value="INR">INR — Indian Rupee</option>
+                                <option value="AED">AED — UAE Dirham</option>
+                                <option value="SAR">SAR — Saudi Riyal</option>
+                                <option value="CHF">CHF — Swiss Franc</option>
+                                <option value="CNY">CNY — Chinese Yuan</option>
+                                <option value="NZD">NZD — New Zealand Dollar</option>
+                                <option value="HKD">HKD — Hong Kong Dollar</option>
+                                <option value="SEK">SEK — Swedish Krona</option>
+                                <option value="NOK">NOK — Norwegian Krone</option>
+                                <option value="DKK">DKK — Danish Krone</option>
+                                <option value="MYR">MYR — Malaysian Ringgit</option>
+                                <option value="THB">THB — Thai Baht</option>
+                                <option value="PHP">PHP — Philippine Peso</option>
+                                <option value="IDR">IDR — Indonesian Rupiah</option>
+                                <option value="MXN">MXN — Mexican Peso</option>
+                                <option value="BRL">BRL — Brazilian Real</option>
+                                <option value="ZAR">ZAR — South African Rand</option>
+                                <option value="TRY">TRY — Turkish Lira</option>
+                                <option value="KRW">KRW — South Korean Won</option>
+                                <option value="PLN">PLN — Polish Zloty</option>
+                                <option value="KWD">KWD — Kuwaiti Dinar</option>
+                                <option value="QAR">QAR — Qatari Rial</option>
+                                <option value="OMR">OMR — Omani Rial</option>
+                                <option value="BHD">BHD — Bahraini Dinar</option>
+                                <option value="EGP">EGP — Egyptian Pound</option>
+                                <option value="PKR">PKR — Pakistani Rupee</option>
+                                <option value="LKR">LKR — Sri Lankan Rupee</option>
+                                <option value="NPR">NPR — Nepalese Rupee</option>
+                                <option value="VND">VND — Vietnamese Dong</option>
+                                <option value="RUB">RUB — Russian Ruble</option>
+                                <option value="UAH">UAH — Ukrainian Hryvnia</option>
+                                <option value="ILS">ILS — Israeli New Shekel</option>
+                            </select>
+                            {isFetchingRates && <RefreshCw className="w-3.5 h-3.5 animate-spin text-slate-400 ml-1" />}
                         </div>
                     </div>
 
@@ -501,25 +553,29 @@ export default function PublicView({ invoice, companySettings }: PublicViewProps
                     {/* ============================================================== */}
                     <div className="p-8 sm:p-12 pt-10 print:p-0 print:pt-10 print-page-break print-page-break-container border-t border-slate-50 print:border-none">
                         
-                        {/* Inclusion title */}
-                        <div className="mb-8">
-                            <h2 className="text-[12px] font-extrabold uppercase tracking-widest text-slate-400 flex items-center gap-2">
-                                <CheckCircle2 className="h-4 w-4 text-slate-400" />
-                                WHAT'S INCLUDED
-                            </h2>
-                        </div>
-
-                        {/* 2-Column inclusions grid */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4 mb-10 pb-10 border-b border-slate-100">
-                            {includedServices.map((service: string, index: number) => (
-                                <div key={index} className="flex items-start gap-3 text-[13px] text-slate-700 leading-tight">
-                                    <div className="bg-[#ECFDF5] border border-emerald-100 p-0.5 rounded-full mt-0.5 text-emerald-600">
-                                        <Check className="h-3 w-3 stroke-[3]" />
-                                    </div>
-                                    <span>{service}</span>
+                        {includedServices.length > 0 && (
+                            <>
+                                {/* Inclusion title */}
+                                <div className="mb-8">
+                                    <h2 className="text-[12px] font-extrabold uppercase tracking-widest text-slate-400 flex items-center gap-2">
+                                        <CheckCircle2 className="h-4 w-4 text-slate-400" />
+                                        WHAT'S INCLUDED
+                                    </h2>
                                 </div>
-                            ))}
-                        </div>
+
+                                {/* 2-Column inclusions grid */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4 mb-10 pb-10 border-b border-slate-100">
+                                    {includedServices.map((service: string, index: number) => (
+                                        <div key={index} className="flex items-start gap-3 text-[13px] text-slate-700 leading-tight">
+                                            <div className="bg-[#ECFDF5] border border-emerald-100 p-0.5 rounded-full mt-0.5 text-emerald-600">
+                                                <Check className="h-3 w-3 stroke-[3]" />
+                                            </div>
+                                            <span>{service}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </>
+                        )}
 
                         {/* Project Brief Columns */}
                         <div className="mb-12">
@@ -545,9 +601,12 @@ export default function PublicView({ invoice, companySettings }: PublicViewProps
 
                         {/* Page 2 Footer / Signature */}
                         <div className="border-t border-slate-100 pt-8 text-center space-y-5">
-                            <div className="flex items-center justify-center gap-2 text-[14px] font-bold text-slate-800">
-                                <img src={logoUrl} alt={companyName} className="h-5 object-contain" />
-                                <span>{companyName}</span>
+                            <div className="flex items-center justify-center text-[14px] font-bold text-slate-800">
+                                {logoUrl ? (
+                                    <img src={logoUrl} alt={companyName} className="h-6 object-contain" />
+                                ) : (
+                                    <span>{companyName}</span>
+                                )}
                             </div>
                             <p className="text-[13px] text-slate-600 font-medium">Thank you for choosing <span className="font-bold">Dynime</span>.</p>
                             <p className="text-[12px] text-slate-400">
