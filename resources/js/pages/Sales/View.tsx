@@ -211,7 +211,9 @@ export default function View() {
                                                     }}
                                                 >
                                                     <SelectTrigger className="w-[170px] h-8 text-xs font-semibold capitalize border border-slate-200 bg-white">
-                                                        <SelectValue />
+                                                        <SelectValue placeholder={t('Select Stage')}>
+                                                            {localInvoice.project_status ? t(localInvoice.project_status) : ''}
+                                                        </SelectValue>
                                                     </SelectTrigger>
                                                     <SelectContent>
                                                         {PROJECT_STATUS_MAP[localInvoice.project_category]?.map((st) => (
@@ -297,72 +299,73 @@ export default function View() {
                                         </div>
                                     )}
                                 </div>
-                                <div className="mt-4 p-3 bg-blue-50 rounded">
-                                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
-                                        <div className="flex flex-wrap gap-2">
-                                            {auth.user?.permissions?.includes('print-sales-invoices') && (
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    onClick={downloadPDF}
-                                                >
-                                                    <Download className="h-4 w-4 mr-2" />
-                                                    {t('Download PDF')}
-                                                </Button>
-                                            )}
-                                            {auth.user?.permissions?.includes('edit-sales-invoices') && (
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    onClick={() => router.get(route('sales-invoices.edit', localInvoice.id))}
-                                                >
-                                                    <Pencil className="h-4 w-4 mr-2" />
-                                                    {t('Edit Invoice')}
-                                                </Button>
-                                            )}
-                                            {auth.user?.permissions?.includes('view-sales-invoices') && (
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    onClick={() => {
-                                                        const shareUrl = 'https://billing.dynime.com/' + localInvoice.invoice_number;
-                                                        navigator.clipboard.writeText(shareUrl);
-                                                        setCopied(true);
-                                                        setTimeout(() => setCopied(false), 2000);
-                                                    }}
-                                                >
-                                                    <Share2 className="h-4 w-4 mr-2" />
-                                                    {copied ? t('Copied!') : t('Copy Share Link')}
-                                                </Button>
-                                            )}
-                                            {localInvoice.status === 'draft' && auth.user?.permissions?.includes('post-sales-invoices') && (
-                                                <TooltipProvider>
-                                                    <Tooltip delayDuration={0}>
-                                                        <TooltipTrigger asChild>
-                                                            <Button
-                                                                size="sm"
-                                                                onClick={() => router.post(route('sales-invoices.post', localInvoice.id), {}, {
-                                                                    onSuccess: () => {
-                                                                        router.reload();
-                                                                    }
-                                                                })}
-                                                            >
-                                                                <FileText className="h-4 w-4 mr-2" />
-                                                                {t('Post Invoice')}
-                                                            </Button>
-                                                        </TooltipTrigger>
-                                                        <TooltipContent>
-                                                            <p>{t('Post invoice to finalize and create journal entries')}</p>
-                                                        </TooltipContent>
-                                                    </Tooltip>
-                                                </TooltipProvider>
-                                            )}
-                                        </div>
-                                        <div className="text-right sm:text-right">
-                                            <div className="text-lg sm:text-xl font-bold text-blue-600">{formatCurrency(localInvoice.balance_amount)}</div>
-                                            <div className="text-xs sm:text-sm text-muted-foreground">{t('Balance Due')}</div>
-                                        </div>
-                                    </div>
+                            </div>
+                        </div>
+
+                        <div className="mt-6 p-4 bg-blue-50/50 border border-blue-100 rounded-xl">
+                            <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+                                <div className="flex flex-wrap items-center gap-2">
+                                    {auth.user?.permissions?.includes('print-sales-invoices') && (
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={downloadPDF}
+                                        >
+                                            <Download className="h-4 w-4 mr-2" />
+                                            {t('Download PDF')}
+                                        </Button>
+                                    )}
+                                    {auth.user?.permissions?.includes('edit-sales-invoices') && (
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => router.get(route('sales-invoices.edit', localInvoice.id))}
+                                        >
+                                            <Pencil className="h-4 w-4 mr-2" />
+                                            {t('Edit Invoice')}
+                                        </Button>
+                                    )}
+                                    {auth.user?.permissions?.includes('view-sales-invoices') && (
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => {
+                                                const shareUrl = 'https://billing.dynime.com/' + localInvoice.invoice_number;
+                                                navigator.clipboard.writeText(shareUrl);
+                                                setCopied(true);
+                                                setTimeout(() => setCopied(false), 2000);
+                                            }}
+                                        >
+                                            <Share2 className="h-4 w-4 mr-2" />
+                                            {copied ? t('Copied!') : t('Copy Share Link')}
+                                        </Button>
+                                    )}
+                                    {localInvoice.status === 'draft' && auth.user?.permissions?.includes('post-sales-invoices') && (
+                                        <TooltipProvider>
+                                            <Tooltip delayDuration={0}>
+                                                <TooltipTrigger asChild>
+                                                    <Button
+                                                        size="sm"
+                                                        onClick={() => router.post(route('sales-invoices.post', localInvoice.id), {}, {
+                                                            onSuccess: () => {
+                                                                router.reload();
+                                                            }
+                                                        })}
+                                                    >
+                                                        <FileText className="h-4 w-4 mr-2" />
+                                                        {t('Post Invoice')}
+                                                    </Button>
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    <p>{t('Post invoice to finalize and create journal entries')}</p>
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        </TooltipProvider>
+                                    )}
+                                </div>
+                                <div className="text-right">
+                                    <div className="text-xl font-bold text-blue-600">{formatCurrency(localInvoice.balance_amount)}</div>
+                                    <div className="text-xs text-muted-foreground">{t('Balance Due')}</div>
                                 </div>
                             </div>
                         </div>
