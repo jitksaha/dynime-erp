@@ -241,10 +241,6 @@ class SalesInvoiceController extends Controller
                 return redirect()->route('sales-invoices.index')->with('error', __('Permission denied'));
             }
 
-            if ($salesInvoice->status != 'draft') {
-                return redirect()->route('sales-invoices.index')->with('error', __('Cannot update posted invoice.'));
-            }
-
             $salesInvoice->load(['items.taxes']);
 
             EditSalesInvoice::dispatch($salesInvoice);

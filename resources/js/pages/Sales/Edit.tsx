@@ -19,6 +19,8 @@ import { DatePicker } from '@/components/ui/date-picker';
 import { Separator } from '@/components/ui/separator';
 import { PAYMENT_STATUSES, OPERATIONAL_STATUSES, PROJECT_CATEGORIES, PROJECT_STATUS_MAP } from './utils';
 import { CalendarDays, Package } from 'lucide-react';
+import QuickCreateCustomerDialog from '@/components/QuickCreateCustomerDialog';
+import MiniCalculator from '@/components/MiniCalculator';
 
 interface EditProps {
     invoice: SalesInvoice;
@@ -30,8 +32,9 @@ interface EditProps {
 
 export default function Edit() {
     const { t } = useTranslation();
-    const { invoice, customers, warehouses, modules } = usePage<EditProps>().props;
+    const { invoice, customers: initialCustomers, warehouses, modules } = usePage<EditProps>().props;
     const [availableProducts, setAvailableProducts] = useState([]);
+    const [customers, setCustomers] = useState(initialCustomers);
 
 
     const { data, setData, put, processing, errors } = useForm({
@@ -165,9 +168,17 @@ export default function Edit() {
                                 </div>
 
                                 <div>
-                                    <Label htmlFor="customer_id" required>
-                                        {t('Customer')}
-                                    </Label>
+                                    <div className="flex items-center justify-between mb-1">
+                                        <Label htmlFor="customer_id" required>
+                                            {t('Customer')}
+                                        </Label>
+                                        <QuickCreateCustomerDialog
+                                            onCreated={(newCustomer) => {
+                                                setCustomers(prev => [...prev, newCustomer]);
+                                                setData('customer_id', newCustomer.id.toString());
+                                            }}
+                                        />
+                                    </div>
                                     <Select value={data.customer_id} onValueChange={(value) => setData('customer_id', value)}>
                                         <SelectTrigger>
                                             <SelectValue placeholder={t('Select Customer')} />
@@ -461,11 +472,14 @@ export default function Edit() {
 
                              {/* Currency Converter & Invoice Summary */}
                              <div className="mt-6 flex flex-col md:flex-row justify-between items-start gap-4">
-                                 <CurrencyConverter
-                                     items={data.items}
-                                     onChange={(items) => setData('items', items)}
-                                     calculateLineItemAmounts={calculateLineItemAmounts}
-                                 />
+                                 <div className="flex flex-col sm:flex-row gap-3 items-stretch">
+                                     <CurrencyConverter
+                                         items={data.items}
+                                         onChange={(items) => setData('items', items)}
+                                         calculateLineItemAmounts={calculateLineItemAmounts}
+                                     />
+                                     <MiniCalculator />
+                                 </div>
                                  <div className="w-80 bg-muted/30 rounded-lg p-4">
                                      <h3 className="font-semibold mb-3">{t('Invoice Summary')}</h3>
                                     <div>

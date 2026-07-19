@@ -7,7 +7,7 @@ import { formatCurrency, formatDate } from '@/utils/helpers';
 import { getStatusBadgeClasses } from './utils';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { FileText, Download, Share2 } from 'lucide-react';
+import { FileText, Download, Share2, Pencil } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { usePageButtons } from '@/hooks/usePageButtons';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -240,6 +240,16 @@ export default function View() {
                                                 >
                                                     <Download className="h-4 w-4 mr-2" />
                                                     {t('Download PDF')}
+                                                </Button>
+                                            )}
+                                            {auth.user?.permissions?.includes('edit-sales-invoices') && (
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => router.get(route('sales-invoices.edit', invoice.id))}
+                                                >
+                                                    <Pencil className="h-4 w-4 mr-2" />
+                                                    {t('Edit Invoice')}
                                                 </Button>
                                             )}
                                             {auth.user?.permissions?.includes('view-sales-invoices') && (
