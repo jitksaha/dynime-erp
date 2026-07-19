@@ -364,7 +364,7 @@ export default function PublicView({ invoice, companySettings }: PublicViewProps
                                 <div className="flex justify-between items-center text-[13px]">
                                     <span className="text-slate-400">Est. Delivery Date</span>
                                     <span className="font-bold text-[#4F46E5] flex items-center gap-1.5">
-                                        {invoice.type === 'service' ? <CalendarCheck className="h-4 w-4" /> : <Truck className="h-4 w-4" />}
+                                        {(invoice.type === 'service' || !invoice.warehouse_id) ? <CalendarCheck className="h-4 w-4" /> : <Truck className="h-4 w-4" />}
                                         {estDeliveryDate}
                                     </span>
                                 </div>
@@ -420,7 +420,7 @@ export default function PublicView({ invoice, companySettings }: PublicViewProps
 
                             <div className="bg-[#EEF2F6]/60 border border-slate-100 rounded-2xl p-4 flex items-center gap-3.5 print-avoid-break">
                                 <div className="bg-white p-2.5 rounded-full shadow-sm text-[#4F46E5]">
-                                    {invoice.type === 'service' ? <CalendarCheck className="h-5 w-5" /> : <Truck className="h-5 w-5" />}
+                                    {(invoice.type === 'service' || !invoice.warehouse_id) ? <CalendarCheck className="h-5 w-5" /> : <Truck className="h-5 w-5" />}
                                 </div>
                                 <div>
                                     <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">ESTIMATED DELIVERY DATE</span>
@@ -598,7 +598,7 @@ export default function PublicView({ invoice, companySettings }: PublicViewProps
                                     </div>
                                     <div className="space-y-1">
                                         <span className="text-[12px] text-slate-400 uppercase font-semibold">Amount Due</span>
-                                        <p className="text-[14px] font-bold text-slate-800">{invoice.total_amount}</p>
+                                        <p className="text-[14px] font-bold text-slate-800">{formatCurrency(invoice.total_amount)}</p>
                                     </div>
                                     <div className="space-y-1">
                                         <span className="text-[12px] text-slate-400 uppercase font-semibold">Estimated Delivery Date</span>
