@@ -173,10 +173,13 @@ class SalesInvoiceController extends Controller
             $invoice->project_status = $request->project_status;
             if ($invoice->payment_status === 'Paid') {
                 $invoice->status = 'paid';
+                $invoice->paid_amount = $totals['total_amount'];
             } elseif ($invoice->payment_status === 'Partially Paid') {
                 $invoice->status = 'partial';
+                $invoice->paid_amount = floatval($request->input('paid_amount', 0));
             } else {
                 $invoice->status = 'posted';
+                $invoice->paid_amount = 0;
             }
             $serviceBrief = [];
             if ($request->has('whats_included')) {
@@ -194,7 +197,7 @@ class SalesInvoiceController extends Controller
             $invoice->tax_amount = $totals['tax_amount'];
             $invoice->discount_amount = $totals['discount_amount'];
             $invoice->total_amount = $totals['total_amount'];
-            $invoice->balance_amount = $totals['total_amount'];
+            $invoice->balance_amount = max(0, $totals['total_amount'] - $invoice->paid_amount);
             $invoice->creator_id = Auth::id();
             $invoice->created_by = creatorId();
             $invoice->save();
@@ -285,10 +288,17 @@ class SalesInvoiceController extends Controller
                 $salesInvoice->payment_status = $request->payment_status;
                 if ($request->payment_status === 'Paid') {
                     $salesInvoice->status = 'paid';
+                    $salesInvoice->paid_amount = $totals['total_amount'];
                 } elseif ($request->payment_status === 'Partially Paid') {
                     $salesInvoice->status = 'partial';
+                    $salesInvoice->paid_amount = floatval($request->input('paid_amount', $salesInvoice->paid_amount));
                 } else {
                     $salesInvoice->status = 'posted';
+                    $salesInvoice->paid_amount = 0;
+                }
+            } else {
+                if ($salesInvoice->payment_status === 'Partially Paid') {
+                    $salesInvoice->paid_amount = floatval($request->input('paid_amount', $salesInvoice->paid_amount));
                 }
             }
             if ($request->has('operational_status')) {
@@ -316,7 +326,7 @@ class SalesInvoiceController extends Controller
             $salesInvoice->tax_amount = $totals['tax_amount'];
             $salesInvoice->discount_amount = $totals['discount_amount'];
             $salesInvoice->total_amount = $totals['total_amount'];
-            $salesInvoice->balance_amount = $totals['total_amount'];
+            $salesInvoice->balance_amount = max(0, $totals['total_amount'] - $salesInvoice->paid_amount);
             $salesInvoice->save();
 
             // Delete existing items and recreate
@@ -539,11 +549,12 @@ class SalesInvoiceController extends Controller
     public function updateStatus(Request $request, SalesInvoice $salesInvoice)
     {
         if (Auth::user()->can('edit-sales-invoices') && $salesInvoice->created_by == creatorId()) {
-            $request->validate([
+             $request->validate([
                 'payment_status' => 'nullable|string|in:Unpaid,Authorized,Partially Paid,Paid,Refunded,Failed',
                 'operational_status' => 'nullable|string|in:Pending,Processing,In Review,Action Required,Delivered,Completed,Cancelled',
                 'project_category' => 'nullable|string',
-                'project_status' => 'nullable|string'
+                'project_status' => 'nullable|string',
+                'paid_amount' => 'nullable|numeric|min:0'
             ]);
 
             if ($request->has('payment_status')) {
@@ -554,11 +565,18 @@ class SalesInvoiceController extends Controller
                     $salesInvoice->balance_amount = 0;
                 } elseif ($request->payment_status === 'Partially Paid') {
                     $salesInvoice->status = 'partial';
+                    if ($request->has('paid_amount')) {
+                        $salesInvoice->paid_amount = floatval($request->paid_amount);
+                    }
+                    $salesInvoice->balance_amount = max(0, $salesInvoice->total_amount - $salesInvoice->paid_amount);
                 } elseif ($request->payment_status === 'Unpaid' || $request->payment_status === 'Failed') {
                     $salesInvoice->status = 'posted';
                     $salesInvoice->paid_amount = 0;
                     $salesInvoice->balance_amount = $salesInvoice->total_amount;
                 }
+            } elseif ($request->has('paid_amount') && $salesInvoice->payment_status === 'Partially Paid') {
+                $salesInvoice->paid_amount = floatval($request->paid_amount);
+                $salesInvoice->balance_amount = max(0, $salesInvoice->total_amount - $salesInvoice->paid_amount);
             }
 
             if ($request->has('operational_status')) {
@@ -579,7 +597,27 @@ class SalesInvoiceController extends Controller
 
             $salesInvoice->save();
 
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => __('Invoice status updated successfully.'),
+                    'data' => [
+                        'payment_status' => $salesInvoice->payment_status,
+                        'operational_status' => $salesInvoice->operational_status,
+                        'project_category' => $salesInvoice->project_category,
+                        'project_status' => $salesInvoice->project_status,
+                        'status' => $salesInvoice->status,
+                        'paid_amount' => $salesInvoice->paid_amount,
+                        'balance_amount' => $salesInvoice->balance_amount,
+                    ]
+                ]);
+            }
+
             return redirect()->back()->with('success', __('Invoice status updated successfully.'));
+        }
+
+        if ($request->expectsJson()) {
+            return response()->json(['success' => false, 'message' => __('Permission denied')], 403);
         }
         return redirect()->back()->with('error', __('Permission denied'));
     }

@@ -449,15 +449,22 @@ export default function PublicView({ invoice, companySettings }: PublicViewProps
 
                         {/* Amount Due & Delivery Date Block */}
                         <div className="amount-delivery-grid-print grid grid-cols-1 sm:grid-cols-2 print:grid-cols-2 gap-6 border-t border-slate-100 pt-4 pb-4 mb-6">
-                            {/* Amount Due */}
+                            {/* Amount / Balance Due */}
                             <div className="flex flex-col justify-center">
-                                <span className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider block mb-1">AMOUNT DUE</span>
+                                <span className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider block mb-1">
+                                    {parseFloat(invoice.paid_amount || 0) > 0 ? "BALANCE DUE" : "AMOUNT DUE"}
+                                </span>
                                 <div className="flex items-baseline gap-2">
                                     <span className="text-[30px] font-black text-slate-900 tracking-tight leading-none">
-                                        {formatCurrency(invoice.total_amount)}
+                                        {formatCurrency(parseFloat(invoice.paid_amount || 0) > 0 ? invoice.balance_amount : invoice.total_amount)}
                                     </span>
                                     <span className="text-[13px] text-slate-400">due {dateDue}</span>
                                 </div>
+                                {parseFloat(invoice.paid_amount || 0) > 0 && (
+                                    <span className="text-[11px] text-slate-500 mt-1 font-medium">
+                                        Total: {formatCurrency(invoice.total_amount)} · Paid: {formatCurrency(invoice.paid_amount)}
+                                    </span>
+                                )}
                             </div>
 
                             {/* Estimated Delivery Date */}
@@ -526,6 +533,16 @@ export default function PublicView({ invoice, companySettings }: PublicViewProps
                                     <div className="flex justify-between border-t-[1.5px] border-slate-900 pt-2.5 text-[14.5px] font-black text-black">
                                         <span>Total</span>
                                         <span>{formatCurrency(invoice.total_amount)}</span>
+                                    </div>
+                                    {parseFloat(invoice.paid_amount || 0) > 0 && (
+                                        <div className="flex justify-between text-slate-600 text-[13px]">
+                                            <span>Paid Amount</span>
+                                            <span className="font-medium text-emerald-600">{formatCurrency(invoice.paid_amount)}</span>
+                                        </div>
+                                    )}
+                                    <div className="flex justify-between border-t border-slate-200 pt-2 text-[14px] font-bold text-slate-900">
+                                        <span>Balance Due</span>
+                                        <span className={parseFloat(invoice.balance_amount || 0) > 0 ? "text-indigo-600 font-extrabold" : "text-slate-900"}>{formatCurrency(invoice.balance_amount)}</span>
                                     </div>
                                 </div>
                             </div>
@@ -640,8 +657,12 @@ export default function PublicView({ invoice, companySettings }: PublicViewProps
                                         <p className="text-[13.5px] font-bold text-slate-800">{invoice.due_date ? formatMockDate(invoice.due_date) : 'July 1, 2026'}</p>
                                     </div>
                                     <div className="space-y-0.5">
-                                        <span className="text-[11px] text-slate-400 uppercase font-semibold">Amount Due</span>
-                                        <p className="text-[13.5px] font-bold text-slate-800">{formatCurrency(invoice.total_amount)}</p>
+                                        <span className="text-[11px] text-slate-400 uppercase font-semibold">
+                                            {parseFloat(invoice.paid_amount || 0) > 0 ? "Balance Due" : "Amount Due"}
+                                        </span>
+                                        <p className="text-[13.5px] font-bold text-slate-800">
+                                            {formatCurrency(parseFloat(invoice.paid_amount || 0) > 0 ? invoice.balance_amount : invoice.total_amount)}
+                                        </p>
                                     </div>
                                     <div className="space-y-0.5">
                                         <span className="text-[11px] text-slate-400 uppercase font-semibold">Estimated Delivery Date</span>

@@ -50,6 +50,7 @@ export default function Create() {
         payment_method: 'Bank Transfer',
         currency: 'USD',
         payment_status: 'Unpaid',
+        paid_amount: 0,
         operational_status: 'Pending',
         project_category: '',
         project_status: '',
@@ -336,6 +337,24 @@ export default function Create() {
                                     </Select>
                                     <InputError message={errors.payment_status} />
                                 </div>
+
+                                {data.payment_status === 'Partially Paid' && (
+                                    <div>
+                                        <Label htmlFor="paid_amount" required>
+                                            {t('Paid Amount')}
+                                        </Label>
+                                        <Input
+                                            id="paid_amount"
+                                            type="number"
+                                            step="0.01"
+                                            value={data.paid_amount || ''}
+                                            onChange={(e) => setData('paid_amount', parseFloat(e.target.value) || 0)}
+                                            placeholder="0.00"
+                                            required
+                                        />
+                                        <InputError message={errors.paid_amount} />
+                                    </div>
+                                )}
 
                                 <div>
                                     <Label htmlFor="operational_status">
