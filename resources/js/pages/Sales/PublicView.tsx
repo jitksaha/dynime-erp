@@ -675,12 +675,17 @@ export default function PublicView({ invoice, companySettings }: PublicViewProps
                 @media print {
                     @page {
                         size: auto;
-                        margin: 1.2cm 1.5cm 1.2cm 1.5cm;
+                        margin: 0;
                     }
                     body {
                         background-color: white !important;
                         margin: 0 !important;
                         padding: 0 !important;
+                    }
+                    .invoice-card-container {
+                        padding: 1.2cm 1.5cm !important;
+                        max-width: 100% !important;
+                        width: 100% !important;
                     }
                     .print-page-break-container {
                         page-break-before: always !important;
