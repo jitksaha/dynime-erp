@@ -48,7 +48,7 @@ const getSymbol = (currency: string): string => {
         SGD: 'S$',
         INR: '₹',
         AED: 'د.إ',
-        SAR: 'ر.স',
+        SAR: 'ر.س',
         CHF: 'CHF',
         CNY: '¥',
         NZD: 'NZ$',
@@ -492,17 +492,18 @@ export default function PublicView({ invoice, companySettings }: PublicViewProps
                             <span>Currency Converter:</span>
                             <span className="font-bold text-slate-800">{formatCurrency(invoice.total_amount)} USD</span>
                         </div>
-                        <div className="flex items-center gap-2">
-                            <span>is equivalent to</span>
-                            <span className="font-extrabold text-indigo-600 text-[14px] min-w-[80px] text-right">
-                                {targetCurrency === 'BDT' ? formatConvertedCurrency(convertedAmount, 'BDT') : `${getSymbol(targetCurrency)} ${formatConvertedCurrency(convertedAmount, targetCurrency)}`}
-                            </span>
-                            <select
-                                value={targetCurrency}
-                                onChange={(e) => setTargetCurrency(e.target.value)}
-                                className="bg-white border border-slate-200 rounded-md px-1.5 py-0.5 text-[11px] font-bold text-[#4F46E5] focus:outline-none focus:ring-1 focus:ring-[#4F46E5] ml-1"
-                                aria-label="Convert invoice total to currency"
-                            >
+                        <div className="flex items-center gap-2.5">
+                            <span className="text-slate-500">is equivalent to</span>
+                            <div className="flex items-center gap-1 bg-indigo-50/50 border border-indigo-100/60 rounded-lg py-1 px-2.5">
+                                <span className="font-extrabold text-indigo-600 text-[13px] whitespace-nowrap">
+                                    {targetCurrency === 'BDT' ? `৳ ${formatConvertedCurrency(convertedAmount, 'BDT')}` : `${getSymbol(targetCurrency)} ${formatConvertedCurrency(convertedAmount, targetCurrency)}`}
+                                </span>
+                                <select
+                                    value={targetCurrency}
+                                    onChange={(e) => setTargetCurrency(e.target.value)}
+                                    className="bg-transparent border-none text-[11px] font-bold text-indigo-600 focus:outline-none focus:ring-0 cursor-pointer py-0 pl-1 pr-6 m-0"
+                                    aria-label="Convert invoice total to currency"
+                                >
                                 <option value="BDT">BDT — Bangladeshi Taka</option>
                                 <option value="USD">USD — US Dollar</option>
                                 <option value="EUR">EUR — Euro</option>
@@ -544,6 +545,7 @@ export default function PublicView({ invoice, companySettings }: PublicViewProps
                                 <option value="UAH">UAH — Ukrainian Hryvnia</option>
                                 <option value="ILS">ILS — Israeli New Shekel</option>
                             </select>
+                            </div>
                             {isFetchingRates && <RefreshCw className="w-3.5 h-3.5 animate-spin text-slate-400 ml-1" />}
                         </div>
                     </div>
