@@ -648,7 +648,7 @@ class SalesInvoiceController extends Controller
                 'company_country' => company_setting('company_country', $salesInvoice->created_by) ?: 'USA',
                 'company_telephone' => company_setting('company_telephone', $salesInvoice->created_by),
                 'company_email' => company_setting('company_email', $salesInvoice->created_by),
-                'company_logo' => company_setting('company_logo', $salesInvoice->created_by),
+                'company_logo' => company_setting('company_logo', $salesInvoice->created_by) ?: 'https://cdn.dynime.com/media/KVhzkR7rCJFuzFxBU8ljBqFb2PItfQM5i3omxMNF.png',
             ],
             'paymentGateways' => [
                 'bkash_enabled' => $settings['bkash_enabled'] ?? 'off',

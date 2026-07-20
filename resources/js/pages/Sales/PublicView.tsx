@@ -18,7 +18,9 @@ import {
     CalendarCheck,
     Check,
     ArrowLeftRight,
-    RefreshCw
+    RefreshCw,
+    CreditCard,
+    DollarSign
 } from 'lucide-react';
 import { SalesInvoice } from './types';
 import { getPaymentStatusBadgeClasses, getOperationalStatusBadgeClasses, getProjectStatusBadgeClasses, PROJECT_STATUS_MAP } from './utils';
@@ -99,6 +101,8 @@ export default function PublicView({ invoice, companySettings, paymentGateways }
     const [copied, setCopied] = useState(false);
     const [isPayModalOpen, setIsPayModalOpen] = useState(false);
     const [selectedGateway, setSelectedGateway] = useState('bkash');
+    const [paymentMode, setPaymentMode] = useState<'full' | 'partial'>('full');
+    const [partialAmount, setPartialAmount] = useState('');
     
     // Currency Converter State
     const [rates, setRates] = useState<Record<string, number>>({ BDT: 123.24, USD: 1, EUR: 0.92, GBP: 0.78 });
@@ -106,7 +110,7 @@ export default function PublicView({ invoice, companySettings, paymentGateways }
     const [isFetchingRates, setIsFetchingRates] = useState(false);
 
     // Calculated Variables & Helpers
-    const logoUrl = companySettings?.company_logo || '';
+    const logoUrl = companySettings?.company_logo || 'https://cdn.dynime.com/media/KVhzkR7rCJFuzFxBU8ljBqFb2PItfQM5i3omxMNF.png';
     const companyName = companySettings?.company_name || 'Dynime Inc';
     const companyDomain = companySettings?.company_email ? companySettings.company_email.split('@')[1] : 'dynime.com';
     const companyEmail = companySettings?.company_email || 'billing@dynime.com';
@@ -247,17 +251,17 @@ export default function PublicView({ invoice, companySettings, paymentGateways }
             )}
 
             {/* Quick Action bar (hidden in print) */}
-            <div className="max-w-[850px] mx-auto mt-12 mb-6 px-4 sm:px-0 flex flex-col sm:flex-row justify-between items-center gap-4 print:hidden">
+            <div className="max-w-[850px] mx-auto mt-4 mb-4 px-4 sm:px-0 flex flex-col sm:flex-row justify-between items-center gap-3 print:hidden">
                 <div className="flex items-center gap-2">
                     <span className="text-sm font-semibold text-slate-400">Share Invoice URL</span>
                 </div>
                 <div className="flex flex-wrap justify-center gap-2">
                     {balanceDue > 0 && (
                         <Button
-                            onClick={() => setIsPayModalOpen(true)}
-                            className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-lg shadow-emerald-600/20 rounded-xl px-5 animate-pulse"
+                            onClick={() => { setPaymentMode('full'); setPartialAmount(''); setIsPayModalOpen(true); }}
+                            className="bg-[#4F46E5] hover:bg-[#4338CA] text-white font-bold shadow-lg shadow-indigo-500/25 rounded-xl px-5 transition-all duration-200"
                         >
-                            💳 Pay Online ({formatCurrency(balanceDue)})
+                            <CreditCard className="h-4 w-4 mr-2" /> Pay Online ({formatCurrency(balanceDue)})
                         </Button>
                     )}
                     <Button variant="outline" size="sm" onClick={copyLink} className="bg-white border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl">
@@ -299,22 +303,13 @@ export default function PublicView({ invoice, companySettings, paymentGateways }
                                     <span className="text-slate-500 text-[13px]">Due {dateDue}</span>
                                 </div>
                             </div>
-                            <div className="sm:text-right">
-                                {logoUrl ? (
-                                    <>
-                                        <img 
-                                            src={logoUrl} 
-                                            alt={companyName} 
-                                            className="h-[26px] object-contain mb-1.5 sm:ml-auto" 
-                                        />
-                                        <p className="text-slate-500 text-[11px]">{companyDomain}</p>
-                                    </>
-                                ) : (
-                                    <>
-                                        <p className="font-bold text-slate-800 text-[13px] leading-tight mb-0.5">{companyName}</p>
-                                        <p className="text-slate-500 text-[11px]">{companyDomain}</p>
-                                    </>
-                                )}
+                            <div className="sm:text-right flex flex-col items-end">
+                                <img 
+                                    src={logoUrl} 
+                                    alt={companyName} 
+                                    className="h-[32px] object-contain mb-1.5" 
+                                />
+                                <p className="text-slate-400 text-[11px]">{companyDomain}</p>
                             </div>
                         </div>
 
@@ -356,11 +351,11 @@ export default function PublicView({ invoice, companySettings, paymentGateways }
                         </div>
 
                         {/* Statuses Horizontal Banner */}
-                        <div className={`status-banner-grid-print grid grid-cols-1 ${invoice.project_category && invoice.project_category !== 'N/A' ? 'sm:grid-cols-3 print:grid-cols-3' : 'sm:grid-cols-2 print:grid-cols-2'} gap-6 bg-slate-50/50 border border-slate-100 rounded-xl p-4 mb-6`}>
+                        <div className={`status-banner-grid-print grid grid-cols-1 ${invoice.project_category && invoice.project_category !== 'N/A' ? 'sm:grid-cols-3 print:grid-cols-3' : 'sm:grid-cols-2 print:grid-cols-2'} gap-4 bg-gradient-to-br from-slate-50/80 to-slate-50/40 border border-slate-100 rounded-xl p-4 mb-6`}>
                             {/* Payment Status */}
-                            <div className="space-y-1">
-                                <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">Payment status</span>
-                                <div className="flex items-center">
+                            <div className="flex items-center gap-3 bg-white/60 rounded-lg px-3 py-2.5">
+                                <div className="shrink-0">
+                                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block mb-1">Payment status</span>
                                     <span className={getPaymentStatusBadgeClasses(invoice.payment_status || 'Unpaid')}>
                                         {invoice.payment_status || 'Unpaid'}
                                     </span>
@@ -368,9 +363,9 @@ export default function PublicView({ invoice, companySettings, paymentGateways }
                             </div>
 
                             {/* Operational Status */}
-                            <div className="space-y-1">
-                                <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">Operational status</span>
-                                <div className="flex items-center">
+                            <div className="flex items-center gap-3 bg-white/60 rounded-lg px-3 py-2.5">
+                                <div className="shrink-0">
+                                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block mb-1">Operational status</span>
                                     <span className={getOperationalStatusBadgeClasses(invoice.operational_status || 'Pending')}>
                                         {invoice.operational_status || 'Pending'}
                                     </span>
@@ -379,16 +374,18 @@ export default function PublicView({ invoice, companySettings, paymentGateways }
 
                             {/* Project Status */}
                             {invoice.project_category && invoice.project_category !== 'N/A' && (
-                                <div className="space-y-1">
-                                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">Project status</span>
-                                    <div className="flex flex-col items-start">
-                                        <span className={getProjectStatusBadgeClasses(invoice.project_status || '')}>
-                                            {invoice.project_status || 'N/A'}
-                                        </span>
-                                        {invoice.project_status && PROJECT_STATUS_MAP[invoice.project_category]?.find(x => x.label === invoice.project_status)?.desc && (
-                                            <span className="text-[11px] text-slate-500 mt-1 max-w-[280px] leading-tight block">
-                                                {PROJECT_STATUS_MAP[invoice.project_category].find(x => x.label === invoice.project_status)?.desc}
+                                <div className="flex items-start gap-3 bg-white/60 rounded-lg px-3 py-2.5">
+                                    <div className="w-full">
+                                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block mb-1">Project status</span>
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                            <span className={getProjectStatusBadgeClasses(invoice.project_status || '')}>
+                                                {invoice.project_status || 'N/A'}
                                             </span>
+                                        </div>
+                                        {invoice.project_status && PROJECT_STATUS_MAP[invoice.project_category]?.find(x => x.label === invoice.project_status)?.desc && (
+                                            <p className="text-[11px] text-slate-500 mt-1.5 leading-snug">
+                                                {PROJECT_STATUS_MAP[invoice.project_category].find(x => x.label === invoice.project_status)?.desc}
+                                            </p>
                                         )}
                                     </div>
                                 </div>
@@ -406,10 +403,10 @@ export default function PublicView({ invoice, companySettings, paymentGateways }
                                 <div className="space-y-1.5 text-[12.5px] text-slate-600">
                                     <p className="font-bold text-slate-900 text-[13.5px]">{companyName}</p>
                                     <p className="flex items-center gap-2"><Mail className="h-3.5 w-3.5 text-slate-400 shrink-0" /> {companyEmail}</p>
-                                    <p className="flex items-center gap-2"><Phone className="h-3.5 w-3.5 text-slate-400 shrink-0" /> {companyPhone}</p>
-                                    <p className="flex items-start gap-2">
-                                        <MapPin className="h-3.5 w-3.5 text-slate-400 mt-0.5 shrink-0" /> 
-                                        <span className="leading-tight">{companyAddress}</span>
+                                    {companyPhone && <p className="flex items-center gap-2"><Phone className="h-3.5 w-3.5 text-slate-400 shrink-0" /> {companyPhone}</p>}
+                                    <p className="flex items-center gap-2">
+                                        <MapPin className="h-3.5 w-3.5 text-slate-400 shrink-0" /> 
+                                        <span className="leading-snug">{companyAddress}</span>
                                     </p>
                                 </div>
                             </div>
@@ -527,6 +524,26 @@ export default function PublicView({ invoice, companySettings, paymentGateways }
                                         <span>Balance Due</span>
                                         <span className={Number(invoice.balance_amount || 0) > 0 ? "text-indigo-600 font-extrabold" : "text-slate-900"}>{formatCurrency(invoice.balance_amount)}</span>
                                     </div>
+
+                                    {/* Pay Full / Pay Partial Buttons */}
+                                    {Number(invoice.balance_amount || 0) > 0 && (
+                                        <div className="flex gap-2 mt-3 print:hidden">
+                                            <button
+                                                onClick={() => { setPaymentMode('full'); setPartialAmount(''); setIsPayModalOpen(true); }}
+                                                className="flex-1 flex items-center justify-center gap-1.5 bg-[#4F46E5] hover:bg-[#4338CA] text-white text-[12px] font-bold py-2.5 px-3 rounded-xl transition-all duration-200 shadow-md shadow-indigo-500/20"
+                                            >
+                                                <CreditCard className="h-3.5 w-3.5" />
+                                                Pay Full
+                                            </button>
+                                            <button
+                                                onClick={() => { setPaymentMode('partial'); setPartialAmount(''); setIsPayModalOpen(true); }}
+                                                className="flex-1 flex items-center justify-center gap-1.5 bg-white hover:bg-slate-50 text-[#4F46E5] border-2 border-[#4F46E5]/20 hover:border-[#4F46E5]/40 text-[12px] font-bold py-2.5 px-3 rounded-xl transition-all duration-200"
+                                            >
+                                                <DollarSign className="h-3.5 w-3.5" />
+                                                Pay Partial
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -657,11 +674,7 @@ export default function PublicView({ invoice, companySettings, paymentGateways }
                             {/* Page 2 Footer / Signature */}
                             <div className="border-t border-slate-100 pt-6 text-center space-y-3.5">
                                 <div className="flex items-center justify-center text-[13px] font-bold text-slate-800">
-                                    {logoUrl ? (
-                                        <img src={logoUrl} alt={companyName} className="h-6 object-contain" />
-                                    ) : (
-                                        <span>{companyName}</span>
-                                    )}
+                                    <img src={logoUrl} alt={companyName} className="h-6 object-contain" />
                                 </div>
                                 <p className="text-[12.5px] text-slate-600 font-medium">Thank you for choosing <span className="font-bold">Dynime</span>.</p>
                                 <p className="text-[11.5px] text-slate-400">
@@ -690,35 +703,83 @@ export default function PublicView({ invoice, companySettings, paymentGateways }
             {/* ============================================================== */}
             {isPayModalOpen && (
                 <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 print:hidden">
-                    <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-2xl shadow-2xl border border-slate-100 dark:border-slate-800 overflow-hidden animate-in fade-in zoom-in duration-200">
+                    <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-2xl shadow-2xl border border-slate-100 dark:border-slate-800 overflow-hidden" style={{animation: 'fadeInScale 0.2s ease-out'}}>
                         <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
                             <div>
                                 <h3 className="font-bold text-lg text-slate-900 dark:text-white flex items-center gap-2">
-                                    💳 Pay Invoice #{invoice.invoice_number}
+                                    <CreditCard className="h-5 w-5 text-[#4F46E5]" /> Pay Invoice #{invoice.invoice_number}
                                 </h3>
-                                <p className="text-xs text-slate-500 mt-0.5">Select your preferred payment method</p>
+                                <p className="text-xs text-slate-500 mt-0.5">{paymentMode === 'partial' ? 'Enter partial payment amount' : 'Pay the full balance due'}</p>
                             </div>
                             <button
                                 onClick={() => setIsPayModalOpen(false)}
-                                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-lg font-bold w-8 h-8 rounded-full flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800"
+                                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-lg font-bold w-8 h-8 rounded-full flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                             >
                                 ✕
                             </button>
                         </div>
 
                         <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
-                            <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl flex items-center justify-between border border-slate-200/60 dark:border-slate-700">
-                                <span className="text-sm font-semibold text-slate-600 dark:text-slate-400">Total Amount Due</span>
-                                <span className="text-xl font-extrabold text-indigo-600 dark:text-indigo-400">{formatCurrency(balanceDue)}</span>
+                            {/* Payment Mode Toggle */}
+                            <div className="flex gap-1 bg-slate-100 dark:bg-slate-800 rounded-xl p-1">
+                                <button
+                                    type="button"
+                                    onClick={() => { setPaymentMode('full'); setPartialAmount(''); }}
+                                    className={`flex-1 py-2 px-3 rounded-lg text-[12px] font-bold transition-all duration-200 ${paymentMode === 'full' ? 'bg-[#4F46E5] text-white shadow-md' : 'text-slate-600 hover:text-slate-900'}`}
+                                >
+                                    Pay Full Amount
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setPaymentMode('partial')}
+                                    className={`flex-1 py-2 px-3 rounded-lg text-[12px] font-bold transition-all duration-200 ${paymentMode === 'partial' ? 'bg-[#4F46E5] text-white shadow-md' : 'text-slate-600 hover:text-slate-900'}`}
+                                >
+                                    Pay Partial Amount
+                                </button>
+                            </div>
+
+                            {/* Amount Display */}
+                            <div className="bg-gradient-to-r from-indigo-50 to-slate-50 dark:from-indigo-950/30 dark:to-slate-800/50 p-4 rounded-xl border border-indigo-100/60 dark:border-indigo-900/40">
+                                <div className="flex items-center justify-between mb-1">
+                                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Balance Due</span>
+                                    <span className="text-sm font-bold text-slate-600">{formatCurrency(balanceDue)}</span>
+                                </div>
+                                {paymentMode === 'partial' && (
+                                    <div className="mt-3">
+                                        <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-1.5">Amount to Pay</label>
+                                        <div className="relative">
+                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">{getSymbol(invoice.service_brief?.currency || 'USD')}</span>
+                                            <input
+                                                type="number"
+                                                step="0.01"
+                                                min="0.01"
+                                                max={balanceDue}
+                                                value={partialAmount}
+                                                onChange={(e) => setPartialAmount(e.target.value)}
+                                                placeholder={`Max ${balanceDue.toFixed(2)}`}
+                                                className="w-full pl-8 pr-4 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-900 dark:text-white bg-white dark:bg-slate-800 focus:ring-2 focus:ring-[#4F46E5]/20 focus:border-[#4F46E5] outline-none transition-all"
+                                            />
+                                        </div>
+                                        {partialAmount && parseFloat(partialAmount) > balanceDue && (
+                                            <p className="text-[11px] text-rose-500 mt-1 font-medium">Amount cannot exceed balance due</p>
+                                        )}
+                                    </div>
+                                )}
+                                <div className="flex items-center justify-between mt-3 pt-3 border-t border-indigo-100/60 dark:border-indigo-900/40">
+                                    <span className="text-sm font-bold text-slate-700 dark:text-slate-300">You will pay</span>
+                                    <span className="text-xl font-extrabold text-[#4F46E5]">
+                                        {formatCurrency(paymentMode === 'partial' && partialAmount ? Math.min(parseFloat(partialAmount) || 0, balanceDue) : balanceDue)}
+                                    </span>
+                                </div>
                             </div>
 
                             <form action={typeof window !== 'undefined' ? `${window.location.pathname.replace(/\/$/, '')}/pay` : `/invoice/${invoice.invoice_number}/pay`} method="POST" className="space-y-4">
                                 <input type="hidden" name="_token" value={(document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || ''} />
                                 <input type="hidden" name="gateway" value={selectedGateway} />
-                                <input type="hidden" name="amount" value={balanceDue} />
+                                <input type="hidden" name="amount" value={paymentMode === 'partial' && partialAmount ? Math.min(parseFloat(partialAmount) || 0, balanceDue) : balanceDue} />
 
                                 <div className="space-y-2">
-                                    <label className="text-xs font-bold uppercase tracking-wider text-slate-400 block">Available Gateways</label>
+                                    <label className="text-xs font-bold uppercase tracking-wider text-slate-400 block">Payment Method</label>
 
                                     {paymentGateways?.bkash_enabled === 'on' && (
                                         <label className={`flex items-center justify-between p-3.5 rounded-xl border cursor-pointer transition-all ${selectedGateway === 'bkash' ? 'border-pink-500 bg-pink-50/50 dark:bg-pink-950/20 ring-2 ring-pink-500/20' : 'border-slate-200 dark:border-slate-800 hover:bg-slate-50'}`}>
@@ -796,8 +857,13 @@ export default function PublicView({ invoice, companySettings, paymentGateways }
                                 )}
 
                                 <div className="pt-3">
-                                    <Button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 text-sm rounded-xl shadow-lg shadow-emerald-600/20">
-                                        Proceed to Pay {formatCurrency(balanceDue)}
+                                    <Button
+                                        type="submit"
+                                        disabled={paymentMode === 'partial' && (!partialAmount || parseFloat(partialAmount) <= 0 || parseFloat(partialAmount) > balanceDue)}
+                                        className="w-full bg-[#4F46E5] hover:bg-[#4338CA] disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-bold py-3 text-sm rounded-xl shadow-lg shadow-indigo-500/20 transition-all duration-200"
+                                    >
+                                        <CreditCard className="h-4 w-4 mr-2" />
+                                        {paymentMode === 'partial' ? `Pay ${partialAmount ? formatCurrency(Math.min(parseFloat(partialAmount) || 0, balanceDue)) : 'Partial Amount'}` : `Pay Full ${formatCurrency(balanceDue)}`}
                                     </Button>
                                 </div>
                             </form>
