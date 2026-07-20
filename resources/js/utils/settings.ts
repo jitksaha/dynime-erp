@@ -21,16 +21,21 @@ const getPackageSettingsItems = (userRoles: string[], activatedPackages: string[
         ? import.meta.glob('../../../packages/workdo/*/src/Resources/js/settings/superadmin-setting.ts', { eager: true })
         : import.meta.glob('../../../packages/workdo/*/src/Resources/js/settings/company-setting.ts', { eager: true });
 
-    (Array.isArray(activatedPackages) ? activatedPackages : []).forEach(packageName => {
-        const settingPath = `../../../packages/workdo/${packageName}/src/Resources/js/settings/${settingType}.ts`;
-        const module = allModules[settingPath] as any;
+    const activatedLower = (Array.isArray(activatedPackages) ? activatedPackages : []).map(p => String(p).toLowerCase());
 
-        if (module) {
-            Object.values(module).forEach((item: any) => {
-                const result = typeof item === 'function' ? item(t) : item;
-                const items = Array.isArray(result) ? result : [result];
-                menuItems.push(...items);
-            });
+    Object.entries(allModules).forEach(([path, module]: [string, any]) => {
+        const match = path.match(/\/packages\/workdo\/([^/]+)\//i);
+        if (match) {
+            const pkgNameOnDisk = match[1];
+            if (activatedLower.includes(pkgNameOnDisk.toLowerCase())) {
+                if (module) {
+                    Object.values(module).forEach((item: any) => {
+                        const result = typeof item === 'function' ? item(t) : item;
+                        const items = Array.isArray(result) ? result : [result];
+                        menuItems.push(...items);
+                    });
+                }
+            }
         }
     });
 
@@ -38,8 +43,12 @@ const getPackageSettingsItems = (userRoles: string[], activatedPackages: string[
 };
 
 // Filter settings items based on permissions
-const filterByPermission = (items: SettingMenuItem[], userPermissions: string[]): SettingMenuItem[] => {
-    return items.filter(item => userPermissions.includes(item.permission));
+const filterByPermission = (items: SettingMenuItem[], userPermissions: string[], userRoles: string[]): SettingMenuItem[] => {
+    return items.filter(item => {
+        if (!item.permission) return true;
+        if (userRoles.includes('superadmin') || userRoles.includes('company')) return true;
+        return userPermissions.includes(item.permission);
+    });
 };
 
 // Main function to get filtered settings items
@@ -58,5 +67,5 @@ export const allSettingsItems = (): SettingMenuItem[] => {
     // Sort by order
     const sortedItems = allItems.sort((a, b) => (a.order || 999) - (b.order || 999));
 
-    return filterByPermission(sortedItems, userPermissions);
+    return filterByPermission(sortedItems, userPermissions, userRoles);
 };

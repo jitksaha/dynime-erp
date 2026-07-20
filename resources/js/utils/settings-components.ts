@@ -24,17 +24,20 @@ const getPackageComponents = (activatedPackages: string[]) => {
   try {
     const modules = import.meta.glob('../../../packages/workdo/*/src/Resources/js/settings/components/*.tsx');
     const packageComponents: Record<string, any> = {};
+    const activatedLower = (Array.isArray(activatedPackages) ? activatedPackages : []).map(p => String(p).toLowerCase());
 
-    activatedPackages.forEach(packageName => {
-      Object.entries(modules).forEach(([path, moduleLoader]) => {
-        if (path.includes(`/packages/workdo/${packageName}/`)) {
-          const match = path.match(/\/([^/]+)\.tsx$/);
-          if (match) {
-            const componentName = match[1];
+    Object.entries(modules).forEach(([path, moduleLoader]) => {
+      const matchPkg = path.match(/\/packages\/workdo\/([^/]+)\//i);
+      if (matchPkg) {
+        const pkgNameOnDisk = matchPkg[1];
+        if (activatedLower.includes(pkgNameOnDisk.toLowerCase())) {
+          const matchComp = path.match(/\/([^/]+)\.tsx$/);
+          if (matchComp) {
+            const componentName = matchComp[1];
             packageComponents[componentName] = lazy(() => moduleLoader() as any);
           }
         }
-      });
+      }
     });
 
     return packageComponents;

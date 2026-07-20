@@ -13,13 +13,13 @@ const PAYMENT_GATEWAY_COMPONENTS = [
   'stripe', 'paypal', 'mollie', 'razorpay', 'payfast', 'yookassa', 'paytabs', 
   'toyyibpay', 'iyzipay', 'paytr', 'aamarpay', 'benefit', 'cashfree', 'coingate', 
   'mercado', 'midtrans', 'xendit', 'tap', 'dodopay', 'authorizenet', 'cinetpay', 
-  'easebuzz', 'fedapay', 'khalti', 'ozow', 'paiementpro', 'payhere', 'paystack', 
+  'easebuzz', 'fedapay', 'flutterwave', 'khalti', 'ozow', 'paiementpro', 'payhere', 'paystack', 
   'paytab', 'bank-transfer', 'keeal', 'stripe-express', 'sslcommerz', 'bkash'
 ];
 
 const isPaymentGateway = (componentName: string) => {
   const name = componentName.toLowerCase();
-  return PAYMENT_GATEWAY_COMPONENTS.some(gw => name.includes(gw)) || name.includes('payment');
+  return PAYMENT_GATEWAY_COMPONENTS.some(gw => name.includes(gw)) || name.includes('payment') || name.includes('pay') || name.includes('checkout');
 };
 
 export default function Settings() {
