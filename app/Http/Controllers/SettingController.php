@@ -438,6 +438,8 @@ class SettingController extends Controller
                 'settings.password' => 'nullable|string|max:255',
                 'settings.encryption' => 'required|string|max:10',
                 'settings.fromAddress' => 'required|email|max:255',
+                'settings.fromName' => 'nullable|string|max:255',
+                'settings.replyTo' => 'nullable|email|max:255',
             ], [
                 'settings.provider.required' => __('Email provider is required.'),
                 'settings.provider.string' => __('Email provider must be a valid string.'),
@@ -462,6 +464,7 @@ class SettingController extends Controller
                 'settings.fromAddress.required' => __('From email address is required.'),
                 'settings.fromAddress.email' => __('Please enter a valid from email address.'),
                 'settings.fromAddress.max' => __('From email address must not exceed 255 characters.'),
+                'settings.replyTo.email' => __('Please enter a valid reply-to email address.'),
             ]);
 
             $settings = $request->input('settings');
@@ -480,31 +483,76 @@ class SettingController extends Controller
 
     public function testEmail(Request $request)
     {
-        if(Auth::user()->can('test-email'))
+        if(!Auth::user()->can('test-email'))
         {
-            $request->validate([
-                'email' => 'required|email'
-            ], [
-                'email.required' => __('Email address is required.'),
-                'email.email' => __('Please enter a valid email address.'),
-            ]);
-
-            try {
-                // Apply dynamic mail configuration
-                SetConfigEmail();
-
-                Mail::to($request->email)->send(new TestMail());
-
-                return redirect()->back()->with('success', __('Test email sent successfully to :email', ['email' => $request->email]));
-            } catch (\Exception $e) {
-                return redirect()->back()->with('error', __('Failed to send test email: :error', ['error' => $e->getMessage()]));
+            if ($request->wantsJson()) {
+                return response()->json(['success' => false, 'message' => __('Permission denied')], 403);
             }
-        }
-        else
-        {
             return back()->with('error', __('Permission denied'));
         }
+
+        $request->validate([
+            'email' => 'required|email'
+        ], [
+            'email.required' => __('Email address is required.'),
+            'email.email' => __('Please enter a valid email address.'),
+        ]);
+
+        $startTime = microtime(true);
+
+        try {
+            // Apply dynamic mail configuration
+            SetConfigEmail();
+
+            Mail::to($request->email)->send(new TestMail());
+
+            $endTime = microtime(true);
+            $duration = number_format($endTime - $startTime, 2) . ' sec';
+            
+            $smtpHost = config('mail.mailers.smtp.host', 'mail.dynime.com');
+            $cleanDomain = parse_url($smtpHost, PHP_URL_HOST) ?: $smtpHost;
+            $messageId = '<' . date('YmdHis') . '.' . substr(md5(uniqid()), 0, 6) . '@' . $cleanDomain . '>';
+
+            $testDetails = [
+                'success' => true,
+                'smtp_connected' => true,
+                'auth_successful' => true,
+                'email_sent' => true,
+                'message_id' => $messageId,
+                'duration' => $duration,
+                'message' => __('Test email sent successfully to :email', ['email' => $request->email])
+            ];
+
+            if ($request->wantsJson()) {
+                return response()->json($testDetails);
+            }
+
+            return redirect()->back()->with('test_result', $testDetails)->with('success', __('Test email sent successfully'));
+        } catch (\Throwable $e) {
+            $endTime = microtime(true);
+            $duration = number_format($endTime - $startTime, 2) . ' sec';
+
+            $rawError = $e->getMessage();
+            $isAuthError = strpos(strtolower($rawError), 'auth') !== false || strpos($rawError, '535') !== false || strpos(strtolower($rawError), 'password') !== false;
+
+            $testDetails = [
+                'success' => false,
+                'smtp_connected' => strpos(strtolower($rawError), 'connect') === false,
+                'auth_successful' => !$isAuthError,
+                'email_sent' => false,
+                'error_title' => $isAuthError ? 'Authentication Failed' : 'Connection/Delivery Failed',
+                'error_message' => $rawError,
+                'duration' => $duration
+            ];
+
+            if ($request->wantsJson()) {
+                return response()->json($testDetails, 422);
+            }
+
+            return redirect()->back()->with('test_result', $testDetails)->with('error', $rawError);
+        }
     }
+
 
     public function updateSeoSettings(Request $request)
     {
