@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Head } from '@inertiajs/react';
 import { Star, CheckCircle2, Send, Building2, User, Briefcase, MessageSquare, ShieldCheck } from 'lucide-react';
-import ApplicationLogo from '@/components/application-logo';
 import axios from 'axios';
 
 interface PublicSubmitProps {
@@ -19,6 +18,8 @@ export default function PublicSubmit({ appName = 'Dynime' }: PublicSubmitProps) 
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isSubmitted, setIsSubmitted] = useState(false);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+    const logoCdnUrl = "https://cdn.dynime.com/Dynime%20Logo/LOGO%20PNG/logo%20SVG/dynime-logo.svg";
 
     const ratingLabels: Record<number, string> = {
         1: 'Poor',
@@ -64,16 +65,20 @@ export default function PublicSubmit({ appName = 'Dynime' }: PublicSubmitProps) 
             {/* Top Navigation Bar */}
             <header className="w-full max-w-4xl mx-auto px-6 py-6 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                    <ApplicationLogo className="w-9 h-9 text-purple-600 fill-current" />
+                    <img 
+                        src={logoCdnUrl} 
+                        alt="Dynime Logo" 
+                        className="h-10 w-auto object-contain" 
+                    />
                     <div>
-                        <span className="font-bold text-xl tracking-tight text-slate-900 dark:text-white">
+                        <span className="font-bold text-xl tracking-tight text-slate-900 dark:text-white block leading-none mb-0.5">
                             Dynime
                         </span>
-                        <span className="text-xs block text-slate-500 dark:text-slate-400 font-medium">Client Reviews</span>
+                        <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Client Reviews</span>
                     </div>
                 </div>
 
-                <div className="flex items-center gap-2 text-xs font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/80 px-3 py-1.5 rounded-full">
+                <div className="flex items-center gap-2 text-xs font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/80 px-3.5 py-1.5 rounded-full">
                     <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                     Verified Feedback
                 </div>
@@ -109,8 +114,12 @@ export default function PublicSubmit({ appName = 'Dynime' }: PublicSubmitProps) 
                         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-10 shadow-xl">
                             {/* Card Header */}
                             <div className="text-center mb-8">
-                                <div className="inline-flex items-center justify-center p-3 rounded-2xl bg-purple-50 dark:bg-purple-950/50 mb-3">
-                                    <ApplicationLogo className="w-10 h-10 text-purple-600 fill-current" />
+                                <div className="inline-flex items-center justify-center p-3 rounded-2xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 mb-4 shadow-sm">
+                                    <img 
+                                        src={logoCdnUrl} 
+                                        alt="Dynime Logo" 
+                                        className="h-12 w-auto object-contain" 
+                                    />
                                 </div>
                                 <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight mb-1">
                                     Share Your Experience
@@ -130,7 +139,7 @@ export default function PublicSubmit({ appName = 'Dynime' }: PublicSubmitProps) 
                                 {/* Star Rating Box */}
                                 <div className="flex flex-col items-center justify-center p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/80">
                                     <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
-                                        Rating
+                                        Overall Rating
                                     </span>
                                     <div className="flex items-center gap-2">
                                         {[1, 2, 3, 4, 5].map((star) => (
