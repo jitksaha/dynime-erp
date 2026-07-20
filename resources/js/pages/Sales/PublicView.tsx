@@ -100,9 +100,42 @@ export default function PublicView({ invoice, companySettings, paymentGateways }
     const [isDownloading, setIsDownloading] = useState(false);
     const [copied, setCopied] = useState(false);
     const [isPayModalOpen, setIsPayModalOpen] = useState(false);
-    const [selectedGateway, setSelectedGateway] = useState('bkash');
+    const [selectedGateway, setSelectedGateway] = useState('dodopay');
     const [paymentMode, setPaymentMode] = useState<'full' | 'partial'>('full');
     const [partialAmount, setPartialAmount] = useState('');
+
+    const activeGatewaysList = React.useMemo(() => {
+        if (paymentGateways?.active_gateways && Array.isArray(paymentGateways.active_gateways) && paymentGateways.active_gateways.length > 0) {
+            return paymentGateways.active_gateways;
+        }
+
+        const list: Array<{ id: string; name: string; description: string; badge: string }> = [];
+        if (paymentGateways?.dodopayment_enabled === 'on') {
+            list.push({ id: 'dodopay', name: 'Dodo Payments', description: 'Credit Cards, Apple Pay, Google Pay & Global Checkout', badge: 'Card / Apple Pay' });
+        }
+        if (paymentGateways?.stripe_onsite_enabled === 'on') {
+            list.push({ id: 'stripe', name: 'Stripe Checkout', description: 'Cards, Apple Pay & Google Pay', badge: 'Stripe' });
+        }
+        if (paymentGateways?.bkash_enabled === 'on') {
+            list.push({ id: 'bkash', name: 'bKash Tokenized Checkout', description: 'Pay directly in BDT with instant OTP & PIN', badge: 'BDT ৳' });
+        }
+        if (paymentGateways?.sslcommerz_enabled === 'on') {
+            list.push({ id: 'sslcommerz', name: 'SSLCommerz (Bangladesh)', description: 'Cards, Mobile Banking & Net Banking', badge: 'Cards / MFS' });
+        }
+        if (paymentGateways?.keeal_enabled === 'on') {
+            list.push({ id: 'keeal', name: 'PayPal & Cards (Keeal)', description: 'Hosted PayPal & Global Card Checkout', badge: 'PayPal' });
+        }
+        if (paymentGateways?.bank_transfer_enabled === 'on') {
+            list.push({ id: 'bank_transfer', name: 'Bank Transfer (Manual Deposit)', description: 'Direct wire transfer to company bank account', badge: 'Bank Wire' });
+        }
+        return list;
+    }, [paymentGateways]);
+
+    useEffect(() => {
+        if (activeGatewaysList.length > 0 && !activeGatewaysList.some(g => g.id === selectedGateway)) {
+            setSelectedGateway(activeGatewaysList[0].id);
+        }
+    }, [activeGatewaysList]);
 
     // Force light mode on this public page (admin may have dark theme active)
     useEffect(() => {
@@ -797,69 +830,38 @@ export default function PublicView({ invoice, companySettings, paymentGateways }
                                 <div className="space-y-2">
                                     <label className="text-xs font-bold uppercase tracking-wider text-slate-400 block">Payment Method</label>
 
-                                    {paymentGateways?.bkash_enabled === 'on' && (
-                                        <label className={`flex items-center justify-between p-3.5 rounded-xl border cursor-pointer transition-all ${selectedGateway === 'bkash' ? 'border-pink-500 bg-pink-50/50 dark:bg-pink-950/20 ring-2 ring-pink-500/20' : 'border-slate-200 dark:border-slate-800 hover:bg-slate-50'}`}>
-                                            <div className="flex items-center gap-3">
-                                                <input type="radio" name="gateway_radio" checked={selectedGateway === 'bkash'} onChange={() => setSelectedGateway('bkash')} className="text-pink-600" />
-                                                <div>
-                                                    <div className="font-bold text-sm text-slate-900 dark:text-white">bKash Tokenized Checkout</div>
-                                                    <div className="text-xs text-slate-500">Pay directly in BDT with instant OTP & PIN</div>
+                                    {activeGatewaysList.length > 0 ? (
+                                        activeGatewaysList.map((gw) => (
+                                            <label
+                                                key={gw.id}
+                                                className={`flex items-center justify-between p-3.5 rounded-xl border cursor-pointer transition-all ${
+                                                    selectedGateway === gw.id
+                                                        ? 'border-[#4F46E5] bg-indigo-50/50 dark:bg-indigo-950/20 ring-2 ring-indigo-500/20'
+                                                        : 'border-slate-200 dark:border-slate-800 hover:bg-slate-50'
+                                                }`}
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <input
+                                                        type="radio"
+                                                        name="gateway_radio"
+                                                        checked={selectedGateway === gw.id}
+                                                        onChange={() => setSelectedGateway(gw.id)}
+                                                        className="text-[#4F46E5] focus:ring-[#4F46E5]"
+                                                    />
+                                                    <div>
+                                                        <div className="font-bold text-sm text-slate-900 dark:text-white">{gw.name}</div>
+                                                        <div className="text-xs text-slate-500">{gw.description}</div>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                            <span className="text-xs font-bold px-2 py-0.5 bg-pink-100 text-pink-700 rounded-md">BDT ৳</span>
-                                        </label>
-                                    )}
-
-                                    {paymentGateways?.sslcommerz_enabled === 'on' && (
-                                        <label className={`flex items-center justify-between p-3.5 rounded-xl border cursor-pointer transition-all ${selectedGateway === 'sslcommerz' ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/20 ring-2 ring-emerald-500/20' : 'border-slate-200 dark:border-slate-800 hover:bg-slate-50'}`}>
-                                            <div className="flex items-center gap-3">
-                                                <input type="radio" name="gateway_radio" checked={selectedGateway === 'sslcommerz'} onChange={() => setSelectedGateway('sslcommerz')} className="text-emerald-600" />
-                                                <div>
-                                                    <div className="font-bold text-sm text-slate-900 dark:text-white">SSLCommerz (Bangladesh)</div>
-                                                    <div className="text-xs text-slate-500">Cards, Mobile Banking & Net Banking</div>
-                                                </div>
-                                            </div>
-                                            <span className="text-xs font-bold px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-md">Cards / MFS</span>
-                                        </label>
-                                    )}
-
-                                    {paymentGateways?.stripe_onsite_enabled === 'on' && (
-                                        <label className={`flex items-center justify-between p-3.5 rounded-xl border cursor-pointer transition-all ${selectedGateway === 'stripe_express' ? 'border-indigo-500 bg-indigo-50/50 dark:bg-indigo-950/20 ring-2 ring-indigo-500/20' : 'border-slate-200 dark:border-slate-800 hover:bg-slate-50'}`}>
-                                            <div className="flex items-center gap-3">
-                                                <input type="radio" name="gateway_radio" checked={selectedGateway === 'stripe_express'} onChange={() => setSelectedGateway('stripe_express')} className="text-indigo-600" />
-                                                <div>
-                                                    <div className="font-bold text-sm text-slate-900 dark:text-white">Direct Card & Express Pay</div>
-                                                    <div className="text-xs text-slate-500">Apple Pay, Google Pay & On-site Card</div>
-                                                </div>
-                                            </div>
-                                            <span className="text-xs font-bold px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded-md">Stripe</span>
-                                        </label>
-                                    )}
-
-                                    {paymentGateways?.keeal_enabled === 'on' && (
-                                        <label className={`flex items-center justify-between p-3.5 rounded-xl border cursor-pointer transition-all ${selectedGateway === 'keeal' ? 'border-purple-500 bg-purple-50/50 dark:bg-purple-950/20 ring-2 ring-purple-500/20' : 'border-slate-200 dark:border-slate-800 hover:bg-slate-50'}`}>
-                                            <div className="flex items-center gap-3">
-                                                <input type="radio" name="gateway_radio" checked={selectedGateway === 'keeal'} onChange={() => setSelectedGateway('keeal')} className="text-purple-600" />
-                                                <div>
-                                                    <div className="font-bold text-sm text-slate-900 dark:text-white">PayPal & Cards (Keeal)</div>
-                                                    <div className="text-xs text-slate-500">Hosted PayPal & Global Card Checkout</div>
-                                                </div>
-                                            </div>
-                                            <span className="text-xs font-bold px-2 py-0.5 bg-purple-100 text-purple-700 rounded-md">PayPal</span>
-                                        </label>
-                                    )}
-
-                                    {paymentGateways?.bank_transfer_enabled === 'on' && (
-                                        <label className={`flex items-center justify-between p-3.5 rounded-xl border cursor-pointer transition-all ${selectedGateway === 'bank_transfer' ? 'border-amber-500 bg-amber-50/50 dark:bg-amber-950/20 ring-2 ring-amber-500/20' : 'border-slate-200 dark:border-slate-800 hover:bg-slate-50'}`}>
-                                            <div className="flex items-center gap-3">
-                                                <input type="radio" name="gateway_radio" checked={selectedGateway === 'bank_transfer'} onChange={() => setSelectedGateway('bank_transfer')} className="text-amber-600" />
-                                                <div>
-                                                    <div className="font-bold text-sm text-slate-900 dark:text-white">Bank Transfer (Manual Deposit)</div>
-                                                    <div className="text-xs text-slate-500">Direct wire transfer to company account</div>
-                                                </div>
-                                            </div>
-                                            <span className="text-xs font-bold px-2 py-0.5 bg-amber-100 text-amber-700 rounded-md">Bank</span>
-                                        </label>
+                                                <span className="text-xs font-bold px-2.5 py-1 bg-indigo-100/80 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 rounded-md">
+                                                    {gw.badge}
+                                                </span>
+                                            </label>
+                                        ))
+                                    ) : (
+                                        <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 font-medium">
+                                            No active payment gateways are currently enabled by the merchant. Please contact the company to enable a payment method.
+                                        </div>
                                     )}
                                 </div>
 

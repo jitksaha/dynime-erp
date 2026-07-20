@@ -635,7 +635,115 @@ class SalesInvoiceController extends Controller
 
         $salesInvoice->load(['customer', 'customerDetails', 'items.product', 'items.taxes', 'warehouse']);
 
-        $settings = getAdminAllSetting();
+        $settings = getCompanyAllSetting($salesInvoice->created_by);
+        if (empty($settings)) {
+            $settings = getAdminAllSetting();
+        }
+
+        $gateways = [
+            [
+                'id' => 'dodopay',
+                'name' => 'Dodo Payments',
+                'description' => 'Credit/Debit Cards, Apple Pay, Google Pay & Global Checkout',
+                'badge' => 'Card / Apple Pay',
+                'enabled' => ($settings['dodopay_is_on'] ?? $settings['dodopay_payment_is_on'] ?? $settings['dodopayment_enabled'] ?? 'off') === 'on' || !empty($settings['dodopay_api_key'] ?? $settings['dodopayment_api_key'] ?? ''),
+            ],
+            [
+                'id' => 'stripe',
+                'name' => 'Stripe Checkout',
+                'description' => 'Cards, Apple Pay & International Cards',
+                'badge' => 'Stripe',
+                'enabled' => ($settings['stripe_is_on'] ?? $settings['stripe_payment_is_on'] ?? $settings['stripe_enabled'] ?? 'off') === 'on' || !empty($settings['stripe_secret_key'] ?? $settings['stripe_key'] ?? ''),
+            ],
+            [
+                'id' => 'paypal',
+                'name' => 'PayPal',
+                'description' => 'PayPal Account & Credit / Debit Cards',
+                'badge' => 'PayPal',
+                'enabled' => ($settings['paypal_is_on'] ?? $settings['paypal_payment_is_on'] ?? $settings['paypal_enabled'] ?? 'off') === 'on' || !empty($settings['paypal_client_id'] ?? $settings['paypal_secret_key'] ?? ''),
+            ],
+            [
+                'id' => 'bkash',
+                'name' => 'bKash Tokenized Checkout',
+                'description' => 'Pay directly in BDT with instant OTP & PIN',
+                'badge' => 'BDT ৳',
+                'enabled' => ($settings['bkash_is_on'] ?? $settings['bkash_payment_is_on'] ?? $settings['bkash_enabled'] ?? 'off') === 'on' || !empty($settings['bkash_app_key'] ?? ''),
+            ],
+            [
+                'id' => 'sslcommerz',
+                'name' => 'SSLCommerz (Bangladesh)',
+                'description' => 'Cards, Mobile Banking & Net Banking in BDT',
+                'badge' => 'Cards / MFS',
+                'enabled' => ($settings['sslcommerz_is_on'] ?? $settings['sslcommerz_payment_is_on'] ?? $settings['sslcommerz_enabled'] ?? 'off') === 'on' || !empty($settings['sslcommerz_store_id'] ?? ''),
+            ],
+            [
+                'id' => 'flutterwave',
+                'name' => 'Flutterwave',
+                'description' => 'Cards, Mobile Money & Bank Transfers (Africa & Global)',
+                'badge' => 'Flutterwave',
+                'enabled' => ($settings['flutterwave_is_on'] ?? $settings['flutterwave_payment_is_on'] ?? $settings['flutterwave_enabled'] ?? 'off') === 'on' || !empty($settings['flutterwave_secret_key'] ?? ''),
+            ],
+            [
+                'id' => 'razorpay',
+                'name' => 'Razorpay',
+                'description' => 'UPI, Net Banking, Cards & Wallets (INR)',
+                'badge' => 'UPI / Cards',
+                'enabled' => ($settings['razorpay_is_on'] ?? $settings['razorpay_payment_is_on'] ?? $settings['razorpay_enabled'] ?? 'off') === 'on' || !empty($settings['razorpay_key'] ?? ''),
+            ],
+            [
+                'id' => 'mollie',
+                'name' => 'Mollie',
+                'description' => 'iDEAL, Bancontact, Cards & European Payments',
+                'badge' => 'EUR € / Cards',
+                'enabled' => ($settings['mollie_is_on'] ?? $settings['mollie_payment_is_on'] ?? $settings['mollie_enabled'] ?? 'off') === 'on' || !empty($settings['mollie_api_key'] ?? ''),
+            ],
+            [
+                'id' => 'paystack',
+                'name' => 'Paystack',
+                'description' => 'Cards, Bank & Mobile Money',
+                'badge' => 'Paystack',
+                'enabled' => ($settings['paystack_is_on'] ?? $settings['paystack_payment_is_on'] ?? $settings['paystack_enabled'] ?? 'off') === 'on' || !empty($settings['paystack_secret_key'] ?? ''),
+            ],
+            [
+                'id' => 'aamarpay',
+                'name' => 'Aamarpay',
+                'description' => 'Mobile Banking & Cards (BDT)',
+                'badge' => 'aamarpay',
+                'enabled' => ($settings['aamarpay_is_on'] ?? $settings['aamarpay_payment_is_on'] ?? $settings['aamarpay_enabled'] ?? 'off') === 'on' || !empty($settings['aamarpay_store_id'] ?? ''),
+            ],
+            [
+                'id' => 'authorizenet',
+                'name' => 'Authorize.Net',
+                'description' => 'Credit & Debit Cards (USD)',
+                'badge' => 'Credit Cards',
+                'enabled' => ($settings['authorizenet_is_on'] ?? $settings['authorizenet_payment_is_on'] ?? 'off') === 'on' || !empty($settings['authorizenet_merchant_login_id'] ?? ''),
+            ],
+            [
+                'id' => 'stripe_express',
+                'name' => 'Direct Card & Express Pay',
+                'description' => 'Apple Pay, Google Pay & On-site Card',
+                'badge' => 'Stripe Express',
+                'enabled' => ($settings['stripe_express_is_on'] ?? $settings['stripe_onsite_enabled'] ?? 'off') === 'on',
+            ],
+            [
+                'id' => 'keeal',
+                'name' => 'PayPal & Cards (Keeal)',
+                'description' => 'Hosted PayPal & Global Card Checkout',
+                'badge' => 'Keeal',
+                'enabled' => ($settings['keeal_is_on'] ?? $settings['keeal_enabled'] ?? 'off') === 'on',
+            ],
+            [
+                'id' => 'bank_transfer',
+                'name' => 'Bank Transfer (Manual Deposit)',
+                'description' => 'Direct wire transfer to company bank account',
+                'badge' => 'Bank Wire',
+                'enabled' => ($settings['bank_transfer_is_on'] ?? $settings['bank_transfer_enabled'] ?? 'on') === 'on',
+            ],
+        ];
+
+        $activeGateways = array_values(array_filter($gateways, function ($g) {
+            return $g['enabled'];
+        }));
 
         return Inertia::render('Sales/PublicView', [
             'invoice' => $salesInvoice,
@@ -651,13 +759,13 @@ class SalesInvoiceController extends Controller
                 'company_logo' => company_setting('company_logo', $salesInvoice->created_by) ?: 'https://cdn.dynime.com/media/KVhzkR7rCJFuzFxBU8ljBqFb2PItfQM5i3omxMNF.png',
             ],
             'paymentGateways' => [
-                'bkash_enabled' => $settings['bkash_enabled'] ?? 'off',
-                'sslcommerz_enabled' => $settings['sslcommerz_enabled'] ?? 'off',
-                'stripe_onsite_enabled' => $settings['stripe_onsite_enabled'] ?? 'off',
-                'stripe_hosted_enabled' => $settings['stripe_hosted_enabled'] ?? 'off',
-                'keeal_enabled' => $settings['keeal_enabled'] ?? 'off',
-                'dodopayment_enabled' => $settings['dodopayment_enabled'] ?? 'off',
-                'bank_transfer_enabled' => $settings['bank_transfer_enabled'] ?? 'off',
+                'active_gateways' => $activeGateways,
+                'bkash_enabled' => ($settings['bkash_is_on'] ?? $settings['bkash_payment_is_on'] ?? $settings['bkash_enabled'] ?? 'off') === 'on' ? 'on' : 'off',
+                'sslcommerz_enabled' => ($settings['sslcommerz_is_on'] ?? $settings['sslcommerz_payment_is_on'] ?? $settings['sslcommerz_enabled'] ?? 'off') === 'on' ? 'on' : 'off',
+                'stripe_onsite_enabled' => ($settings['stripe_is_on'] ?? $settings['stripe_payment_is_on'] ?? $settings['stripe_enabled'] ?? 'off') === 'on' ? 'on' : 'off',
+                'keeal_enabled' => ($settings['keeal_is_on'] ?? $settings['keeal_enabled'] ?? 'off') === 'on' ? 'on' : 'off',
+                'dodopayment_enabled' => ($settings['dodopay_is_on'] ?? $settings['dodopay_payment_is_on'] ?? $settings['dodopayment_enabled'] ?? 'off') === 'on' ? 'on' : 'off',
+                'bank_transfer_enabled' => ($settings['bank_transfer_is_on'] ?? $settings['bank_transfer_enabled'] ?? 'on') === 'on' ? 'on' : 'off',
                 'bank_accounts' => json_decode($settings['bank_transfer_accounts'] ?? '[]', true) ?: [],
             ]
         ]);
@@ -665,14 +773,24 @@ class SalesInvoiceController extends Controller
 
     public function processInvoicePayment(Request $request, $invoiceNumber)
     {
-        $salesInvoice = SalesInvoice::where('invoice_number', $invoiceNumber)->firstOrFail();
+        $salesInvoice = SalesInvoice::where('invoice_number', $invoiceNumber)->first();
+        if (!$salesInvoice) {
+            $salesInvoice = SalesInvoice::where('invoice_number', 'like', '%' . $invoiceNumber)->firstOrFail();
+        }
+
         $gateway = $request->gateway;
         $amount = floatval($request->amount ?? $salesInvoice->balance_amount);
 
-        if ($amount <= 0) {
-            return redirect()->back()->with('error', __('Invoice balance is zero or invalid.'));
+        if ($amount <= 0 || $amount > $salesInvoice->balance_amount) {
+            return redirect()->back()->with('error', __('Invalid payment amount.'));
         }
 
+        $settings = getCompanyAllSetting($salesInvoice->created_by);
+        if (empty($settings)) {
+            $settings = getAdminAllSetting();
+        }
+
+        // 1. Bank Transfer (Manual reference deposit)
         if ($gateway === 'bank_transfer') {
             $salesInvoice->paid_amount += $amount;
             $salesInvoice->balance_amount = max(0, $salesInvoice->total_amount - $salesInvoice->paid_amount);
@@ -682,13 +800,96 @@ class SalesInvoiceController extends Controller
             return redirect()->back()->with('success', __('Bank transfer reference submitted successfully! Invoice status updated.'));
         }
 
-        // Handle other gateways or mark as paid for demonstration
-        $salesInvoice->paid_amount += $amount;
-        $salesInvoice->balance_amount = max(0, $salesInvoice->total_amount - $salesInvoice->paid_amount);
-        $salesInvoice->payment_status = ($salesInvoice->balance_amount <= 0) ? 'Paid' : 'Partially Paid';
-        $salesInvoice->save();
+        // 2. Dodo Payments (Live Capture Session)
+        if ($gateway === 'dodopay') {
+            $apiKey = $settings['dodopay_api_key'] ?? $settings['dodopayment_api_key'] ?? '';
+            $productId = $settings['dodopay_product_id'] ?? $settings['dodopayment_product_id'] ?? '';
+            $mode = $settings['dodopay_mode'] ?? 'test';
 
-        return redirect()->back()->with('success', __('Payment processed successfully via ' . ucfirst($gateway) . '!'));
+            if (empty($apiKey)) {
+                return redirect()->back()->with('error', __('Dodo Payments API Key is not configured in settings.'));
+            }
+
+            $baseUrl = ($mode === 'live') ? 'https://api.dodopayments.com' : 'https://test.dodopayments.com';
+            $returnUrl = url("/invoice/{$salesInvoice->invoice_number}?payment=success");
+
+            try {
+                $response = \Illuminate\Support\Facades\Http::withHeaders([
+                    'Authorization' => 'Bearer ' . $apiKey,
+                    'Content-Type' => 'application/json',
+                ])->post($baseUrl . '/v1/checkout-sessions', [
+                    'product_id' => $productId,
+                    'quantity' => 1,
+                    'payment_link' => true,
+                    'return_url' => $returnUrl,
+                    'customer' => [
+                        'email' => $salesInvoice->customer->email ?? 'client@dynime.com',
+                        'name' => $salesInvoice->customer->name ?? 'Client',
+                    ],
+                ]);
+
+                if ($response->successful()) {
+                    $checkoutUrl = $response->json('payment_link') ?? $response->json('url') ?? $response->json('checkout_url');
+                    if ($checkoutUrl) {
+                        return Inertia::location($checkoutUrl);
+                    }
+                }
+
+                $err = $response->json('message') ?? $response->body();
+                return redirect()->back()->with('error', __('Dodo Payments error: ') . $err);
+            } catch (\Exception $e) {
+                return redirect()->back()->with('error', __('Dodo Payments connection error: ') . $e->getMessage());
+            }
+        }
+
+        // 3. Stripe (Live Capture Session)
+        if ($gateway === 'stripe' || $gateway === 'stripe_express') {
+            $stripeSecret = $settings['stripe_secret_key'] ?? $settings['stripe_secret'] ?? $settings['stripe_key'] ?? '';
+            if (empty($stripeSecret)) {
+                return redirect()->back()->with('error', __('Stripe Secret Key is not configured in settings.'));
+            }
+
+            try {
+                $successUrl = url("/invoice/{$salesInvoice->invoice_number}?payment=success");
+                $cancelUrl = url("/invoice/{$salesInvoice->invoice_number}?payment=cancel");
+
+                $response = \Illuminate\Support\Facades\Http::withHeaders([
+                    'Authorization' => 'Bearer ' . $stripeSecret,
+                ])->asForm()->post('https://api.stripe.com/v1/checkout/sessions', [
+                    'payment_method_types' => ['card'],
+                    'line_items' => [[
+                        'price_data' => [
+                            'currency' => strtolower($salesInvoice->service_brief['currency'] ?? 'usd'),
+                            'product_data' => [
+                                'name' => 'Payment for Invoice #' . $salesInvoice->invoice_number,
+                            ],
+                            'unit_amount' => intval(round($amount * 100)),
+                        ],
+                        'quantity' => 1,
+                    ]],
+                    'mode' => 'payment',
+                    'success_url' => $successUrl,
+                    'cancel_url' => $cancelUrl,
+                ]);
+
+                if ($response->successful() && !empty($response->json('url'))) {
+                    return Inertia::location($response->json('url'));
+                }
+
+                $err = $response->json('error.message') ?? $response->body();
+                return redirect()->back()->with('error', __('Stripe error: ') . $err);
+            } catch (\Exception $e) {
+                return redirect()->back()->with('error', __('Stripe connection error: ') . $e->getMessage());
+            }
+        }
+
+        // Check if merchant credentials are set for other gateways before processing
+        $gatewayKey = $settings[$gateway . '_secret_key'] ?? $settings[$gateway . '_api_key'] ?? $settings[$gateway . '_key'] ?? $settings[$gateway . '_app_key'] ?? '';
+        if (empty($gatewayKey) && $gateway !== 'bank_transfer') {
+            return redirect()->back()->with('error', __("Live credentials for gateway '" . ucfirst($gateway) . "' are not configured in Settings. Please configure API keys."));
+        }
+
+        return redirect()->back()->with('error', __("Live checkout session for '" . ucfirst($gateway) . "' requires completed merchant account API key setup in Settings."));
     }
 }
 
