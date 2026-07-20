@@ -19,7 +19,8 @@ import {
     Briefcase,
     MessageSquare,
     Sparkles,
-    ThumbsUp
+    Link as LinkIcon,
+    Globe
 } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
@@ -179,49 +180,77 @@ export default function Index({ reviews, stats, filters, publicUrl }: IndexProps
     };
 
     return (
-        <AuthenticatedLayout
-            header={
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div>
-                        <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                            <Sparkles className="w-5 h-5 text-amber-500" />
-                            Client Reviews & Testimonials
-                        </h2>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                            Manage client feedback and collect reviews via public share link
-                        </p>
-                    </div>
-                    <div className="flex items-center gap-3">
-                        <button
-                            onClick={handleCopyPublicLink}
-                            className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
-                        >
-                            {isCopied ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4 text-slate-500" />}
-                            {isCopied ? 'Link Copied!' : 'Copy Public Review Link'}
-                        </button>
-                        <a
-                            href={publicUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="p-2 text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
-                            title="Preview Public Page"
-                        >
-                            <ExternalLink className="w-4 h-4" />
-                        </a>
-                        <button
-                            onClick={handleOpenCreateModal}
-                            className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg bg-purple-600 hover:bg-purple-700 text-white shadow-sm transition-colors"
-                        >
-                            <Plus className="w-4 h-4" />
-                            Add Review
-                        </button>
-                    </div>
-                </div>
-            }
-        >
+        <AuthenticatedLayout>
             <Head title="Client Reviews" />
 
             <div className="space-y-6">
+                {/* Banner & Action Bar Card */}
+                <div className="bg-gradient-to-r from-purple-900/40 via-slate-900 to-slate-900 border border-purple-500/20 rounded-2xl p-5 shadow-lg relative overflow-hidden">
+                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5 relative z-10">
+                        <div>
+                            <div className="flex items-center gap-2.5 mb-1.5">
+                                <div className="p-2 rounded-xl bg-purple-600/20 text-purple-400 border border-purple-500/30">
+                                    <Sparkles className="w-5 h-5" />
+                                </div>
+                                <h2 className="text-xl font-bold text-white tracking-tight">
+                                    Client Reviews & Feedback
+                                </h2>
+                            </div>
+                            <p className="text-xs text-slate-300 max-w-xl leading-relaxed">
+                                Collect client feedback without requiring ERP login via public share link, and manage client testimonials dynamically.
+                            </p>
+                        </div>
+
+                        {/* Public Link Box & Action Buttons */}
+                        <div className="flex flex-wrap items-center gap-3">
+                            {/* Copy Link Input Box */}
+                            <div className="flex items-center bg-slate-950/80 border border-slate-700/80 rounded-xl pl-3 pr-1.5 py-1.5 shadow-inner">
+                                <Globe className="w-4 h-4 text-purple-400 mr-2 shrink-0" />
+                                <span className="text-xs text-slate-300 font-mono select-all truncate max-w-[200px] sm:max-w-[260px]">
+                                    {publicUrl}
+                                </span>
+                                <button
+                                    onClick={handleCopyPublicLink}
+                                    className="ml-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold shadow transition-all duration-200"
+                                >
+                                    {isCopied ? (
+                                        <>
+                                            <Check className="w-3.5 h-3.5 text-emerald-300" />
+                                            Copied!
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Copy className="w-3.5 h-3.5" />
+                                            Copy Link
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+
+                            {/* Preview Public Form Button */}
+                            <a
+                                href={publicUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors shadow"
+                                title="Open public submission form in new tab"
+                            >
+                                <ExternalLink className="w-3.5 h-3.5" />
+                                Preview Form
+                            </a>
+
+                            {/* Add Review Button */}
+                            <button
+                                onClick={handleOpenCreateModal}
+                                className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-md transition-all duration-200"
+                            >
+                                <Plus className="w-4 h-4" />
+                                Add Review
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
                 {/* Stats Grid */}
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                     {/* Total Reviews */}

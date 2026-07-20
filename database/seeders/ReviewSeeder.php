@@ -121,6 +121,33 @@ class ReviewSeeder extends Seeder
                 'status' => 'approved',
                 'is_featured' => true,
             ],
+            [
+                'name' => 'Tanvir H.',
+                'position' => 'CTO',
+                'business_name' => 'BD-commerce co.',
+                'rating' => 5,
+                'review' => 'We replaced three SaaS gateways with one self-hosted PayOSS deploy. Saved 4% on every transaction.',
+                'status' => 'approved',
+                'is_featured' => true,
+            ],
+            [
+                'name' => 'Nusrat K.',
+                'position' => 'Founder',
+                'business_name' => 'freelance studio',
+                'rating' => 5,
+                'review' => 'Personal bKash automation alone is worth it. Reconciliation went from hours to seconds.',
+                'status' => 'approved',
+                'is_featured' => true,
+            ],
+            [
+                'name' => 'Rakib A.',
+                'position' => 'Eng lead',
+                'business_name' => 'logistics SaaS',
+                'rating' => 5,
+                'review' => 'Forking PayOSS let us white-label a gateway for our marketplace in two weeks.',
+                'status' => 'approved',
+                'is_featured' => true,
+            ],
         ];
 
         foreach ($reviews as $reviewData) {
