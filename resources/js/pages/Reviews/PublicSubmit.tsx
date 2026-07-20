@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Head } from '@inertiajs/react';
-import { Star, CheckCircle2, Send, Building2, User, Briefcase, MessageSquare, Sparkles } from 'lucide-react';
+import { Star, CheckCircle2, Send, Building2, User, Briefcase, MessageSquare, ShieldCheck } from 'lucide-react';
+import ApplicationLogo from '@/components/application-logo';
 import axios from 'axios';
 
 interface PublicSubmitProps {
@@ -32,7 +33,7 @@ export default function PublicSubmit({ appName = 'Dynime' }: PublicSubmitProps) 
         setErrorMessage(null);
 
         if (!name.trim() || !review.trim()) {
-            setErrorMessage('Please fill in your name and review.');
+            setErrorMessage('Please enter your name and review text.');
             return;
         }
 
@@ -57,43 +58,38 @@ export default function PublicSubmit({ appName = 'Dynime' }: PublicSubmitProps) 
     };
 
     return (
-        <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-between selection:bg-purple-500 selection:text-white relative overflow-hidden font-sans">
+        <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col justify-between selection:bg-purple-500 selection:text-white font-sans">
             <Head title={`Submit Review - ${appName}`} />
 
-            {/* Background Glow Orbs */}
-            <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-purple-600/15 rounded-full blur-[120px] pointer-events-none" />
-            <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-indigo-600/15 rounded-full blur-[120px] pointer-events-none" />
-
-            {/* Header */}
-            <header className="w-full max-w-4xl mx-auto px-6 py-8 flex items-center justify-between z-10">
+            {/* Top Navigation Bar */}
+            <header className="w-full max-w-4xl mx-auto px-6 py-6 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-purple-600 to-indigo-500 flex items-center justify-center shadow-lg shadow-purple-500/25">
-                        <Sparkles className="w-5 h-5 text-white" />
-                    </div>
+                    <ApplicationLogo className="w-9 h-9 text-purple-600 fill-current" />
                     <div>
-                        <span className="font-bold text-xl tracking-tight bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
+                        <span className="font-bold text-xl tracking-tight text-slate-900 dark:text-white">
                             Dynime
                         </span>
-                        <span className="text-xs block text-purple-400 font-medium">Client Reviews</span>
+                        <span className="text-xs block text-slate-500 dark:text-slate-400 font-medium">Client Reviews</span>
                     </div>
                 </div>
-                <div className="hidden sm:flex items-center gap-2 text-xs text-slate-400 bg-slate-900/60 border border-slate-800 px-3 py-1.5 rounded-full backdrop-blur-md">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                    Verified Feedback Portal
+
+                <div className="flex items-center gap-2 text-xs font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/80 px-3 py-1.5 rounded-full">
+                    <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    Verified Feedback
                 </div>
             </header>
 
-            {/* Main Container */}
-            <main className="flex-1 flex items-center justify-center p-4 sm:p-6 z-10">
-                <div className="w-full max-w-xl">
+            {/* Main Content Card */}
+            <main className="flex-1 flex items-center justify-center p-4 sm:p-6">
+                <div className="w-full max-w-lg">
                     {isSubmitted ? (
-                        <div className="bg-slate-900/80 border border-purple-500/30 rounded-3xl p-8 sm:p-12 text-center backdrop-blur-xl shadow-2xl shadow-purple-950/50 animate-in fade-in zoom-in-95 duration-300">
-                            <div className="w-20 h-20 bg-emerald-500/10 border border-emerald-500/30 rounded-full flex items-center justify-center mx-auto mb-6">
-                                <CheckCircle2 className="w-10 h-10 text-emerald-400 animate-bounce" />
+                        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-8 sm:p-12 text-center shadow-xl animate-in fade-in duration-300">
+                            <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800 rounded-full flex items-center justify-center mx-auto mb-5">
+                                <CheckCircle2 className="w-9 h-9 text-emerald-600 dark:text-emerald-400" />
                             </div>
-                            <h2 className="text-3xl font-bold text-white mb-3">Thank You!</h2>
-                            <p className="text-slate-300 text-base max-w-md mx-auto mb-8 leading-relaxed">
-                                Your review has been submitted successfully. We appreciate your valuable feedback!
+                            <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Thank You!</h2>
+                            <p className="text-slate-600 dark:text-slate-300 text-sm max-w-sm mx-auto mb-8 leading-relaxed">
+                                Your review has been submitted successfully. We appreciate your valuable partnership and feedback!
                             </p>
                             <button
                                 onClick={() => {
@@ -104,34 +100,38 @@ export default function PublicSubmit({ appName = 'Dynime' }: PublicSubmitProps) 
                                     setReview('');
                                     setRating(5);
                                 }}
-                                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-medium text-sm transition-all duration-200 shadow-lg shadow-purple-600/30"
+                                className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-medium text-xs transition-colors shadow-md"
                             >
                                 Submit Another Review
                             </button>
                         </div>
                     ) : (
-                        <div className="bg-slate-900/70 border border-slate-800 rounded-3xl p-6 sm:p-10 backdrop-blur-xl shadow-2xl shadow-purple-950/40">
+                        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-10 shadow-xl">
+                            {/* Card Header */}
                             <div className="text-center mb-8">
-                                <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight mb-2">
+                                <div className="inline-flex items-center justify-center p-3 rounded-2xl bg-purple-50 dark:bg-purple-950/50 mb-3">
+                                    <ApplicationLogo className="w-10 h-10 text-purple-600 fill-current" />
+                                </div>
+                                <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight mb-1">
                                     Share Your Experience
                                 </h1>
-                                <p className="text-slate-400 text-sm max-w-md mx-auto">
-                                    How was working with Dynime? We value your honest review and partnership.
+                                <p className="text-slate-500 dark:text-slate-400 text-xs">
+                                    How was working with Dynime? We value your honest feedback.
                                 </p>
                             </div>
 
                             {errorMessage && (
-                                <div className="mb-6 p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-sm text-center">
+                                <div className="mb-6 p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs text-center font-medium">
                                     {errorMessage}
                                 </div>
                             )}
 
-                            <form onSubmit={handleSubmit} className="space-y-6">
-                                {/* Star Rating */}
-                                <div className="flex flex-col items-center justify-center p-5 rounded-2xl bg-slate-950/60 border border-slate-800/80">
-                                    <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider mb-3">
-                                        Overall Rating
-                                    </label>
+                            <form onSubmit={handleSubmit} className="space-y-5">
+                                {/* Star Rating Box */}
+                                <div className="flex flex-col items-center justify-center p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/80">
+                                    <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
+                                        Rating
+                                    </span>
                                     <div className="flex items-center gap-2">
                                         {[1, 2, 3, 4, 5].map((star) => (
                                             <button
@@ -140,32 +140,32 @@ export default function PublicSubmit({ appName = 'Dynime' }: PublicSubmitProps) 
                                                 onClick={() => setRating(star)}
                                                 onMouseEnter={() => setHoverRating(star)}
                                                 onMouseLeave={() => setHoverRating(0)}
-                                                className="p-1 transition-transform transform hover:scale-125 focus:outline-none"
+                                                className="p-1 transition-transform transform hover:scale-110 focus:outline-none"
                                             >
                                                 <Star
-                                                    className={`w-9 h-9 transition-colors ${
+                                                    className={`w-8 h-8 transition-colors ${
                                                         star <= (hoverRating || rating)
-                                                            ? 'fill-amber-400 text-amber-400 drop-shadow-[0_0_10px_rgba(251,191,36,0.5)]'
-                                                            : 'text-slate-700 fill-slate-800/40'
+                                                            ? 'fill-amber-400 text-amber-400'
+                                                            : 'text-slate-300 dark:text-slate-700 fill-slate-100 dark:fill-slate-800'
                                                     }`}
                                                 />
                                             </button>
                                         ))}
                                     </div>
-                                    <span className="mt-3 text-xs font-medium text-amber-400 h-4">
-                                        {ratingLabels[hoverRating || rating]}
+                                    <span className="mt-2 text-xs font-semibold text-amber-600 dark:text-amber-400 h-4">
+                                        {(hoverRating || rating)} / 5 - {ratingLabels[hoverRating || rating]}
                                     </span>
                                 </div>
 
-                                {/* Form Fields */}
+                                {/* Form Inputs */}
                                 <div className="space-y-4">
-                                    {/* Full Name */}
+                                    {/* Name */}
                                     <div>
-                                        <label className="block text-xs font-medium text-slate-300 mb-1.5">
-                                            Your Name <span className="text-purple-400">*</span>
+                                        <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                                            Your Name <span className="text-purple-600 dark:text-purple-400">*</span>
                                         </label>
                                         <div className="relative">
-                                            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
                                                 <User className="w-4 h-4" />
                                             </div>
                                             <input
@@ -174,39 +174,39 @@ export default function PublicSubmit({ appName = 'Dynime' }: PublicSubmitProps) 
                                                 value={name}
                                                 onChange={(e) => setName(e.target.value)}
                                                 placeholder="e.g. Sarah Chen"
-                                                className="w-full pl-10 pr-4 py-3 bg-slate-950/70 border border-slate-800 rounded-xl text-slate-100 placeholder-slate-600 text-sm focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-colors"
+                                                className="w-full pl-9 pr-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 text-xs focus:outline-none focus:border-purple-600 focus:ring-2 focus:ring-purple-600/20 transition-all"
                                             />
                                         </div>
                                     </div>
 
                                     {/* Position & Business Grid */}
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                                         {/* Position */}
                                         <div>
-                                            <label className="block text-xs font-medium text-slate-300 mb-1.5">
+                                            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
                                                 Position / Title
                                             </label>
                                             <div className="relative">
-                                                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
                                                     <Briefcase className="w-4 h-4" />
                                                 </div>
                                                 <input
                                                     type="text"
                                                     value={position}
                                                     onChange={(e) => setPosition(e.target.value)}
-                                                    placeholder="e.g. CEO, Founder"
-                                                    className="w-full pl-10 pr-4 py-3 bg-slate-950/70 border border-slate-800 rounded-xl text-slate-100 placeholder-slate-600 text-sm focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-colors"
+                                                    placeholder="e.g. CEO"
+                                                    className="w-full pl-9 pr-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 text-xs focus:outline-none focus:border-purple-600 focus:ring-2 focus:ring-purple-600/20 transition-all"
                                                 />
                                             </div>
                                         </div>
 
-                                        {/* Business Name */}
+                                        {/* Business */}
                                         <div>
-                                            <label className="block text-xs font-medium text-slate-300 mb-1.5">
-                                                Business / Company Name
+                                            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                                                Business / Company
                                             </label>
                                             <div className="relative">
-                                                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
                                                     <Building2 className="w-4 h-4" />
                                                 </div>
                                                 <input
@@ -214,7 +214,7 @@ export default function PublicSubmit({ appName = 'Dynime' }: PublicSubmitProps) 
                                                     value={businessName}
                                                     onChange={(e) => setBusinessName(e.target.value)}
                                                     placeholder="e.g. TechFlow"
-                                                    className="w-full pl-10 pr-4 py-3 bg-slate-950/70 border border-slate-800 rounded-xl text-slate-100 placeholder-slate-600 text-sm focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-colors"
+                                                    className="w-full pl-9 pr-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 text-xs focus:outline-none focus:border-purple-600 focus:ring-2 focus:ring-purple-600/20 transition-all"
                                                 />
                                             </div>
                                         </div>
@@ -222,11 +222,11 @@ export default function PublicSubmit({ appName = 'Dynime' }: PublicSubmitProps) 
 
                                     {/* Review Text */}
                                     <div>
-                                        <label className="block text-xs font-medium text-slate-300 mb-1.5">
-                                            Your Review / Testimonial <span className="text-purple-400">*</span>
+                                        <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                                            Your Review <span className="text-purple-600 dark:text-purple-400">*</span>
                                         </label>
                                         <div className="relative">
-                                            <div className="absolute top-3.5 left-3.5 text-slate-500 pointer-events-none">
+                                            <div className="absolute top-3 left-3 text-slate-400 pointer-events-none">
                                                 <MessageSquare className="w-4 h-4" />
                                             </div>
                                             <textarea
@@ -234,8 +234,8 @@ export default function PublicSubmit({ appName = 'Dynime' }: PublicSubmitProps) 
                                                 rows={4}
                                                 value={review}
                                                 onChange={(e) => setReview(e.target.value)}
-                                                placeholder="Describe your experience working with Dynime..."
-                                                className="w-full pl-10 pr-4 py-3 bg-slate-950/70 border border-slate-800 rounded-xl text-slate-100 placeholder-slate-600 text-sm focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-colors resize-none"
+                                                placeholder="Write your review here..."
+                                                className="w-full pl-9 pr-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 text-xs focus:outline-none focus:border-purple-600 focus:ring-2 focus:ring-purple-600/20 transition-all resize-none"
                                             />
                                         </div>
                                     </div>
@@ -245,17 +245,17 @@ export default function PublicSubmit({ appName = 'Dynime' }: PublicSubmitProps) 
                                 <button
                                     type="submit"
                                     disabled={isSubmitting}
-                                    className="w-full py-3.5 px-6 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-medium text-sm flex items-center justify-center gap-2 shadow-lg shadow-purple-600/30 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="w-full py-3 px-5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-medium text-xs flex items-center justify-center gap-2 shadow-md transition-all disabled:opacity-50"
                                 >
                                     {isSubmitting ? (
                                         <span className="flex items-center gap-2">
-                                            <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                            <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                                             Submitting...
                                         </span>
                                     ) : (
                                         <>
                                             Submit Review
-                                            <Send className="w-4 h-4" />
+                                            <Send className="w-3.5 h-3.5" />
                                         </>
                                     )}
                                 </button>
@@ -266,7 +266,7 @@ export default function PublicSubmit({ appName = 'Dynime' }: PublicSubmitProps) 
             </main>
 
             {/* Footer */}
-            <footer className="w-full max-w-4xl mx-auto px-6 py-6 text-center text-xs text-slate-600 z-10">
+            <footer className="w-full max-w-4xl mx-auto px-6 py-6 text-center text-xs text-slate-400 dark:text-slate-600">
                 © {new Date().getFullYear()} Dynime. All rights reserved.
             </footer>
         </div>
