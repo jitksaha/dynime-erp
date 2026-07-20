@@ -215,6 +215,11 @@ Route::middleware(['auth', 'verified', 'PlanModuleCheck'])->group(function () {
     // Review management routes
     Route::resource('reviews', ReviewController::class);
     Route::post('reviews/{review}/status', [ReviewController::class, 'updateStatus'])->name('reviews.update-status');
+
+    // Payment Link Generator routes
+    Route::get('/payment-links', [App\Http\Controllers\PaymentLinkController::class, 'index'])->name('payment-links.index');
+    Route::post('/payment-links', [App\Http\Controllers\PaymentLinkController::class, 'store'])->name('payment-links.store');
+    Route::delete('/payment-links/{id}', [App\Http\Controllers\PaymentLinkController::class, 'destroy'])->name('payment-links.destroy');
 });
 
 // Public review submission routes (no login required)
@@ -225,6 +230,11 @@ Route::get('/translations/{locale}', [TranslationController::class, 'getTranslat
 Route::post('/cookie-consent-log', [SettingController::class, 'logCookieConsent'])->name('cookie.consent.log');
 
 Route::get('/invoice/{invoiceNumber}', [App\Http\Controllers\SalesInvoiceController::class, 'publicView'])->name('sales-invoices.public-view');
+Route::post('/invoice/{invoiceNumber}/pay', [App\Http\Controllers\SalesInvoiceController::class, 'processInvoicePayment'])->name('sales-invoices.public-pay');
+
+// Public Payment Link for non-users (no login required)
+Route::get('/pay/{code}', [App\Http\Controllers\PaymentLinkController::class, 'publicPay'])->name('payment-links.public-pay');
+Route::post('/pay/{code}', [App\Http\Controllers\PaymentLinkController::class, 'processPublicPay'])->name('payment-links.process-public-pay');
 
 Route::group(['domain' => 'billing.dynime.com'], function () {
     Route::get('/{invoiceNumber}', [App\Http\Controllers\SalesInvoiceController::class, 'publicView'])->name('sales-invoices.public-view.short');
@@ -232,3 +242,4 @@ Route::group(['domain' => 'billing.dynime.com'], function () {
 
 require __DIR__.'/installer.php';
 require __DIR__.'/auth.php';
+

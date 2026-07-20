@@ -37,6 +37,16 @@ interface PublicViewProps {
         company_email?: string;
         company_logo?: string;
     };
+    paymentGateways?: {
+        bkash_enabled?: string;
+        sslcommerz_enabled?: string;
+        stripe_onsite_enabled?: string;
+        stripe_hosted_enabled?: string;
+        keeal_enabled?: string;
+        dodopayment_enabled?: string;
+        bank_transfer_enabled?: string;
+        bank_accounts?: any[];
+    };
 }
 
 const getSymbol = (currency: string): string => {
@@ -85,9 +95,11 @@ const getSymbol = (currency: string): string => {
     return symbols[currency] || currency;
 };
 
-export default function PublicView({ invoice, companySettings }: PublicViewProps) {
+export default function PublicView({ invoice, companySettings, paymentGateways }: PublicViewProps) {
     const [isDownloading, setIsDownloading] = useState(false);
     const [copied, setCopied] = useState(false);
+    const [isPayModalOpen, setIsPayModalOpen] = useState(false);
+    const [selectedGateway, setSelectedGateway] = useState('bkash');
     
     // Currency Converter State
     const [rates, setRates] = useState<Record<string, number>>({ BDT: 123.24, USD: 1, EUR: 0.92, GBP: 0.78 });
@@ -175,88 +187,7 @@ export default function PublicView({ invoice, companySettings }: PublicViewProps
         window.print();
     };
 
-    const defaultInclusions = [
-        "Custom Website Design & Development",
-        "Frontend Development",
-        "Backend Development & Database Setup",
-        "Admin Panel & Order Management System (OMS)",
-        "Point of Sale (POS) Integration",
-        "Responsive Design (Desktop, Tablet & Mobile)",
-        "Cloud Storage Integration (S3 Compatible, if required)",
-        "CDN Setup & Configuration",
-        "Performance Optimization & Speed Enhancement",
-        "Security & SSL Configuration",
-        "Testing, Deployment & Go-Live Support",
-        "Hostinger KVM 8 VPS Hosting (2 Years)",
-        "Performance Target",
-        "Fast-loading website architecture",
-        "Optimized Core Web Vitals",
-        "PageSpeed Performance Target: 90+ Desktop"
-    ];
-
-    const includedServices = invoice.service_brief?.included_services || [];
-
-    // Resolve Billed From details dynamically
-    const companyName = companySettings?.company_name || "Dynime LLC.";
-    const companyEmail = companySettings?.company_email || "support@dynime.com";
-    const companyPhone = companySettings?.company_telephone || "+1 (646) 884-0271";
-    const companyDomain = companyEmail.split('@')[1] || "dynime.com";
-    
-    const addressParts = [
-        companySettings?.company_address,
-        companySettings?.company_city,
-        companySettings?.company_state,
-        companySettings?.company_zipcode,
-        companySettings?.company_country
-    ].filter(Boolean);
-    const companyAddress = addressParts.length > 0 
-        ? addressParts.join(', ') 
-        : "244 5th Ave, Suite #1964, New York, NY 10001, USA";
-
-    const rawLogo = companySettings?.company_logo;
-    const logoUrl = rawLogo 
-        ? (rawLogo.startsWith('http') ? rawLogo : `/storage/${rawLogo}`)
-        : "https://cdn.dynime.com/media/KVhzkR7rCJFuzFxBU8ljBqFb2PItfQM5i3omxMNF.png";
-
-    // Format dates
-    const dateOfIssue = formatMockDate(invoice.invoice_date);
-    const dateDue = formatMockDate(invoice.due_date);
-    const estDeliveryDate = invoice.estimated_delivery_date ? formatMockDate(invoice.estimated_delivery_date) : 'Aug 10, 2026';
-
-    const getStatusText = (status: string) => {
-        switch (status.toLowerCase()) {
-            case 'paid':
-                return 'Payment Completed';
-            case 'overdue':
-                return 'Payment Overdue';
-            default:
-                return 'Payment Pending';
-        }
-    };
-
-    const getStatusBadgeStyles = (status: string) => {
-        switch (status.toLowerCase()) {
-            case 'paid':
-                return 'bg-emerald-50 text-emerald-700 border-emerald-200';
-            case 'overdue':
-                return 'bg-rose-50 text-rose-700 border-rose-200';
-            default:
-                return 'bg-amber-50 text-amber-700 border-amber-200';
-        }
-    };
-
-    const getStatusIcon = (status: string) => {
-        switch (status.toLowerCase()) {
-            case 'paid':
-                return <CheckCircle2 className="h-4 w-4 text-emerald-500" />;
-            case 'overdue':
-                return <AlertCircle className="h-4 w-4 text-rose-500" />;
-            default:
-                return <Clock className="h-4 w-4 text-amber-500" />;
-        }
-    };
-
-    const convertedAmount = (invoice.total_amount || 0) * (rates[targetCurrency] || 123.24);
+    const balanceDue = parseFloat(invoice.balance_amount || invoice.total_amount || 0);
 
     return (
         <div className="min-h-screen bg-[#F8FAFC] pb-24 print:pb-0 print:bg-white">
@@ -277,6 +208,14 @@ export default function PublicView({ invoice, companySettings }: PublicViewProps
                     <span className="text-sm font-semibold text-slate-400">Share Invoice URL</span>
                 </div>
                 <div className="flex flex-wrap justify-center gap-2">
+                    {balanceDue > 0 && (
+                        <Button
+                            onClick={() => setIsPayModalOpen(true)}
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-lg shadow-emerald-600/20 rounded-xl px-5 animate-pulse"
+                        >
+                            💳 Pay Online ({formatCurrency(balanceDue)})
+                        </Button>
+                    )}
                     <Button variant="outline" size="sm" onClick={copyLink} className="bg-white border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl">
                         <Share2 className="h-4 w-4 mr-2 text-slate-500" />
                         {copied ? 'Copied!' : 'Copy link'}
@@ -702,6 +641,127 @@ export default function PublicView({ invoice, companySettings }: PublicViewProps
             </div>
             
             {/* Custom print styling to inject clean page break and custom page setup */}
+            {/* ============================================================== */}
+            {/* PAYMENT SELECTOR MODAL (Screen Only) */}
+            {/* ============================================================== */}
+            {isPayModalOpen && (
+                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 print:hidden">
+                    <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-2xl shadow-2xl border border-slate-100 dark:border-slate-800 overflow-hidden animate-in fade-in zoom-in duration-200">
+                        <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                            <div>
+                                <h3 className="font-bold text-lg text-slate-900 dark:text-white flex items-center gap-2">
+                                    💳 Pay Invoice #{invoice.invoice_number}
+                                </h3>
+                                <p className="text-xs text-slate-500 mt-0.5">Select your preferred payment method</p>
+                            </div>
+                            <button
+                                onClick={() => setIsPayModalOpen(false)}
+                                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-lg font-bold w-8 h-8 rounded-full flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800"
+                            >
+                                ✕
+                            </button>
+                        </div>
+
+                        <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+                            <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl flex items-center justify-between border border-slate-200/60 dark:border-slate-700">
+                                <span className="text-sm font-semibold text-slate-600 dark:text-slate-400">Total Amount Due</span>
+                                <span className="text-xl font-extrabold text-indigo-600 dark:text-indigo-400">{formatCurrency(balanceDue)}</span>
+                            </div>
+
+                            <form action={route('sales-invoices.public-pay', invoice.invoice_number)} method="POST" className="space-y-4">
+                                <input type="hidden" name="_token" value={(document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || ''} />
+                                <input type="hidden" name="gateway" value={selectedGateway} />
+                                <input type="hidden" name="amount" value={balanceDue} />
+
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold uppercase tracking-wider text-slate-400 block">Available Gateways</label>
+
+                                    {paymentGateways?.bkash_enabled === 'on' && (
+                                        <label className={`flex items-center justify-between p-3.5 rounded-xl border cursor-pointer transition-all ${selectedGateway === 'bkash' ? 'border-pink-500 bg-pink-50/50 dark:bg-pink-950/20 ring-2 ring-pink-500/20' : 'border-slate-200 dark:border-slate-800 hover:bg-slate-50'}`}>
+                                            <div className="flex items-center gap-3">
+                                                <input type="radio" name="gateway_radio" checked={selectedGateway === 'bkash'} onChange={() => setSelectedGateway('bkash')} className="text-pink-600" />
+                                                <div>
+                                                    <div className="font-bold text-sm text-slate-900 dark:text-white">bKash Tokenized Checkout</div>
+                                                    <div className="text-xs text-slate-500">Pay directly in BDT with instant OTP & PIN</div>
+                                                </div>
+                                            </div>
+                                            <span className="text-xs font-bold px-2 py-0.5 bg-pink-100 text-pink-700 rounded-md">BDT ৳</span>
+                                        </label>
+                                    )}
+
+                                    {paymentGateways?.sslcommerz_enabled === 'on' && (
+                                        <label className={`flex items-center justify-between p-3.5 rounded-xl border cursor-pointer transition-all ${selectedGateway === 'sslcommerz' ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/20 ring-2 ring-emerald-500/20' : 'border-slate-200 dark:border-slate-800 hover:bg-slate-50'}`}>
+                                            <div className="flex items-center gap-3">
+                                                <input type="radio" name="gateway_radio" checked={selectedGateway === 'sslcommerz'} onChange={() => setSelectedGateway('sslcommerz')} className="text-emerald-600" />
+                                                <div>
+                                                    <div className="font-bold text-sm text-slate-900 dark:text-white">SSLCommerz (Bangladesh)</div>
+                                                    <div className="text-xs text-slate-500">Cards, Mobile Banking & Net Banking</div>
+                                                </div>
+                                            </div>
+                                            <span className="text-xs font-bold px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-md">Cards / MFS</span>
+                                        </label>
+                                    )}
+
+                                    {paymentGateways?.stripe_onsite_enabled === 'on' && (
+                                        <label className={`flex items-center justify-between p-3.5 rounded-xl border cursor-pointer transition-all ${selectedGateway === 'stripe_express' ? 'border-indigo-500 bg-indigo-50/50 dark:bg-indigo-950/20 ring-2 ring-indigo-500/20' : 'border-slate-200 dark:border-slate-800 hover:bg-slate-50'}`}>
+                                            <div className="flex items-center gap-3">
+                                                <input type="radio" name="gateway_radio" checked={selectedGateway === 'stripe_express'} onChange={() => setSelectedGateway('stripe_express')} className="text-indigo-600" />
+                                                <div>
+                                                    <div className="font-bold text-sm text-slate-900 dark:text-white">Direct Card & Express Pay</div>
+                                                    <div className="text-xs text-slate-500">Apple Pay, Google Pay & On-site Card</div>
+                                                </div>
+                                            </div>
+                                            <span className="text-xs font-bold px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded-md">Stripe</span>
+                                        </label>
+                                    )}
+
+                                    {paymentGateways?.keeal_enabled === 'on' && (
+                                        <label className={`flex items-center justify-between p-3.5 rounded-xl border cursor-pointer transition-all ${selectedGateway === 'keeal' ? 'border-purple-500 bg-purple-50/50 dark:bg-purple-950/20 ring-2 ring-purple-500/20' : 'border-slate-200 dark:border-slate-800 hover:bg-slate-50'}`}>
+                                            <div className="flex items-center gap-3">
+                                                <input type="radio" name="gateway_radio" checked={selectedGateway === 'keeal'} onChange={() => setSelectedGateway('keeal')} className="text-purple-600" />
+                                                <div>
+                                                    <div className="font-bold text-sm text-slate-900 dark:text-white">PayPal & Cards (Keeal)</div>
+                                                    <div className="text-xs text-slate-500">Hosted PayPal & Global Card Checkout</div>
+                                                </div>
+                                            </div>
+                                            <span className="text-xs font-bold px-2 py-0.5 bg-purple-100 text-purple-700 rounded-md">PayPal</span>
+                                        </label>
+                                    )}
+
+                                    {paymentGateways?.bank_transfer_enabled === 'on' && (
+                                        <label className={`flex items-center justify-between p-3.5 rounded-xl border cursor-pointer transition-all ${selectedGateway === 'bank_transfer' ? 'border-amber-500 bg-amber-50/50 dark:bg-amber-950/20 ring-2 ring-amber-500/20' : 'border-slate-200 dark:border-slate-800 hover:bg-slate-50'}`}>
+                                            <div className="flex items-center gap-3">
+                                                <input type="radio" name="gateway_radio" checked={selectedGateway === 'bank_transfer'} onChange={() => setSelectedGateway('bank_transfer')} className="text-amber-600" />
+                                                <div>
+                                                    <div className="font-bold text-sm text-slate-900 dark:text-white">Bank Transfer (Manual Deposit)</div>
+                                                    <div className="text-xs text-slate-500">Direct wire transfer to company account</div>
+                                                </div>
+                                            </div>
+                                            <span className="text-xs font-bold px-2 py-0.5 bg-amber-100 text-amber-700 rounded-md">Bank</span>
+                                        </label>
+                                    )}
+                                </div>
+
+                                {selectedGateway === 'bank_transfer' && (
+                                    <div className="bg-amber-50/80 dark:bg-amber-950/30 p-3.5 rounded-xl border border-amber-200 dark:border-amber-900 text-xs space-y-2">
+                                        <div className="font-bold text-amber-900 dark:text-amber-300">Bank Wire Details:</div>
+                                        <p className="text-amber-800 dark:text-amber-400">Account: Dynime Inc. | Bank of America</p>
+                                        <p className="text-amber-800 dark:text-amber-400">A/C: 48301928471 | SWIFT: BOFAUS3N</p>
+                                        <p className="text-slate-500 italic">Reference: #{invoice.invoice_number}</p>
+                                    </div>
+                                )}
+
+                                <div className="pt-3">
+                                    <Button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 text-sm rounded-xl shadow-lg shadow-emerald-600/20">
+                                        Proceed to Pay {formatCurrency(balanceDue)}
+                                    </Button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <style dangerouslySetInnerHTML={{__html: `
                 @media print {
                     @page {
@@ -763,3 +823,4 @@ export default function PublicView({ invoice, companySettings }: PublicViewProps
         </div>
     );
 }
+

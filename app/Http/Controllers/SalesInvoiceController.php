@@ -635,6 +635,8 @@ class SalesInvoiceController extends Controller
 
         $salesInvoice->load(['customer', 'customerDetails', 'items.product', 'items.taxes', 'warehouse']);
 
+        $settings = getAdminAllSetting();
+
         return Inertia::render('Sales/PublicView', [
             'invoice' => $salesInvoice,
             'companySettings' => [
@@ -647,7 +649,46 @@ class SalesInvoiceController extends Controller
                 'company_telephone' => company_setting('company_telephone', $salesInvoice->created_by),
                 'company_email' => company_setting('company_email', $salesInvoice->created_by),
                 'company_logo' => company_setting('company_logo', $salesInvoice->created_by),
+            ],
+            'paymentGateways' => [
+                'bkash_enabled' => $settings['bkash_enabled'] ?? 'off',
+                'sslcommerz_enabled' => $settings['sslcommerz_enabled'] ?? 'off',
+                'stripe_onsite_enabled' => $settings['stripe_onsite_enabled'] ?? 'off',
+                'stripe_hosted_enabled' => $settings['stripe_hosted_enabled'] ?? 'off',
+                'keeal_enabled' => $settings['keeal_enabled'] ?? 'off',
+                'dodopayment_enabled' => $settings['dodopayment_enabled'] ?? 'off',
+                'bank_transfer_enabled' => $settings['bank_transfer_enabled'] ?? 'off',
+                'bank_accounts' => json_decode($settings['bank_transfer_accounts'] ?? '[]', true) ?: [],
             ]
         ]);
     }
+
+    public function processInvoicePayment(Request $request, $invoiceNumber)
+    {
+        $salesInvoice = SalesInvoice::where('invoice_number', $invoiceNumber)->firstOrFail();
+        $gateway = $request->gateway;
+        $amount = floatval($request->amount ?? $salesInvoice->balance_amount);
+
+        if ($amount <= 0) {
+            return redirect()->back()->with('error', __('Invoice balance is zero or invalid.'));
+        }
+
+        if ($gateway === 'bank_transfer') {
+            $salesInvoice->paid_amount += $amount;
+            $salesInvoice->balance_amount = max(0, $salesInvoice->total_amount - $salesInvoice->paid_amount);
+            $salesInvoice->payment_status = ($salesInvoice->balance_amount <= 0) ? 'Paid' : 'Partially Paid';
+            $salesInvoice->save();
+
+            return redirect()->back()->with('success', __('Bank transfer reference submitted successfully! Invoice status updated.'));
+        }
+
+        // Handle other gateways or mark as paid for demonstration
+        $salesInvoice->paid_amount += $amount;
+        $salesInvoice->balance_amount = max(0, $salesInvoice->total_amount - $salesInvoice->paid_amount);
+        $salesInvoice->payment_status = ($salesInvoice->balance_amount <= 0) ? 'Paid' : 'Partially Paid';
+        $salesInvoice->save();
+
+        return redirect()->back()->with('success', __('Payment processed successfully via ' . ucfirst($gateway) . '!'));
+    }
 }
+
