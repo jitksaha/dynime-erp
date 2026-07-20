@@ -103,6 +103,22 @@ export default function PublicView({ invoice, companySettings, paymentGateways }
     const [selectedGateway, setSelectedGateway] = useState('bkash');
     const [paymentMode, setPaymentMode] = useState<'full' | 'partial'>('full');
     const [partialAmount, setPartialAmount] = useState('');
+
+    // Force light mode on this public page (admin may have dark theme active)
+    useEffect(() => {
+        const body = document.body;
+        const html = document.documentElement;
+        const wasDarkBody = body.classList.contains('dark');
+        const wasDarkHtml = html.classList.contains('dark');
+        body.classList.remove('dark');
+        html.classList.remove('dark');
+        body.style.backgroundColor = '#ffffff';
+        return () => {
+            if (wasDarkBody) body.classList.add('dark');
+            if (wasDarkHtml) html.classList.add('dark');
+            body.style.backgroundColor = '';
+        };
+    }, []);
     
     // Currency Converter State
     const [rates, setRates] = useState<Record<string, number>>({ BDT: 123.24, USD: 1, EUR: 0.92, GBP: 0.78 });
@@ -251,7 +267,7 @@ export default function PublicView({ invoice, companySettings, paymentGateways }
             )}
 
             {/* Quick Action bar (hidden in print) */}
-            <div className="max-w-[850px] mx-auto mt-4 mb-4 px-4 sm:px-0 flex flex-col sm:flex-row justify-between items-center gap-3 print:hidden">
+            <div className="max-w-[850px] mx-auto mt-2 mb-3 px-4 sm:px-0 flex flex-col sm:flex-row justify-between items-center gap-3 print:hidden">
                 <div className="flex items-center gap-2">
                     <span className="text-sm font-semibold text-slate-400">Share Invoice URL</span>
                 </div>
