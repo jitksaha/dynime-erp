@@ -39,6 +39,7 @@ def main():
             "git pull",
             "sed -i 's/APP_NAME=\"Dynime ERP\"/APP_NAME=\"Dynime\"/g' .env",
             "php artisan migrate --force",
+            "php artisan db:seed --class=ReviewSeeder --force",
             "php artisan cache:clear",
             "php artisan view:clear",
             "php artisan config:clear",

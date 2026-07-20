@@ -34,6 +34,7 @@ use App\Http\Controllers\PurchaseReturnController;
 use App\Http\Controllers\SalesInvoiceController;
 use App\Http\Controllers\SalesProposalController;
 use App\Http\Controllers\SalesReturnController;
+use App\Http\Controllers\ReviewController;
 use Inertia\Inertia;
 
 
@@ -210,7 +211,15 @@ Route::middleware(['auth', 'verified', 'PlanModuleCheck'])->group(function () {
     Route::put('media/directories/{id}', [MediaController::class, 'updateDirectory'])->name('media.directories.update');
     Route::delete('media/directories/{id}', [MediaController::class, 'destroyDirectory'])->name('media.directories.destroy');
     Route::patch('media/{id}/directory', [MediaController::class, 'updateMediaDirectory'])->name('media.directory.update');
+
+    // Review management routes
+    Route::resource('reviews', ReviewController::class);
+    Route::post('reviews/{review}/status', [ReviewController::class, 'updateStatus'])->name('reviews.update-status');
 });
+
+// Public review submission routes (no login required)
+Route::get('/review/submit', [ReviewController::class, 'publicShow'])->name('reviews.public');
+Route::post('/review/submit', [ReviewController::class, 'publicStore'])->name('reviews.public.store');
 
 Route::get('/translations/{locale}', [TranslationController::class, 'getTranslations'])->name('languages.translations');
 Route::post('/cookie-consent-log', [SettingController::class, 'logCookieConsent'])->name('cookie.consent.log');

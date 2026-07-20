@@ -1,4 +1,4 @@
-import { LayoutGrid, Users, Warehouse,ArrowRightLeft, Package, Tag, Tags, Shield, Settings, Image, CreditCard, Headphones, ShoppingCart, Kanban, Calendar, MessageCircle, Replace ,Receipt} from 'lucide-react';
+import { LayoutGrid, Users, Warehouse,ArrowRightLeft, Package, Tag, Tags, Shield, Settings, Image, CreditCard, Headphones, ShoppingCart, Kanban, Calendar, MessageCircle, Replace ,Receipt, Star } from 'lucide-react';
 import { NavItem } from '@/types';
 
 export const getCompanyMenu = (t: (key: string) => string): NavItem[] => [
@@ -106,6 +106,12 @@ export const getCompanyMenu = (t: (key: string) => string): NavItem[] => [
         icon: Headphones,
         permission: 'manage-helpdesk-tickets',
         order: 2950,
+    },
+    {
+        title: t('Reviews'),
+        href: route('reviews.index'),
+        icon: Star,
+        order: 2960,
     },
     {
         title: t('Coupons'),
