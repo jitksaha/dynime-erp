@@ -237,7 +237,10 @@ Route::get('/pay/{code}', [App\Http\Controllers\PaymentLinkController::class, 'p
 Route::post('/pay/{code}', [App\Http\Controllers\PaymentLinkController::class, 'processPublicPay'])->name('payment-links.process-public-pay');
 
 Route::group(['domain' => 'billing.dynime.com'], function () {
+    Route::get('/pay/{code}', [App\Http\Controllers\PaymentLinkController::class, 'publicPay'])->name('payment-links.public-pay.billing');
+    Route::post('/pay/{code}', [App\Http\Controllers\PaymentLinkController::class, 'processPublicPay'])->name('payment-links.process-public-pay.billing');
     Route::get('/{invoiceNumber}', [App\Http\Controllers\SalesInvoiceController::class, 'publicView'])->name('sales-invoices.public-view.short');
+    Route::post('/{invoiceNumber}/pay', [App\Http\Controllers\SalesInvoiceController::class, 'processInvoicePayment'])->name('sales-invoices.public-pay.short');
 });
 
 require __DIR__.'/installer.php';

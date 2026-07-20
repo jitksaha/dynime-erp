@@ -58,7 +58,9 @@ export default function Index({ paymentLinks }: IndexProps) {
   };
 
   const copyToClipboard = (code: string) => {
-    const url = `${window.location.origin}/pay/${code}`;
+    const isBillingDomain = window.location.hostname.includes('dynime.com');
+    const baseUrl = isBillingDomain ? 'https://billing.dynime.com' : window.location.origin;
+    const url = `${baseUrl}/pay/${code}`;
     navigator.clipboard.writeText(url);
     setCopiedId(code);
     toast.success('Payment link copied to clipboard!');
