@@ -39,13 +39,24 @@
             </div>
         </div>
         <script>
-            document.addEventListener('DOMContentLoaded',()=>{
-                const loader=document.getElementById('app-loader');
-                const checkApp=()=>{
-                    if(document.querySelector('#app').children.length>0){
-                        if(loader)loader.remove();
-                    }else{
-                        setTimeout(checkApp,50);
+            document.addEventListener('DOMContentLoaded', () => {
+                const loader = document.getElementById('app-loader');
+                if (!loader) return;
+                
+                const removeLoader = () => {
+                    loader.style.transition = 'opacity 0.25s ease';
+                    loader.style.opacity = '0';
+                    setTimeout(() => { if (loader && loader.parentNode) loader.remove(); }, 250);
+                };
+
+                let attempts = 0;
+                const checkApp = () => {
+                    attempts++;
+                    const appEl = document.querySelector('#app');
+                    if ((appEl && appEl.children.length > 0) || attempts > 20) {
+                        removeLoader();
+                    } else {
+                        setTimeout(checkApp, 40);
                     }
                 };
                 checkApp();

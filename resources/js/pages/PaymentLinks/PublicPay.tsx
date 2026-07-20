@@ -98,7 +98,7 @@ export default function PublicPay({ paymentLink, companySettings, paymentGateway
                 <p className="text-sm text-slate-400">This payment link has already been settled. Thank you!</p>
               </div>
             ) : (
-              <form action={route('payment-links.process-public-pay', paymentLink.link_code)} method="POST" className="space-y-6">
+              <form action={typeof window !== 'undefined' ? `${window.location.pathname.replace(/\/$/, '')}` : `/pay/${paymentLink.link_code}`} method="POST" className="space-y-6">
                 <input type="hidden" name="_token" value={(document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || ''} />
                 <input type="hidden" name="gateway" value={selectedGateway} />
 

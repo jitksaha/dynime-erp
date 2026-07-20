@@ -668,7 +668,7 @@ export default function PublicView({ invoice, companySettings, paymentGateways }
                                 <span className="text-xl font-extrabold text-indigo-600 dark:text-indigo-400">{formatCurrency(balanceDue)}</span>
                             </div>
 
-                            <form action={route('sales-invoices.public-pay', invoice.invoice_number)} method="POST" className="space-y-4">
+                            <form action={typeof window !== 'undefined' ? `${window.location.pathname.replace(/\/$/, '')}/pay` : `/invoice/${invoice.invoice_number}/pay`} method="POST" className="space-y-4">
                                 <input type="hidden" name="_token" value={(document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || ''} />
                                 <input type="hidden" name="gateway" value={selectedGateway} />
                                 <input type="hidden" name="amount" value={balanceDue} />
