@@ -238,7 +238,7 @@ export default function PublicView({ invoice, companySettings, paymentGateways }
     };
 
     return (
-        <div className="min-h-screen bg-[#1A1D23] pb-24 print:pb-0 print:bg-white">
+        <div className="min-h-screen bg-white pb-24 print:pb-0 print:bg-white">
             <Head title={`Invoice ${invoice.invoice_number}`} />
 
             {isDownloading && (
@@ -253,7 +253,7 @@ export default function PublicView({ invoice, companySettings, paymentGateways }
             {/* Quick Action bar (hidden in print) */}
             <div className="max-w-[850px] mx-auto mt-4 mb-4 px-4 sm:px-0 flex flex-col sm:flex-row justify-between items-center gap-3 print:hidden">
                 <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold text-slate-500">Share Invoice URL</span>
+                    <span className="text-sm font-semibold text-slate-400">Share Invoice URL</span>
                 </div>
                 <div className="flex flex-wrap justify-center gap-2">
                     {balanceDue > 0 && (
@@ -264,16 +264,16 @@ export default function PublicView({ invoice, companySettings, paymentGateways }
                             <CreditCard className="h-4 w-4 mr-2" /> Pay Online ({formatCurrency(balanceDue)})
                         </Button>
                     )}
-                    <Button variant="outline" size="sm" onClick={copyLink} className="bg-white/10 border-white/20 text-white/80 hover:bg-white/20 rounded-xl">
-                        <Share2 className="h-4 w-4 mr-2 text-white/60" />
+                    <Button variant="outline" size="sm" onClick={copyLink} className="bg-white border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl">
+                        <Share2 className="h-4 w-4 mr-2 text-slate-500" />
                         {copied ? 'Copied!' : 'Copy link'}
                     </Button>
-                    <Button variant="outline" size="sm" onClick={downloadPDF} className="bg-white/10 border-white/20 text-white/80 hover:bg-white/20 rounded-xl">
-                        <Download className="h-4 w-4 mr-2 text-white/60" />
+                    <Button variant="outline" size="sm" onClick={downloadPDF} className="bg-white border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl">
+                        <Download className="h-4 w-4 mr-2 text-slate-500" />
                         Save PDF
                     </Button>
-                    <Button variant="outline" size="sm" onClick={handlePrint} className="bg-white/10 border-white/20 text-white/80 hover:bg-white/20 rounded-xl">
-                        <Printer className="h-4 w-4 mr-2 text-white/60" />
+                    <Button variant="outline" size="sm" onClick={handlePrint} className="bg-white border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl">
+                        <Printer className="h-4 w-4 mr-2 text-slate-500" />
                         Print
                     </Button>
                 </div>
@@ -292,7 +292,7 @@ export default function PublicView({ invoice, companySettings, paymentGateways }
                         <div className="absolute top-0 left-0 right-0 h-[6px] bg-[#E59700]" />
 
                         {/* Logo & Invoice Title Header */}
-                        <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-6 mt-2">
+                        <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-4 mt-2">
                             <div>
                                 <h1 className="text-[38px] font-extrabold tracking-tight text-slate-900 leading-none mb-3">Invoice</h1>
                                 <div className="flex items-center gap-4">
@@ -351,7 +351,7 @@ export default function PublicView({ invoice, companySettings, paymentGateways }
                         </div>
 
                         {/* Statuses Horizontal Banner */}
-                        <div className={`status-banner-grid-print grid grid-cols-1 ${invoice.project_category && invoice.project_category !== 'N/A' ? 'sm:grid-cols-3 print:grid-cols-3' : 'sm:grid-cols-2 print:grid-cols-2'} gap-4 bg-gradient-to-br from-slate-50/80 to-slate-50/40 border border-slate-100 rounded-xl p-4 mb-6`}>
+                        <div className={`status-banner-grid-print grid grid-cols-1 ${invoice.project_category && invoice.project_category !== 'N/A' ? 'sm:grid-cols-3 print:grid-cols-3' : 'sm:grid-cols-2 print:grid-cols-2'} gap-4 bg-white border border-slate-200 rounded-xl p-4 mb-4`}>
                             {/* Payment Status */}
                             <div className="flex items-center gap-3 bg-white/60 rounded-lg px-3 py-2.5">
                                 <div className="shrink-0">
@@ -428,7 +428,7 @@ export default function PublicView({ invoice, companySettings, paymentGateways }
                         </div>
 
                         {/* Amount Due & Delivery Date Block */}
-                        <div className="amount-delivery-grid-print grid grid-cols-1 sm:grid-cols-2 print:grid-cols-2 gap-6 border-t border-slate-100 pt-4 pb-4 mb-6">
+                        <div className="amount-delivery-grid-print grid grid-cols-1 sm:grid-cols-2 print:grid-cols-2 gap-6 border-t border-slate-100 pt-4 pb-4 mb-4">
                             {/* Amount / Balance Due */}
                             <div className="flex flex-col justify-center">
                                 <span className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider block mb-1">
@@ -448,7 +448,7 @@ export default function PublicView({ invoice, companySettings, paymentGateways }
                             </div>
 
                             {/* Estimated Delivery Date */}
-                            <div className="bg-[#EEF2F6]/60 border border-slate-100 rounded-xl p-3 flex items-center gap-3 print-avoid-break">
+                            <div className="bg-white border border-slate-200 rounded-xl p-3 flex items-center gap-3 print-avoid-break">
                                 <div className="bg-white p-2 rounded-full shadow-sm text-[#4F46E5] shrink-0">
                                     {(invoice.type === 'service' || !invoice.warehouse_id) ? <CalendarCheck className="h-4.5 w-4.5" /> : <Truck className="h-4.5 w-4.5" />}
                                 </div>
@@ -690,7 +690,7 @@ export default function PublicView({ invoice, companySettings, paymentGateways }
 
                 {/* Public Link Label under Card (hidden in print) */}
                 <div className="mt-6 text-center print:hidden">
-                    <p className="text-xs text-slate-500 font-medium">
+                    <p className="text-xs text-slate-400 font-medium">
                         Public link: <span className="text-[#4F46E5] font-semibold">https://billing.dynime.com/{invoice.invoice_number}</span>
                     </p>
                 </div>
