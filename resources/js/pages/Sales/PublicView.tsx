@@ -238,7 +238,7 @@ export default function PublicView({ invoice, companySettings, paymentGateways }
     };
 
     return (
-        <div className="min-h-screen bg-[#F8FAFC] pb-24 print:pb-0 print:bg-white">
+        <div className="min-h-screen bg-[#1A1D23] pb-24 print:pb-0 print:bg-white">
             <Head title={`Invoice ${invoice.invoice_number}`} />
 
             {isDownloading && (
@@ -253,7 +253,7 @@ export default function PublicView({ invoice, companySettings, paymentGateways }
             {/* Quick Action bar (hidden in print) */}
             <div className="max-w-[850px] mx-auto mt-4 mb-4 px-4 sm:px-0 flex flex-col sm:flex-row justify-between items-center gap-3 print:hidden">
                 <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold text-slate-400">Share Invoice URL</span>
+                    <span className="text-sm font-semibold text-slate-500">Share Invoice URL</span>
                 </div>
                 <div className="flex flex-wrap justify-center gap-2">
                     {balanceDue > 0 && (
@@ -264,16 +264,16 @@ export default function PublicView({ invoice, companySettings, paymentGateways }
                             <CreditCard className="h-4 w-4 mr-2" /> Pay Online ({formatCurrency(balanceDue)})
                         </Button>
                     )}
-                    <Button variant="outline" size="sm" onClick={copyLink} className="bg-white border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl">
-                        <Share2 className="h-4 w-4 mr-2 text-slate-500" />
+                    <Button variant="outline" size="sm" onClick={copyLink} className="bg-white/10 border-white/20 text-white/80 hover:bg-white/20 rounded-xl">
+                        <Share2 className="h-4 w-4 mr-2 text-white/60" />
                         {copied ? 'Copied!' : 'Copy link'}
                     </Button>
-                    <Button variant="outline" size="sm" onClick={downloadPDF} className="bg-white border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl">
-                        <Download className="h-4 w-4 mr-2 text-slate-500" />
+                    <Button variant="outline" size="sm" onClick={downloadPDF} className="bg-white/10 border-white/20 text-white/80 hover:bg-white/20 rounded-xl">
+                        <Download className="h-4 w-4 mr-2 text-white/60" />
                         Save PDF
                     </Button>
-                    <Button variant="outline" size="sm" onClick={handlePrint} className="bg-white border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl">
-                        <Printer className="h-4 w-4 mr-2 text-slate-500" />
+                    <Button variant="outline" size="sm" onClick={handlePrint} className="bg-white/10 border-white/20 text-white/80 hover:bg-white/20 rounded-xl">
+                        <Printer className="h-4 w-4 mr-2 text-white/60" />
                         Print
                     </Button>
                 </div>
@@ -690,7 +690,7 @@ export default function PublicView({ invoice, companySettings, paymentGateways }
 
                 {/* Public Link Label under Card (hidden in print) */}
                 <div className="mt-6 text-center print:hidden">
-                    <p className="text-xs text-slate-400 font-medium">
+                    <p className="text-xs text-slate-500 font-medium">
                         Public link: <span className="text-[#4F46E5] font-semibold">https://billing.dynime.com/{invoice.invoice_number}</span>
                     </p>
                 </div>
