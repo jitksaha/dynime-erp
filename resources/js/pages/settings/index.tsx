@@ -19,7 +19,8 @@ const PAYMENT_GATEWAY_COMPONENTS = [
 
 const isPaymentGateway = (componentName: string) => {
   const name = componentName.toLowerCase();
-  return PAYMENT_GATEWAY_COMPONENTS.some(gw => name.includes(gw)) || name.includes('payment') || name.includes('pay') || name.includes('checkout');
+  if (name.includes('payroll')) return false;
+  return PAYMENT_GATEWAY_COMPONENTS.some(gw => name.includes(gw)) || name.includes('payment') || name.includes('checkout');
 };
 
 export default function Settings() {

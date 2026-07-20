@@ -130,6 +130,11 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
         'Ozow',
         'PaiementPro',
         'PayHere',
+        'Bkash',
+        'DodoPay',
+        'SSLCommerz',
+        'StripeExpress',
+        'Keeal',
     ];
 
     // Modules that are superadmin-only and should NOT appear
@@ -163,6 +168,11 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
         'Ozow',
         'PaiementPro',
         'PayHere',
+        'Bkash',
+        'DodoPay',
+        'SSLCommerz',
+        'StripeExpress',
+        'Keeal',
     ];
     
     public  $not_emp_type = [
