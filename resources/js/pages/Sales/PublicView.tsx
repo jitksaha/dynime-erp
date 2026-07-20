@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Head } from '@inertiajs/react';
-import html2pdf from 'html2pdf.js';
 import { Button } from '@/components/ui/button';
 import { 
     Printer, 
@@ -106,6 +105,51 @@ export default function PublicView({ invoice, companySettings, paymentGateways }
     const [targetCurrency, setTargetCurrency] = useState("BDT");
     const [isFetchingRates, setIsFetchingRates] = useState(false);
 
+    // Calculated Variables & Helpers
+    const logoUrl = companySettings?.company_logo || '';
+    const companyName = companySettings?.company_name || 'Dynime Inc';
+    const companyDomain = companySettings?.company_email ? companySettings.company_email.split('@')[1] : 'dynime.com';
+    const companyEmail = companySettings?.company_email || 'billing@dynime.com';
+    const companyPhone = companySettings?.company_telephone || '';
+    const companyAddress = [
+        companySettings?.company_address,
+        companySettings?.company_city,
+        companySettings?.company_state,
+        companySettings?.company_country
+    ].filter(Boolean).join(', ');
+
+    const dateOfIssue = invoice.invoice_date || invoice.created_at ? new Date(invoice.invoice_date || invoice.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'N/A';
+    const dateDue = invoice.due_date ? new Date(invoice.due_date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'N/A';
+    const estDeliveryDate = invoice.estimated_delivery_date ? new Date(invoice.estimated_delivery_date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : dateDue;
+
+    const getStatusText = (status?: string) => {
+        const s = (status || invoice.payment_status || 'unpaid').toString().toLowerCase();
+        if (s.includes('paid') && !s.includes('unpaid') && !s.includes('partially')) return 'Payment Completed';
+        if (s.includes('overdue')) return 'Payment Overdue';
+        if (s.includes('partially')) return 'Partially Paid';
+        return 'Payment Pending';
+    };
+
+    const getStatusBadgeStyles = (status?: string) => {
+        const s = (status || invoice.payment_status || 'unpaid').toString().toLowerCase();
+        if (s.includes('paid') && !s.includes('unpaid') && !s.includes('partially')) return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+        if (s.includes('overdue')) return 'bg-rose-50 text-rose-700 border-rose-200';
+        if (s.includes('partially')) return 'bg-amber-50 text-amber-700 border-amber-200';
+        return 'bg-blue-50 text-blue-700 border-blue-200';
+    };
+
+    const getStatusIcon = (status?: string) => {
+        const s = (status || invoice.payment_status || 'unpaid').toString().toLowerCase();
+        if (s.includes('paid') && !s.includes('unpaid') && !s.includes('partially')) return <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />;
+        if (s.includes('overdue')) return <AlertCircle className="w-3.5 h-3.5 text-rose-600" />;
+        if (s.includes('partially')) return <Clock className="w-3.5 h-3.5 text-amber-600" />;
+        return <Clock className="w-3.5 h-3.5 text-blue-600" />;
+    };
+
+    const balanceDue = parseFloat((invoice.balance_amount || invoice.total_amount || 0).toString());
+    const convertedAmount = balanceDue * (rates[targetCurrency] || 1);
+    const includedServices = invoice.service_brief?.included_services || [];
+
     useEffect(() => {
         setIsFetchingRates(true);
         const baseCurrency = invoice.service_brief?.currency || 'USD';
@@ -132,7 +176,7 @@ export default function PublicView({ invoice, companySettings, paymentGateways }
     };
 
     const formatCurrency = (amount: any) => {
-        const num = parseFloat(amount || 0);
+        const num = parseFloat(String(amount || 0));
         const baseCurrency = invoice.service_brief?.currency || 'USD';
         const symbol = getSymbol(baseCurrency);
         return symbol + ' ' + num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -175,6 +219,8 @@ export default function PublicView({ invoice, companySettings, paymentGateways }
             };
 
             try {
+                const html2pdfModule = await import('html2pdf.js');
+                const html2pdf = html2pdfModule.default || html2pdfModule;
                 await html2pdf().set(opt).from(printContent as HTMLElement).save();
             } catch (error) {
                 console.error('PDF generation failed:', error);
@@ -186,8 +232,6 @@ export default function PublicView({ invoice, companySettings, paymentGateways }
     const handlePrint = () => {
         window.print();
     };
-
-    const balanceDue = parseFloat(invoice.balance_amount || invoice.total_amount || 0);
 
     return (
         <div className="min-h-screen bg-[#F8FAFC] pb-24 print:pb-0 print:bg-white">
@@ -391,15 +435,15 @@ export default function PublicView({ invoice, companySettings, paymentGateways }
                             {/* Amount / Balance Due */}
                             <div className="flex flex-col justify-center">
                                 <span className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider block mb-1">
-                                    {parseFloat(invoice.paid_amount || 0) > 0 ? "BALANCE DUE" : "AMOUNT DUE"}
+                                    {Number(invoice.paid_amount || 0) > 0 ? "BALANCE DUE" : "AMOUNT DUE"}
                                 </span>
                                 <div className="flex items-baseline gap-2">
                                     <span className="text-[30px] font-black text-slate-900 tracking-tight leading-none">
-                                        {formatCurrency(parseFloat(invoice.paid_amount || 0) > 0 ? invoice.balance_amount : invoice.total_amount)}
+                                        {formatCurrency(Number(invoice.paid_amount || 0) > 0 ? invoice.balance_amount : invoice.total_amount)}
                                     </span>
                                     <span className="text-[13px] text-slate-400">due {dateDue}</span>
                                 </div>
-                                {parseFloat(invoice.paid_amount || 0) > 0 && (
+                                {Number(invoice.paid_amount || 0) > 0 && (
                                     <span className="text-[11px] text-slate-500 mt-1 font-medium">
                                         Total: {formatCurrency(invoice.total_amount)} · Paid: {formatCurrency(invoice.paid_amount)}
                                     </span>
@@ -473,7 +517,7 @@ export default function PublicView({ invoice, companySettings, paymentGateways }
                                         <span>Total</span>
                                         <span>{formatCurrency(invoice.total_amount)}</span>
                                     </div>
-                                    {parseFloat(invoice.paid_amount || 0) > 0 && (
+                                    {Number(invoice.paid_amount || 0) > 0 && (
                                         <div className="flex justify-between text-slate-600 text-[13px]">
                                             <span>Paid Amount</span>
                                             <span className="font-medium text-emerald-600">{formatCurrency(invoice.paid_amount)}</span>
@@ -481,7 +525,7 @@ export default function PublicView({ invoice, companySettings, paymentGateways }
                                     )}
                                     <div className="flex justify-between border-t border-slate-200 pt-2 text-[14px] font-bold text-slate-900">
                                         <span>Balance Due</span>
-                                        <span className={parseFloat(invoice.balance_amount || 0) > 0 ? "text-indigo-600 font-extrabold" : "text-slate-900"}>{formatCurrency(invoice.balance_amount)}</span>
+                                        <span className={Number(invoice.balance_amount || 0) > 0 ? "text-indigo-600 font-extrabold" : "text-slate-900"}>{formatCurrency(invoice.balance_amount)}</span>
                                     </div>
                                 </div>
                             </div>
@@ -597,10 +641,10 @@ export default function PublicView({ invoice, companySettings, paymentGateways }
                                     </div>
                                     <div className="space-y-0.5">
                                         <span className="text-[11px] text-slate-400 uppercase font-semibold">
-                                            {parseFloat(invoice.paid_amount || 0) > 0 ? "Balance Due" : "Amount Due"}
+                                            {Number(invoice.paid_amount || 0) > 0 ? "Balance Due" : "Amount Due"}
                                         </span>
                                         <p className="text-[13.5px] font-bold text-slate-800">
-                                            {formatCurrency(parseFloat(invoice.paid_amount || 0) > 0 ? invoice.balance_amount : invoice.total_amount)}
+                                            {formatCurrency(Number(invoice.paid_amount || 0) > 0 ? invoice.balance_amount : invoice.total_amount)}
                                         </p>
                                     </div>
                                     <div className="space-y-0.5">
