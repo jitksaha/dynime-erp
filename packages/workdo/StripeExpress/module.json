@@ -1,0 +1,10 @@
+{
+    "name": "StripeExpress",
+    "alias": "StripeExpress",
+    "description": "Stripe Direct On-Site Credit Card & Express Pay (Apple Pay / Google Pay) Integration.",
+    "priority": 1710,
+    "version": 5.0,
+    "monthly_price": 0,
+    "yearly_price": 0,
+    "package_name": "stripeexpress"
+}

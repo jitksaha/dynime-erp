@@ -1,0 +1,16 @@
+{
+    "name": "workdo/sslcommerz",
+    "description": "SSLCommerz payment integration for WorkDo SAAS ERP",
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Workdo\\SSLCommerz\\Providers\\SSLCommerzServiceProvider"
+            ]
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Workdo\\SSLCommerz\\": "src/"
+        }
+    }
+}

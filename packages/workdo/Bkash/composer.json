@@ -1,0 +1,16 @@
+{
+    "name": "workdo/bkash",
+    "description": "bKash payment integration for WorkDo SAAS ERP",
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Workdo\\Bkash\\Providers\\BkashServiceProvider"
+            ]
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Workdo\\Bkash\\": "src/"
+        }
+    }
+}

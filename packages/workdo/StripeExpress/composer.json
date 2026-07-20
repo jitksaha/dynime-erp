@@ -1,0 +1,16 @@
+{
+    "name": "workdo/stripeexpress",
+    "description": "Stripe Express Payment integration for WorkDo SAAS ERP",
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Workdo\\StripeExpress\\Providers\\StripeExpressServiceProvider"
+            ]
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Workdo\\StripeExpress\\": "src/"
+        }
+    }
+}

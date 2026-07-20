@@ -1,0 +1,16 @@
+{
+    "name": "workdo/keeal",
+    "description": "Keeal payment integration for WorkDo SAAS ERP",
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Workdo\\Keeal\\Providers\\KeealServiceProvider"
+            ]
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Workdo\\Keeal\\": "src/"
+        }
+    }
+}

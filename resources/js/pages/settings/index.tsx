@@ -14,7 +14,7 @@ const PAYMENT_GATEWAY_COMPONENTS = [
   'toyyibpay', 'iyzipay', 'paytr', 'aamarpay', 'benefit', 'cashfree', 'coingate', 
   'mercado', 'midtrans', 'xendit', 'tap', 'dodopay', 'authorizenet', 'cinetpay', 
   'easebuzz', 'fedapay', 'khalti', 'ozow', 'paiementpro', 'payhere', 'paystack', 
-  'paytab', 'bank-transfer'
+  'paytab', 'bank-transfer', 'keeal', 'stripe-express', 'sslcommerz', 'bkash'
 ];
 
 const isPaymentGateway = (componentName: string) => {
