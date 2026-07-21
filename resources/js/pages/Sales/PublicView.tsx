@@ -317,8 +317,7 @@ export default function PublicView({ invoice, companySettings, paymentGateways, 
                     {/* ============================================================== */}
                     <div className="p-6 sm:p-10 pb-4 print:p-0 print:pb-0">
                         {/* Golden/Orange Accent top bar */}
-                        <div className="absolute top-0 left-0 right-0 h-[6px] bg-[#E59700]" />
-
+                    <div className="p-6 sm:p-10 pb-4 print:p-0 print:pb-0">
                         {/* Logo & Invoice Title Header */}
                         <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-4 mt-2">
                             <div>
@@ -328,7 +327,7 @@ export default function PublicView({ invoice, companySettings, paymentGateways, 
                                         {getStatusIcon(invoice.status)}
                                         {getStatusText(invoice.status)}
                                     </span>
-                                    <span className="text-slate-500 text-[13px]">Due {dateDue}</span>
+                                    <span className="text-slate-800 font-semibold text-[13px]">Due {dateDue}</span>
                                 </div>
                             </div>
                             <div className="sm:text-right flex flex-col items-end">
@@ -337,7 +336,7 @@ export default function PublicView({ invoice, companySettings, paymentGateways, 
                                     alt={companyName} 
                                     className="h-[32px] object-contain mb-1.5" 
                                 />
-                                <p className="text-slate-400 text-[11px]">{companyDomain}</p>
+                                <p className="text-slate-900 font-bold text-[11px]">{companyDomain}</p>
                             </div>
                         </div>
 
@@ -346,32 +345,32 @@ export default function PublicView({ invoice, companySettings, paymentGateways, 
                             {/* Col 1 */}
                             <div className="space-y-2.5">
                                 <div className="flex justify-between items-center text-[12.5px]">
-                                    <span className="text-slate-400">Invoice number</span>
-                                    <span className="font-bold text-slate-900">{invoice.invoice_number}</span>
+                                    <span className="text-slate-900 font-bold">Invoice number</span>
+                                    <span className="font-extrabold text-slate-950">{invoice.invoice_number}</span>
                                 </div>
                                 <div className="flex justify-between items-center text-[12.5px]">
-                                    <span className="text-slate-400">Date of issue</span>
-                                    <span className="font-bold text-slate-900">{dateOfIssue}</span>
+                                    <span className="text-slate-900 font-bold">Date of issue</span>
+                                    <span className="font-extrabold text-slate-950">{dateOfIssue}</span>
                                 </div>
                                 <div className="flex justify-between items-center text-[12.5px]">
-                                    <span className="text-slate-400">Payment method</span>
-                                    <span className="font-bold text-slate-900">{invoice.service_brief?.payment_method || 'Bank Transfer'}</span>
+                                    <span className="text-slate-900 font-bold">Payment method</span>
+                                    <span className="font-extrabold text-slate-950">{invoice.service_brief?.payment_method || 'Bank Transfer'}</span>
                                 </div>
                             </div>
                             {/* Col 2 */}
                             <div className="space-y-2.5">
                                 <div className="flex justify-between items-center text-[12.5px]">
-                                    <span className="text-slate-400">Currency</span>
-                                    <span className="font-bold text-slate-900">{invoice.service_brief?.currency || 'USD'}</span>
+                                    <span className="text-slate-900 font-bold">Currency</span>
+                                    <span className="font-extrabold text-slate-950">{invoice.service_brief?.currency || 'USD'}</span>
                                 </div>
                                 <div className="flex justify-between items-center text-[12.5px]">
-                                    <span className="text-slate-400">Date due</span>
-                                    <span className="font-bold text-slate-900">{dateDue}</span>
+                                    <span className="text-slate-900 font-bold">Date due</span>
+                                    <span className="font-extrabold text-slate-950">{dateDue}</span>
                                 </div>
                                 <div className="flex justify-between items-center text-[12.5px]">
-                                    <span className="text-slate-400">Est. Delivery Date</span>
-                                    <span className="font-bold text-[#4F46E5] flex items-center gap-1.5">
-                                        {(invoice.type === 'service' || !invoice.warehouse_id) ? <CalendarCheck className="h-4 w-4 shrink-0" /> : <Truck className="h-4 w-4 shrink-0" />}
+                                    <span className="text-slate-900 font-bold">Est. Delivery Date</span>
+                                    <span className="font-extrabold text-slate-950 flex items-center gap-1.5">
+                                        {(invoice.type === 'service' || !invoice.warehouse_id) ? <CalendarCheck className="h-4 w-4 shrink-0 text-slate-900" /> : <Truck className="h-4 w-4 shrink-0 text-slate-900" />}
                                         {estDeliveryDate}
                                     </span>
                                 </div>
@@ -383,7 +382,7 @@ export default function PublicView({ invoice, companySettings, paymentGateways, 
                             {/* Payment Status */}
                             <div className="flex items-center gap-3 bg-white/60 rounded-lg px-3 py-2.5">
                                 <div className="shrink-0">
-                                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block mb-1">Payment status</span>
+                                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-900 block mb-1">Payment status</span>
                                     <span className={getPaymentStatusBadgeClasses(invoice.payment_status || 'Unpaid')}>
                                         {invoice.payment_status || 'Unpaid'}
                                     </span>
@@ -393,7 +392,7 @@ export default function PublicView({ invoice, companySettings, paymentGateways, 
                             {/* Operational Status */}
                             <div className="flex items-center gap-3 bg-white/60 rounded-lg px-3 py-2.5">
                                 <div className="shrink-0">
-                                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block mb-1">Operational status</span>
+                                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-900 block mb-1">Operational status</span>
                                     <span className={getOperationalStatusBadgeClasses(invoice.operational_status || 'Pending')}>
                                         {invoice.operational_status || 'Pending'}
                                     </span>
@@ -404,14 +403,14 @@ export default function PublicView({ invoice, companySettings, paymentGateways, 
                             {invoice.project_category && invoice.project_category !== 'N/A' && (
                                 <div className="flex items-start gap-3 bg-white/60 rounded-lg px-3 py-2.5">
                                     <div className="w-full">
-                                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block mb-1">Project status</span>
+                                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-900 block mb-1">Project status</span>
                                         <div className="flex items-center gap-2 flex-wrap">
                                             <span className={getProjectStatusBadgeClasses(invoice.project_status || '')}>
                                                 {invoice.project_status || 'N/A'}
                                             </span>
                                         </div>
                                         {invoice.project_status && PROJECT_STATUS_MAP[invoice.project_category]?.find(x => x.label === invoice.project_status)?.desc && (
-                                            <p className="text-[11px] text-slate-500 mt-1.5 leading-snug">
+                                            <p className="text-[11px] text-slate-700 mt-1.5 leading-snug font-medium">
                                                 {PROJECT_STATUS_MAP[invoice.project_category]?.find(x => x.label === invoice.project_status)?.desc}
                                             </p>
                                         )}
@@ -424,59 +423,59 @@ export default function PublicView({ invoice, companySettings, paymentGateways, 
                         <div className="addresses-grid-print grid grid-cols-1 sm:grid-cols-2 print:grid-cols-2 gap-8 mb-6 pdf-avoid-break">
                             {/* FROM */}
                             <div>
-                                <div className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 mb-2.5 flex items-center gap-1.5">
-                                    <Building2 className="h-3.5 w-3.5 shrink-0" />
+                                <div className="text-[11px] font-extrabold uppercase tracking-wider text-slate-900 mb-2.5 flex items-center gap-1.5">
+                                    <Building2 className="h-3.5 w-3.5 shrink-0 text-slate-900" />
                                     FROM
                                 </div>
-                                <div className="space-y-1.5 text-[12.5px] text-slate-600">
-                                    <p className="font-bold text-slate-900 text-[13.5px]">{companyName}</p>
-                                    <p className="flex items-center gap-2"><Mail className="h-3.5 w-3.5 text-slate-400 shrink-0" /> {companyEmail}</p>
-                                    {companyPhone && <p className="flex items-center gap-2"><Phone className="h-3.5 w-3.5 text-slate-400 shrink-0" /> {companyPhone}</p>}
+                                <div className="space-y-1.5 text-[12.5px] text-slate-800 font-medium">
+                                    <p className="font-bold text-slate-950 text-[13.5px]">{companyName}</p>
+                                    <p className="flex items-center gap-2"><Mail className="h-3.5 w-3.5 text-slate-700 shrink-0" /> {companyEmail}</p>
+                                    {companyPhone && <p className="flex items-center gap-2"><Phone className="h-3.5 w-3.5 text-slate-700 shrink-0" /> {companyPhone}</p>}
                                     <p className="flex items-center gap-2">
-                                        <MapPin className="h-3.5 w-3.5 text-slate-400 shrink-0" /> 
+                                        <MapPin className="h-3.5 w-3.5 text-slate-700 shrink-0" /> 
                                         <span className="leading-snug">{companyAddress}</span>
                                     </p>
                                 </div>
                             </div>
                             {/* BILLED TO */}
                             <div>
-                                <div className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 mb-2.5 flex items-center gap-1.5">
-                                    <User className="h-3.5 w-3.5 shrink-0" />
+                                <div className="text-[11px] font-extrabold uppercase tracking-wider text-slate-900 mb-2.5 flex items-center gap-1.5">
+                                    <User className="h-3.5 w-3.5 shrink-0 text-slate-900" />
                                     BILLED TO
                                 </div>
-                                <div className="space-y-1.5 text-[12.5px] text-slate-600">
-                                    <p className="font-bold text-slate-900 text-[13.5px]">{invoice.customer?.name || invoice.customer_name || 'Client'}</p>
-                                    <p className="flex items-center gap-2"><Mail className="h-3.5 w-3.5 text-slate-400 shrink-0" /> {invoice.customer?.email || 'client@dynime.com'}</p>
-                                    {invoice.customer?.phone && <p className="flex items-center gap-2"><Phone className="h-3.5 w-3.5 text-slate-400 shrink-0" /> {invoice.customer.phone}</p>}
+                                <div className="space-y-1.5 text-[12.5px] text-slate-800 font-medium">
+                                    <p className="font-bold text-slate-950 text-[13.5px]">{invoice.customer?.name || invoice.customer_name || 'Client'}</p>
+                                    <p className="flex items-center gap-2"><Mail className="h-3.5 w-3.5 text-slate-700 shrink-0" /> {invoice.customer?.email || 'client@dynime.com'}</p>
+                                    {invoice.customer?.phone && <p className="flex items-center gap-2"><Phone className="h-3.5 w-3.5 text-slate-700 shrink-0" /> {invoice.customer.phone}</p>}
                                     {invoice.customer?.billing_address && (
-                                        <p className="flex items-center gap-2"><MapPin className="h-3.5 w-3.5 text-slate-400 shrink-0" /> <span className="leading-snug">{invoice.customer.billing_address}</span></p>
+                                        <p className="flex items-center gap-2"><MapPin className="h-3.5 w-3.5 text-slate-700 shrink-0" /> <span className="leading-snug">{invoice.customer.billing_address}</span></p>
                                     )}
                                 </div>
                             </div>
                         </div>
 
-                        {/* Balance Due Summary Hero Card */}
-                        <div className="amount-delivery-grid-print grid grid-cols-1 sm:grid-cols-12 gap-4 mb-8 pdf-avoid-break">
-                            <div className="sm:col-span-7 bg-[#FAFBFD] border border-slate-100 rounded-xl p-4 flex flex-col justify-between">
-                                <div>
-                                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block mb-1">Balance Due</span>
-                                    <div className="flex items-baseline gap-2">
-                                        <span className="text-[28px] font-black text-slate-950 leading-none">{formatCurrency(balanceDue)}</span>
-                                        <span className="text-[11px] font-semibold text-slate-400">due {dateDue}</span>
-                                    </div>
-                                    <p className="text-[11px] font-medium text-slate-500 mt-1">
-                                        Total: {formatCurrency(invoice.total_amount)} · Paid: {formatCurrency(invoice.paid_amount || 0)}
-                                    </p>
+                        {/* Balance Due & Estimated Delivery Date 2-Column Row (Compact height) */}
+                        <div className="amount-delivery-grid-print grid grid-cols-2 gap-4 mb-6">
+                            {/* Left Column: Balance Due */}
+                            <div className="bg-[#FAFBFD] border border-slate-200/80 rounded-xl px-4 py-3 flex flex-col justify-center">
+                                <span className="text-[10px] font-black uppercase tracking-wider text-slate-900 block mb-0.5">Balance Due</span>
+                                <div className="flex items-baseline gap-2">
+                                    <span className="text-[22px] font-black text-slate-950 leading-tight">{formatCurrency(balanceDue)}</span>
+                                    <span className="text-[11px] font-bold text-slate-800">due {dateDue}</span>
                                 </div>
+                                <p className="text-[11px] font-semibold text-slate-700 mt-0.5">
+                                    Total: {formatCurrency(invoice.total_amount)} · Paid: {formatCurrency(invoice.paid_amount || 0)}
+                                </p>
                             </div>
 
-                            <div className="sm:col-span-5 bg-white border border-indigo-100 rounded-xl p-4 flex items-center gap-3">
-                                <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-lg shrink-0">
-                                    {(invoice.type === 'service' || !invoice.warehouse_id) ? <CalendarCheck className="h-5 w-5" /> : <Truck className="h-5 w-5" />}
+                            {/* Right Column: Estimated Delivery Date */}
+                            <div className="bg-white border border-slate-200/80 rounded-xl px-4 py-3 flex items-center gap-3">
+                                <div className="p-2 bg-slate-100 text-slate-900 rounded-lg shrink-0">
+                                    {(invoice.type === 'service' || !invoice.warehouse_id) ? <CalendarCheck className="h-4 w-4" /> : <Truck className="h-4 w-4" />}
                                 </div>
                                 <div>
-                                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block mb-0.5">Estimated Delivery Date</span>
-                                    <p className="text-[13.5px] font-bold text-[#4F46E5]">{estDeliveryDate}</p>
+                                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-900 block mb-0.5">Estimated Delivery Date</span>
+                                    <p className="text-[13.5px] font-extrabold text-slate-950">{estDeliveryDate}</p>
                                 </div>
                             </div>
                         </div>
@@ -494,17 +493,21 @@ export default function PublicView({ invoice, companySettings, paymentGateways, 
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-100">
-                                        {invoice.items?.map((item: any, index: number) => (
-                                            <tr key={index} className="pdf-avoid-break">
-                                                <td className="py-3 pl-0">
-                                                    <div className="font-bold text-slate-900">{item.item_name || item.name}</div>
-                                                    {item.description && <div className="text-[11px] text-slate-400 leading-snug mt-0.5">{item.description}</div>}
-                                                </td>
-                                                <td className="py-3 text-center text-slate-700">{item.quantity}</td>
-                                                <td className="py-3 text-right text-slate-600">{formatCurrency(item.unit_price)}</td>
-                                                <td className="py-3 text-right font-bold text-slate-950">{formatCurrency(item.total_amount)}</td>
-                                            </tr>
-                                        ))}
+                                        {invoice.items?.map((item: any, index: number) => {
+                                            const name = item.item_name || item.name || item.product?.name || item.product_name || `Item #${index + 1}`;
+                                            const desc = item.description || item.product?.description;
+                                            return (
+                                                <tr key={index} className="pdf-avoid-break">
+                                                    <td className="py-3 pl-0">
+                                                        <div className="font-bold text-slate-900">{name}</div>
+                                                        {desc && <div className="text-[11px] text-slate-600 leading-snug mt-0.5">{desc}</div>}
+                                                    </td>
+                                                    <td className="py-3 text-center text-slate-700">{item.quantity}</td>
+                                                    <td className="py-3 text-right text-slate-600">{formatCurrency(item.unit_price)}</td>
+                                                    <td className="py-3 text-right font-bold text-slate-950">{formatCurrency(item.total_amount)}</td>
+                                                </tr>
+                                            );
+                                        })}
                                     </tbody>
                                 </table>
                             </div>
@@ -645,8 +648,8 @@ export default function PublicView({ invoice, companySettings, paymentGateways, 
                             <>
                                 {/* Inclusion title */}
                                 <div className="mb-4">
-                                    <h2 className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400 flex items-center gap-2">
-                                        <CheckCircle2 className="h-4 w-4 text-slate-400" />
+                                    <h2 className="text-[11px] font-extrabold uppercase tracking-widest text-slate-900 flex items-center gap-2">
+                                        <CheckCircle2 className="h-4 w-4 text-slate-900" />
                                         WHAT'S INCLUDED
                                     </h2>
                                 </div>
@@ -654,7 +657,7 @@ export default function PublicView({ invoice, companySettings, paymentGateways, 
                                 {/* 2-Column inclusions grid */}
                                 <div className="inclusions-grid-print grid grid-cols-1 sm:grid-cols-2 print:grid-cols-2 gap-x-12 gap-y-3 mb-6 pb-6 border-b border-slate-100 pdf-avoid-break">
                                     {includedServices.map((service: string, index: number) => (
-                                        <div key={index} className="flex items-start gap-3 text-[12.5px] text-slate-700 leading-tight">
+                                        <div key={index} className="flex items-start gap-3 text-[12.5px] text-slate-900 font-medium leading-tight">
                                             <div className="bg-[#ECFDF5] border border-emerald-100 p-0.5 rounded-full mt-0.5 text-emerald-600">
                                                 <Check className="h-3 w-3 stroke-[3]" />
                                             </div>
@@ -668,26 +671,26 @@ export default function PublicView({ invoice, companySettings, paymentGateways, 
                         <div className="pdf-avoid-break">
                             {/* Project Brief Columns */}
                             <div className="mb-8">
-                                <h3 className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400 mb-4 flex items-center gap-2">
-                                    <Briefcase className="h-4 w-4 text-slate-400" />
+                                <h3 className="text-[11px] font-extrabold uppercase tracking-widest text-slate-900 mb-4 flex items-center gap-2">
+                                    <Briefcase className="h-4 w-4 text-slate-900" />
                                     PROJECT BRIEF
                                 </h3>
                                 <div className="project-brief-grid-print grid grid-cols-1 sm:grid-cols-3 print:grid-cols-3 gap-6">
                                     <div className="space-y-0.5">
-                                        <span className="text-[11px] text-slate-400 uppercase font-semibold">Due Date</span>
-                                        <p className="text-[13.5px] font-bold text-slate-800">{invoice.due_date ? formatMockDate(invoice.due_date) : 'July 1, 2026'}</p>
+                                        <span className="text-[11px] text-slate-900 uppercase font-black">Due Date</span>
+                                        <p className="text-[13.5px] font-extrabold text-slate-950">{invoice.due_date ? formatMockDate(invoice.due_date) : 'July 1, 2026'}</p>
                                     </div>
                                     <div className="space-y-0.5">
-                                        <span className="text-[11px] text-slate-400 uppercase font-semibold">
+                                        <span className="text-[11px] text-slate-900 uppercase font-black">
                                             {Number(invoice.paid_amount || 0) > 0 ? "Balance Due" : "Amount Due"}
                                         </span>
-                                        <p className="text-[13.5px] font-bold text-slate-800">
+                                        <p className="text-[13.5px] font-extrabold text-slate-950">
                                             {formatCurrency(Number(invoice.paid_amount || 0) > 0 ? invoice.balance_amount : invoice.total_amount)}
                                         </p>
                                     </div>
                                     <div className="space-y-0.5">
-                                        <span className="text-[11px] text-slate-400 uppercase font-semibold">Estimated Delivery Date</span>
-                                        <p className="text-[13.5px] font-bold text-slate-800">{estDeliveryDate}</p>
+                                        <span className="text-[11px] text-slate-900 uppercase font-black">Estimated Delivery Date</span>
+                                        <p className="text-[13.5px] font-extrabold text-slate-950">{estDeliveryDate}</p>
                                     </div>
                                 </div>
                             </div>
@@ -697,11 +700,11 @@ export default function PublicView({ invoice, companySettings, paymentGateways, 
                                 <div className="flex items-center justify-center text-[13px] font-bold text-slate-800">
                                     <img src={logoUrl} alt={companyName} className="h-6 object-contain" />
                                 </div>
-                                <p className="text-[12.5px] text-slate-600 font-medium">Thank you for choosing <span className="font-bold">Dynime</span>.</p>
-                                <p className="text-[11.5px] text-slate-400">
-                                    Questions? Email <span className="text-slate-600 font-medium">{companyEmail}</span> · Reference #{invoice.invoice_number}
+                                <p className="text-[12.5px] text-slate-900 font-bold">Thank you for choosing <span className="font-extrabold">Dynime</span>.</p>
+                                <p className="text-[11.5px] text-slate-900 font-semibold">
+                                    Questions? Email <span className="text-slate-950 font-bold">{companyEmail}</span> · Reference #{invoice.invoice_number}
                                 </p>
-                                <p className="text-[10px] text-slate-300 font-semibold">{companyDomain}</p>
+                                <p className="text-[11px] text-slate-900 font-bold">{companyDomain}</p>
                             </div>
                         </div>
 
