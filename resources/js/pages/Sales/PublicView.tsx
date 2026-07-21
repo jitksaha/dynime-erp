@@ -47,7 +47,10 @@ interface PublicViewProps {
         dodopayment_enabled?: string;
         bank_transfer_enabled?: string;
         bank_accounts?: any[];
+        active_gateways?: any[];
     };
+    autoDownloadPdf?: boolean;
+    autoPrint?: boolean;
 }
 
 const getSymbol = (currency: string): string => {
@@ -96,7 +99,7 @@ const getSymbol = (currency: string): string => {
     return symbols[currency] || currency;
 };
 
-export default function PublicView({ invoice, companySettings, paymentGateways }: PublicViewProps) {
+export default function PublicView({ invoice, companySettings, paymentGateways, autoDownloadPdf, autoPrint }: PublicViewProps) {
     const [isDownloading, setIsDownloading] = useState(false);
     const [copied, setCopied] = useState(false);
     const [isPayModalOpen, setIsPayModalOpen] = useState(false);
@@ -216,6 +219,21 @@ export default function PublicView({ invoice, companySettings, paymentGateways }
             .catch(err => console.error("Exchange rate fetch failed, using default fallback rates:", err))
             .finally(() => setIsFetchingRates(false));
     }, [invoice.service_brief?.currency]);
+
+    useEffect(() => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const shouldDownload = urlParams.get('download') === 'pdf' || autoDownloadPdf;
+        const shouldPrint = urlParams.get('print') === '1' || autoPrint;
+
+        if (shouldDownload) {
+            const timer = setTimeout(() => {
+                downloadPDF();
+            }, 600);
+            return () => clearTimeout(timer);
+        } else if (shouldPrint) {
+            window.print();
+        }
+    }, [autoDownloadPdf, autoPrint]);
 
     const formatMockDate = (dateStr: any) => {
         if (!dateStr) return 'N/A';

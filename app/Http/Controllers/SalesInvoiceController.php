@@ -534,14 +534,146 @@ class SalesInvoiceController extends Controller
 
     public function print(SalesInvoice $salesInvoice)
     {
-        if(Auth::user()->can('print-sales-invoices')){
+        if (Auth::user()->can('print-sales-invoices') || Auth::user()->can('view-sales-invoices')) {
             $salesInvoice->load(['customer', 'customerDetails', 'items.product', 'items.taxes', 'warehouse']);
 
-            return Inertia::render('Sales/Print', [
-                'invoice' => $salesInvoice
+            $settings = getCompanyAllSetting($salesInvoice->created_by);
+            if (empty($settings)) {
+                $settings = getAdminAllSetting();
+            }
+
+            $gateways = [
+                [
+                    'id' => 'dodopay',
+                    'name' => 'Dodo Payments',
+                    'description' => 'Credit/Debit Cards, Apple Pay, Google Pay & Global Checkout',
+                    'badge' => 'Card / Apple Pay',
+                    'enabled' => ($settings['dodopay_is_on'] ?? $settings['dodopay_payment_is_on'] ?? $settings['dodopayment_enabled'] ?? 'off') === 'on' || !empty($settings['dodopay_api_key'] ?? $settings['dodopayment_api_key'] ?? ''),
+                ],
+                [
+                    'id' => 'stripe',
+                    'name' => 'Stripe Checkout',
+                    'description' => 'Cards, Apple Pay & International Cards',
+                    'badge' => 'Stripe',
+                    'enabled' => ($settings['stripe_is_on'] ?? $settings['stripe_payment_is_on'] ?? $settings['stripe_enabled'] ?? 'off') === 'on' || !empty($settings['stripe_secret_key'] ?? $settings['stripe_key'] ?? ''),
+                ],
+                [
+                    'id' => 'paypal',
+                    'name' => 'PayPal',
+                    'description' => 'PayPal Account & Credit / Debit Cards',
+                    'badge' => 'PayPal',
+                    'enabled' => ($settings['paypal_is_on'] ?? $settings['paypal_payment_is_on'] ?? $settings['paypal_enabled'] ?? 'off') === 'on' || !empty($settings['paypal_client_id'] ?? $settings['paypal_secret_key'] ?? ''),
+                ],
+                [
+                    'id' => 'bkash',
+                    'name' => 'bKash Tokenized Checkout',
+                    'description' => 'Pay directly in BDT with instant OTP & PIN',
+                    'badge' => 'BDT ৳',
+                    'enabled' => ($settings['bkash_is_on'] ?? $settings['bkash_payment_is_on'] ?? $settings['bkash_enabled'] ?? 'off') === 'on' || !empty($settings['bkash_app_key'] ?? ''),
+                ],
+                [
+                    'id' => 'sslcommerz',
+                    'name' => 'SSLCommerz (Bangladesh)',
+                    'description' => 'Cards, Mobile Banking & Net Banking in BDT',
+                    'badge' => 'Cards / MFS',
+                    'enabled' => ($settings['sslcommerz_is_on'] ?? $settings['sslcommerz_payment_is_on'] ?? $settings['sslcommerz_enabled'] ?? 'off') === 'on' || !empty($settings['sslcommerz_store_id'] ?? ''),
+                ],
+                [
+                    'id' => 'flutterwave',
+                    'name' => 'Flutterwave',
+                    'description' => 'Cards, Mobile Money & Bank Transfers (Africa & Global)',
+                    'badge' => 'Flutterwave',
+                    'enabled' => ($settings['flutterwave_is_on'] ?? $settings['flutterwave_payment_is_on'] ?? $settings['flutterwave_enabled'] ?? 'off') === 'on' || !empty($settings['flutterwave_secret_key'] ?? ''),
+                ],
+                [
+                    'id' => 'razorpay',
+                    'name' => 'Razorpay',
+                    'description' => 'UPI, Net Banking, Cards & Wallets (INR)',
+                    'badge' => 'UPI / Cards',
+                    'enabled' => ($settings['razorpay_is_on'] ?? $settings['razorpay_payment_is_on'] ?? $settings['razorpay_enabled'] ?? 'off') === 'on' || !empty($settings['razorpay_key'] ?? ''),
+                ],
+                [
+                    'id' => 'mollie',
+                    'name' => 'Mollie',
+                    'description' => 'iDEAL, Bancontact, Cards & European Payments',
+                    'badge' => 'EUR € / Cards',
+                    'enabled' => ($settings['mollie_is_on'] ?? $settings['mollie_payment_is_on'] ?? $settings['mollie_enabled'] ?? 'off') === 'on' || !empty($settings['mollie_api_key'] ?? ''),
+                ],
+                [
+                    'id' => 'paystack',
+                    'name' => 'Paystack',
+                    'description' => 'Cards, Bank & Mobile Money',
+                    'badge' => 'Paystack',
+                    'enabled' => ($settings['paystack_is_on'] ?? $settings['paystack_payment_is_on'] ?? $settings['paystack_enabled'] ?? 'off') === 'on' || !empty($settings['paystack_secret_key'] ?? ''),
+                ],
+                [
+                    'id' => 'aamarpay',
+                    'name' => 'Aamarpay',
+                    'description' => 'Mobile Banking & Cards (BDT)',
+                    'badge' => 'aamarpay',
+                    'enabled' => ($settings['aamarpay_is_on'] ?? $settings['aamarpay_payment_is_on'] ?? $settings['aamarpay_enabled'] ?? 'off') === 'on' || !empty($settings['aamarpay_store_id'] ?? ''),
+                ],
+                [
+                    'id' => 'authorizenet',
+                    'name' => 'Authorize.Net',
+                    'description' => 'Credit & Debit Cards (USD)',
+                    'badge' => 'Credit Cards',
+                    'enabled' => ($settings['authorizenet_is_on'] ?? $settings['authorizenet_payment_is_on'] ?? 'off') === 'on' || !empty($settings['authorizenet_merchant_login_id'] ?? ''),
+                ],
+                [
+                    'id' => 'stripe_express',
+                    'name' => 'Direct Card & Express Pay',
+                    'description' => 'Apple Pay, Google Pay & On-site Card',
+                    'badge' => 'Stripe Express',
+                    'enabled' => ($settings['stripe_express_is_on'] ?? $settings['stripe_onsite_enabled'] ?? 'off') === 'on',
+                ],
+                [
+                    'id' => 'keeal',
+                    'name' => 'PayPal & Cards (Keeal)',
+                    'description' => 'Hosted PayPal & Global Card Checkout',
+                    'badge' => 'Keeal',
+                    'enabled' => ($settings['keeal_is_on'] ?? $settings['keeal_enabled'] ?? 'off') === 'on',
+                ],
+                [
+                    'id' => 'bank_transfer',
+                    'name' => 'Bank Transfer (Manual Deposit)',
+                    'description' => 'Direct wire transfer to company bank account',
+                    'badge' => 'Bank Wire',
+                    'enabled' => ($settings['bank_transfer_is_on'] ?? $settings['bank_transfer_enabled'] ?? 'on') === 'on',
+                ],
+            ];
+
+            $activeGateways = array_values(array_filter($gateways, function ($g) {
+                return $g['enabled'];
+            }));
+
+            return Inertia::render('Sales/PublicView', [
+                'invoice' => $salesInvoice,
+                'companySettings' => [
+                    'company_name' => company_setting('company_name', $salesInvoice->created_by) ?: 'Dynime Inc.',
+                    'company_address' => company_setting('company_address', $salesInvoice->created_by) ?: '1209 Mountain Road Pl Ne Ste R',
+                    'company_city' => company_setting('company_city', $salesInvoice->created_by) ?: 'Albuquerque',
+                    'company_state' => company_setting('company_state', $salesInvoice->created_by) ?: 'NM',
+                    'company_zipcode' => company_setting('company_zipcode', $salesInvoice->created_by) ?: '87110',
+                    'company_country' => company_setting('company_country', $salesInvoice->created_by) ?: 'USA',
+                    'company_telephone' => company_setting('company_telephone', $salesInvoice->created_by),
+                    'company_email' => company_setting('company_email', $salesInvoice->created_by),
+                    'company_logo' => company_setting('company_logo', $salesInvoice->created_by) ?: 'https://cdn.dynime.com/media/KVhzkR7rCJFuzFxBU8ljBqFb2PItfQM5i3omxMNF.png',
+                ],
+                'paymentGateways' => [
+                    'active_gateways' => $activeGateways,
+                    'bkash_enabled' => ($settings['bkash_is_on'] ?? $settings['bkash_payment_is_on'] ?? $settings['bkash_enabled'] ?? 'off') === 'on' ? 'on' : 'off',
+                    'sslcommerz_enabled' => ($settings['sslcommerz_is_on'] ?? $settings['sslcommerz_payment_is_on'] ?? $settings['sslcommerz_enabled'] ?? 'off') === 'on' ? 'on' : 'off',
+                    'stripe_onsite_enabled' => ($settings['stripe_is_on'] ?? $settings['stripe_payment_is_on'] ?? $settings['stripe_enabled'] ?? 'off') === 'on' ? 'on' : 'off',
+                    'keeal_enabled' => ($settings['keeal_is_on'] ?? $settings['keeal_enabled'] ?? 'off') === 'on' ? 'on' : 'off',
+                    'dodopayment_enabled' => ($settings['dodopay_is_on'] ?? $settings['dodopay_payment_is_on'] ?? $settings['dodopayment_enabled'] ?? 'off') === 'on' ? 'on' : 'off',
+                    'bank_transfer_enabled' => ($settings['bank_transfer_is_on'] ?? $settings['bank_transfer_enabled'] ?? 'on') === 'on' ? 'on' : 'off',
+                    'bank_accounts' => json_decode($settings['bank_transfer_accounts'] ?? '[]', true) ?: [],
+                ],
+                'autoDownloadPdf' => request('download') === 'pdf',
+                'autoPrint' => request('print') == '1',
             ]);
-        }
-        else{
+        } else {
             return back()->with('error', __('Permission denied'));
         }
     }
