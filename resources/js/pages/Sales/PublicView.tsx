@@ -482,7 +482,7 @@ export default function PublicView({ invoice, companySettings, paymentGateways, 
                         </div>
 
                         {/* Line Items Table */}
-                        <div className="mb-6 pdf-avoid-break">
+                        <div className="mb-6">
                             <div className="overflow-x-auto">
                                 <table className="w-full text-left text-[12.5px]">
                                     <thead>
@@ -866,7 +866,7 @@ export default function PublicView({ invoice, companySettings, paymentGateways, 
                 @media print {
                     @page {
                         size: portrait;
-                        margin: 12mm 15mm;
+                        margin: 0 !important;
                     }
                     body {
                         background-color: white !important;
@@ -876,8 +876,8 @@ export default function PublicView({ invoice, companySettings, paymentGateways, 
                         print-color-adjust: exact !important;
                     }
                     .invoice-card-container {
-                        padding: 0 !important;
-                        margin: 0 !important;
+                        padding: 1.2cm 1.5cm !important;
+                        margin: 0 auto !important;
                         max-width: 100% !important;
                         width: 100% !important;
                         box-shadow: none !important;
@@ -895,7 +895,7 @@ export default function PublicView({ invoice, companySettings, paymentGateways, 
                     }
                     .meta-fields-grid-print {
                         display: grid !important;
-                        grid-template-columns: repeat(2, 1fr) !important;
+                        grid-template-columns: 1fr 1fr !important;
                         gap: 1rem !important;
                     }
                     .status-banner-grid-print {
@@ -905,17 +905,17 @@ export default function PublicView({ invoice, companySettings, paymentGateways, 
                     }
                     .addresses-grid-print {
                         display: grid !important;
-                        grid-template-columns: repeat(2, 1fr) !important;
+                        grid-template-columns: 1fr 1fr !important;
                         gap: 1.5rem !important;
                     }
                     .amount-delivery-grid-print {
                         display: grid !important;
-                        grid-template-columns: repeat(2, 1fr) !important;
+                        grid-template-columns: 7fr 5fr !important;
                         gap: 1rem !important;
                     }
                     .inclusions-grid-print {
                         display: grid !important;
-                        grid-template-columns: repeat(2, 1fr) !important;
+                        grid-template-columns: 1fr 1fr !important;
                         gap: 0.75rem !important;
                     }
                     .project-brief-grid-print {
