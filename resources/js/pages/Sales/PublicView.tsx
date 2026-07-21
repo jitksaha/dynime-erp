@@ -100,8 +100,6 @@ const getSymbol = (currency: string): string => {
 };
 
 export default function PublicView({ invoice, companySettings, paymentGateways, autoDownloadPdf, autoPrint }: PublicViewProps) {
-    const [isDownloading, setIsDownloading] = useState(false);
-    const [isExportingPdf, setIsExportingPdf] = useState(false);
     const [copied, setCopied] = useState(false);
     const [isPayModalOpen, setIsPayModalOpen] = useState(false);
     const [selectedGateway, setSelectedGateway] = useState('dodopay');
@@ -549,7 +547,7 @@ export default function PublicView({ invoice, companySettings, paymentGateways, 
                                     </div>
 
                                     {/* Pay Full / Pay Partial Buttons (Screen only) */}
-                                    {!isExportingPdf && Number(invoice.balance_amount || 0) > 0 && (
+                                    {Number(invoice.balance_amount || 0) > 0 && (
                                         <div className="flex gap-2 mt-3 print:hidden">
                                             <button
                                                 onClick={() => { setPaymentMode('full'); setPartialAmount(''); setIsPayModalOpen(true); }}
@@ -575,76 +573,74 @@ export default function PublicView({ invoice, companySettings, paymentGateways, 
                     {/* ============================================================== */}
                     {/* LIVE CURRENCY CONVERTER (Screen Only) */}
                     {/* ============================================================== */}
-                    {!isExportingPdf && (
-                        <div className="px-6 sm:px-10 py-2.5 bg-[#FAFBFD] border-t border-b border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 print:hidden pdf-hide text-xs text-slate-500 font-medium">
-                            <div className="flex items-center gap-1.5">
-                                <ArrowLeftRight className="w-3.5 h-3.5 text-indigo-500" />
-                                <span>Currency Converter:</span>
-                                <span className="font-bold text-slate-800">{formatCurrency(invoice.total_amount)} {invoice.service_brief?.currency || 'USD'}</span>
-                            </div>
-                            <div className="flex items-center gap-2.5">
-                                <span className="text-slate-500">is equivalent to</span>
-                                <div className="flex items-center gap-1 bg-indigo-50/50 border border-indigo-100/60 rounded-lg py-1 px-2.5">
-                                    <span className="font-extrabold text-indigo-600 text-[13px] whitespace-nowrap">
-                                        {targetCurrency === 'BDT' ? `৳ ${formatConvertedCurrency(convertedAmount, 'BDT')}` : `${getSymbol(targetCurrency)} ${formatConvertedCurrency(convertedAmount, targetCurrency)}`}
-                                    </span>
-                                    <select
-                                        value={targetCurrency}
-                                        onChange={(e) => setTargetCurrency(e.target.value)}
-                                        className="bg-transparent border-none text-[11px] font-bold text-indigo-600 focus:outline-none focus:ring-0 cursor-pointer py-0 pl-1 pr-6 m-0"
-                                        aria-label="Convert invoice total to currency"
-                                    >
-                                    <option value="BDT">BDT — Bangladeshi Taka</option>
-                                    <option value="USD">USD — US Dollar</option>
-                                    <option value="EUR">EUR — Euro</option>
-                                    <option value="GBP">GBP — British Pound</option>
-                                    <option value="AUD">AUD — Australian Dollar</option>
-                                    <option value="CAD">CAD — Canadian Dollar</option>
-                                    <option value="JPY">JPY — Japanese Yen</option>
-                                    <option value="SGD">SGD — Singapore Dollar</option>
-                                    <option value="INR">INR — Indian Rupee</option>
-                                    <option value="AED">AED — UAE Dirham</option>
-                                    <option value="SAR">SAR — Saudi Riyal</option>
-                                    <option value="CHF">CHF — Swiss Franc</option>
-                                    <option value="CNY">CNY — Chinese Yuan</option>
-                                    <option value="NZD">NZD — New Zealand Dollar</option>
-                                    <option value="HKD">HKD — Hong Kong Dollar</option>
-                                    <option value="SEK">SEK — Swedish Krona</option>
-                                    <option value="NOK">NOK — Norwegian Krone</option>
-                                    <option value="DKK">DKK — Danish Krone</option>
-                                    <option value="MYR">MYR — Malaysian Ringgit</option>
-                                    <option value="THB">THB — Thai Baht</option>
-                                    <option value="PHP">PHP — Philippine Peso</option>
-                                    <option value="IDR">IDR — Indonesian Rupiah</option>
-                                    <option value="MXN">MXN — Mexican Peso</option>
-                                    <option value="BRL">BRL — Brazilian Real</option>
-                                    <option value="ZAR">ZAR — South African Rand</option>
-                                    <option value="TRY">TRY — Turkish Lira</option>
-                                    <option value="KRW">KRW — South Korean Won</option>
-                                    <option value="PLN">PLN — Polish Zloty</option>
-                                    <option value="KWD">KWD — Kuwaiti Dinar</option>
-                                    <option value="QAR">QAR — Qatari Rial</option>
-                                    <option value="OMR">OMR — Omani Rial</option>
-                                    <option value="BHD">BHD — Bahraini Dinar</option>
-                                    <option value="EGP">EGP — Egyptian Pound</option>
-                                    <option value="PKR">PKR — Pakistani Rupee</option>
-                                    <option value="LKR">LKR — Sri Lankan Rupee</option>
-                                    <option value="NPR">NPR — Nepalese Rupee</option>
-                                    <option value="VND">VND — Vietnamese Dong</option>
-                                    <option value="RUB">RUB — Russian Ruble</option>
-                                    <option value="UAH">UAH — Ukrainian Hryvnia</option>
-                                    <option value="ILS">ILS — Israeli New Shekel</option>
-                                 </select>
-                                </div>
-                                {isFetchingRates && <RefreshCw className="w-3.5 h-3.5 animate-spin text-slate-400 ml-1" />}
-                            </div>
+                    <div className="px-6 sm:px-10 py-2.5 bg-[#FAFBFD] border-t border-b border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 print:hidden pdf-hide text-xs text-slate-500 font-medium">
+                        <div className="flex items-center gap-1.5">
+                            <ArrowLeftRight className="w-3.5 h-3.5 text-indigo-500" />
+                            <span>Currency Converter:</span>
+                            <span className="font-bold text-slate-800">{formatCurrency(invoice.total_amount)} {invoice.service_brief?.currency || 'USD'}</span>
                         </div>
-                    )}
+                        <div className="flex items-center gap-2.5">
+                            <span className="text-slate-500">is equivalent to</span>
+                            <div className="flex items-center gap-1 bg-indigo-50/50 border border-indigo-100/60 rounded-lg py-1 px-2.5">
+                                <span className="font-extrabold text-indigo-600 text-[13px] whitespace-nowrap">
+                                    {targetCurrency === 'BDT' ? `৳ ${formatConvertedCurrency(convertedAmount, 'BDT')}` : `${getSymbol(targetCurrency)} ${formatConvertedCurrency(convertedAmount, targetCurrency)}`}
+                                </span>
+                                <select
+                                    value={targetCurrency}
+                                    onChange={(e) => setTargetCurrency(e.target.value)}
+                                    className="bg-transparent border-none text-[11px] font-bold text-indigo-600 focus:outline-none focus:ring-0 cursor-pointer py-0 pl-1 pr-6 m-0"
+                                    aria-label="Convert invoice total to currency"
+                                >
+                                <option value="BDT">BDT — Bangladeshi Taka</option>
+                                <option value="USD">USD — US Dollar</option>
+                                <option value="EUR">EUR — Euro</option>
+                                <option value="GBP">GBP — British Pound</option>
+                                <option value="AUD">AUD — Australian Dollar</option>
+                                <option value="CAD">CAD — Canadian Dollar</option>
+                                <option value="JPY">JPY — Japanese Yen</option>
+                                <option value="SGD">SGD — Singapore Dollar</option>
+                                <option value="INR">INR — Indian Rupee</option>
+                                <option value="AED">AED — UAE Dirham</option>
+                                <option value="SAR">SAR — Saudi Riyal</option>
+                                <option value="CHF">CHF — Swiss Franc</option>
+                                <option value="CNY">CNY — Chinese Yuan</option>
+                                <option value="NZD">NZD — New Zealand Dollar</option>
+                                <option value="HKD">HKD — Hong Kong Dollar</option>
+                                <option value="SEK">SEK — Swedish Krona</option>
+                                <option value="NOK">NOK — Norwegian Krone</option>
+                                <option value="DKK">DKK — Danish Krone</option>
+                                <option value="MYR">MYR — Malaysian Ringgit</option>
+                                <option value="THB">THB — Thai Baht</option>
+                                <option value="PHP">PHP — Philippine Peso</option>
+                                <option value="IDR">IDR — Indonesian Rupiah</option>
+                                <option value="MXN">MXN — Mexican Peso</option>
+                                <option value="BRL">BRL — Brazilian Real</option>
+                                <option value="ZAR">ZAR — South African Rand</option>
+                                <option value="TRY">TRY — Turkish Lira</option>
+                                <option value="KRW">KRW — South Korean Won</option>
+                                <option value="PLN">PLN — Polish Zloty</option>
+                                <option value="KWD">KWD — Kuwaiti Dinar</option>
+                                <option value="QAR">QAR — Qatari Rial</option>
+                                <option value="OMR">OMR — Omani Rial</option>
+                                <option value="BHD">BHD — Bahraini Dinar</option>
+                                <option value="EGP">EGP — Egyptian Pound</option>
+                                <option value="PKR">PKR — Pakistani Rupee</option>
+                                <option value="LKR">LKR — Sri Lankan Rupee</option>
+                                <option value="NPR">NPR — Nepalese Rupee</option>
+                                <option value="VND">VND — Vietnamese Dong</option>
+                                <option value="RUB">RUB — Russian Ruble</option>
+                                <option value="UAH">UAH — Ukrainian Hryvnia</option>
+                                <option value="ILS">ILS — Israeli New Shekel</option>
+                             </select>
+                            </div>
+                            {isFetchingRates && <RefreshCw className="w-3.5 h-3.5 animate-spin text-slate-400 ml-1" />}
+                        </div>
+                    </div>
 
                     {/* ============================================================== */}
                     {/* PAGE 2 CONTENT (Prints cleanly on page 2) */}
                     {/* ============================================================== */}
-                    <div className={`p-6 sm:p-10 pt-8 print:p-0 print:pt-8 ${!isExportingPdf ? 'print-page-break print-page-break-container' : 'pdf-avoid-break'} border-t border-slate-50 print:border-none`}>
+                    <div className="p-6 sm:p-10 pt-8 print:p-0 print:pt-8 print-page-break print-page-break-container border-t border-slate-50 print:border-none">
                         
                         {includedServices.length > 0 && (
                             <>
@@ -715,13 +711,11 @@ export default function PublicView({ invoice, companySettings, paymentGateways, 
                 </div>
 
                 {/* Public Link Label under Card (hidden in print & PDF) */}
-                {!isExportingPdf && (
-                    <div className="mt-6 text-center print:hidden pdf-hide">
-                        <p className="text-xs text-slate-400 font-medium">
-                            Public link: <span className="text-[#4F46E5] font-semibold">https://billing.dynime.com/{invoice.invoice_number}</span>
-                        </p>
-                    </div>
-                )}
+                <div className="mt-6 text-center print:hidden pdf-hide">
+                    <p className="text-xs text-slate-400 font-medium">
+                        Public link: <span className="text-[#4F46E5] font-semibold">https://billing.dynime.com/{invoice.invoice_number}</span>
+                    </p>
+                </div>
 
             </div>
             
