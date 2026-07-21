@@ -334,7 +334,6 @@ export default function PublicView({ invoice, companySettings, paymentGateways, 
                             <div className="sm:text-right flex flex-col items-end">
                                 <img 
                                     src={logoUrl} 
-                                    crossOrigin="anonymous"
                                     alt={companyName} 
                                     className="h-[32px] object-contain mb-1.5" 
                                 />
@@ -640,7 +639,7 @@ export default function PublicView({ invoice, companySettings, paymentGateways, 
                     {/* ============================================================== */}
                     {/* PAGE 2 CONTENT (Prints cleanly on page 2) */}
                     {/* ============================================================== */}
-                    <div className="p-6 sm:p-10 pt-8 print:p-0 print:pt-8 print-page-break print-page-break-container border-t border-slate-50 print:border-none">
+                    <div className="p-6 sm:p-10 pt-8 print:p-0 print:pt-6 print-page-break-container border-t border-slate-50 print:border-none">
                         
                         {includedServices.length > 0 && (
                             <>
@@ -696,7 +695,7 @@ export default function PublicView({ invoice, companySettings, paymentGateways, 
                             {/* Page 2 Footer / Signature */}
                             <div className="border-t border-slate-100 pt-6 text-center space-y-3.5">
                                 <div className="flex items-center justify-center text-[13px] font-bold text-slate-800">
-                                    <img src={logoUrl} crossOrigin="anonymous" alt={companyName} className="h-6 object-contain" />
+                                    <img src={logoUrl} alt={companyName} className="h-6 object-contain" />
                                 </div>
                                 <p className="text-[12.5px] text-slate-600 font-medium">Thank you for choosing <span className="font-bold">Dynime</span>.</p>
                                 <p className="text-[11.5px] text-slate-400">
@@ -866,58 +865,63 @@ export default function PublicView({ invoice, companySettings, paymentGateways, 
             <style dangerouslySetInnerHTML={{__html: `
                 @media print {
                     @page {
-                        size: auto;
-                        margin: 0;
+                        size: portrait;
+                        margin: 12mm 15mm;
                     }
                     body {
                         background-color: white !important;
                         margin: 0 !important;
                         padding: 0 !important;
+                        -webkit-print-color-adjust: exact !important;
+                        print-color-adjust: exact !important;
                     }
                     .invoice-card-container {
-                        padding: 1.2cm 1.5cm !important;
+                        padding: 0 !important;
+                        margin: 0 !important;
                         max-width: 100% !important;
                         width: 100% !important;
+                        box-shadow: none !important;
+                        border: none !important;
                     }
                     .print-page-break-container {
-                        page-break-before: always !important;
-                        break-before: page !important;
-                        margin-top: 1.5rem !important;
-                        padding-top: 1.5rem !important;
+                        page-break-inside: avoid !important;
+                        break-inside: avoid !important;
+                        margin-top: 1rem !important;
+                        padding-top: 1rem !important;
                     }
-                    .print-avoid-break {
+                    .print-avoid-break, .pdf-avoid-break {
                         page-break-inside: avoid !important;
                         break-inside: avoid !important;
                     }
                     .meta-fields-grid-print {
                         display: grid !important;
                         grid-template-columns: repeat(2, 1fr) !important;
-                        gap: 1.5rem !important;
+                        gap: 1rem !important;
                     }
                     .status-banner-grid-print {
                         display: grid !important;
                         grid-template-columns: repeat(${invoice.project_category && invoice.project_category !== 'N/A' ? '3' : '2'}, 1fr) !important;
-                        gap: 1.5rem !important;
+                        gap: 1rem !important;
                     }
                     .addresses-grid-print {
                         display: grid !important;
                         grid-template-columns: repeat(2, 1fr) !important;
-                        gap: 2rem !important;
+                        gap: 1.5rem !important;
                     }
                     .amount-delivery-grid-print {
                         display: grid !important;
                         grid-template-columns: repeat(2, 1fr) !important;
-                        gap: 1.5rem !important;
+                        gap: 1rem !important;
                     }
                     .inclusions-grid-print {
                         display: grid !important;
                         grid-template-columns: repeat(2, 1fr) !important;
-                        gap: 1rem !important;
+                        gap: 0.75rem !important;
                     }
                     .project-brief-grid-print {
                         display: grid !important;
                         grid-template-columns: repeat(3, 1fr) !important;
-                        gap: 1.5rem !important;
+                        gap: 1rem !important;
                     }
                 }
             `}} />
