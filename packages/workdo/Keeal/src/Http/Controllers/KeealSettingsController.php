@@ -14,18 +14,18 @@ class KeealSettingsController extends Controller
             $request->validate([
                 'keeal_enabled' => 'nullable|string',
                 'keeal_mode' => 'nullable|string',
+                'keeal_api_key' => 'nullable|string',
                 'keeal_secret_key' => 'nullable|string',
-                'keeal_test_secret_key' => 'nullable|string',
-                'keeal_webhook_secret' => 'nullable|string',
                 'keeal_currency' => 'nullable|string',
             ]);
 
+            $apiKey = $request->keeal_api_key ?? $request->keeal_secret_key ?? '';
+
             $post = [
                 'keeal_enabled' => $request->keeal_enabled === 'on' ? 'on' : 'off',
-                'keeal_mode' => $request->keeal_mode ?? 'sandbox',
-                'keeal_secret_key' => $request->keeal_secret_key ?? '',
-                'keeal_test_secret_key' => $request->keeal_test_secret_key ?? '',
-                'keeal_webhook_secret' => $request->keeal_webhook_secret ?? '',
+                'keeal_mode' => $request->keeal_mode ?? 'live',
+                'keeal_api_key' => $apiKey,
+                'keeal_secret_key' => $apiKey,
                 'keeal_currency' => $request->keeal_currency ?? 'USD',
             ];
 

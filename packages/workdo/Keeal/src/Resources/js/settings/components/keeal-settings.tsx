@@ -15,10 +15,8 @@ export default function KeealSettings() {
   const canEdit = auth?.user?.permissions?.includes('edit-system-settings');
 
   const [enabled, setEnabled] = useState(globalSettings?.keeal_enabled === 'on');
-  const [mode, setMode] = useState(globalSettings?.keeal_mode || 'sandbox');
-  const [secretKey, setSecretKey] = useState(globalSettings?.keeal_secret_key || '');
-  const [testSecretKey, setTestSecretKey] = useState(globalSettings?.keeal_test_secret_key || '');
-  const [webhookSecret, setWebhookSecret] = useState(globalSettings?.keeal_webhook_secret || '');
+  const [mode, setMode] = useState(globalSettings?.keeal_mode || 'live');
+  const [apiKey, setApiKey] = useState(globalSettings?.keeal_api_key || globalSettings?.keeal_secret_key || '');
   const [currency, setCurrency] = useState(globalSettings?.keeal_currency || 'USD');
   const [showSecret, setShowSecret] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -31,9 +29,8 @@ export default function KeealSettings() {
     router.post(route('settings.keeal.update'), {
       keeal_enabled: enabled ? 'on' : 'off',
       keeal_mode: mode,
-      keeal_secret_key: secretKey,
-      keeal_test_secret_key: testSecretKey,
-      keeal_webhook_secret: webhookSecret,
+      keeal_api_key: apiKey,
+      keeal_secret_key: apiKey,
       keeal_currency: currency,
     }, {
       preserveScroll: true,
@@ -50,7 +47,7 @@ export default function KeealSettings() {
             {t('Keeal Payment Settings')}
           </CardTitle>
           <p className="text-sm text-muted-foreground mt-1">
-            {t('Configure Keeal hosted checkout for PayPal and International Card payments (keeal.com)')}
+            {t('Connect Keeal hosted checkout for PayPal & Card payments using your Keeal API Key')}
           </p>
         </div>
         {canEdit && (
@@ -82,8 +79,8 @@ export default function KeealSettings() {
                 <SelectValue placeholder="Select mode" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="sandbox">{t('Sandbox (Test)')}</SelectItem>
                 <SelectItem value="live">{t('Live (Production)')}</SelectItem>
+                <SelectItem value="sandbox">{t('Sandbox (Test)')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -99,29 +96,17 @@ export default function KeealSettings() {
             />
           </div>
 
-          <div className="space-y-1.5">
-            <Label htmlFor="keeal_test_secret_key">{t('Test Secret Key')}</Label>
-            <Input
-              id="keeal_test_secret_key"
-              type="password"
-              value={testSecretKey}
-              onChange={(e) => setTestSecretKey(e.target.value)}
-              placeholder="keeal_sec_test_..."
-              disabled={!canEdit}
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <Label htmlFor="keeal_secret_key">{t('Live Secret Key')}</Label>
+          <div className="space-y-1.5 md:col-span-2">
+            <Label htmlFor="keeal_api_key">{t('Keeal API Key (Secret Key)')}</Label>
             <div className="relative">
               <Input
-                id="keeal_secret_key"
+                id="keeal_api_key"
                 type={showSecret ? 'text' : 'password'}
-                value={secretKey}
-                onChange={(e) => setSecretKey(e.target.value)}
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
                 placeholder="keeal_sec_live_..."
                 disabled={!canEdit}
-                className="pr-10"
+                className="pr-10 font-mono text-sm"
               />
               <Button
                 type="button"
@@ -133,17 +118,9 @@ export default function KeealSettings() {
                 {showSecret ? <EyeOff className="h-4 w-4 text-muted-foreground" /> : <Eye className="h-4 w-4 text-muted-foreground" />}
               </Button>
             </div>
-          </div>
-
-          <div className="space-y-1.5 md:col-span-2">
-            <Label htmlFor="keeal_webhook_secret">{t('Webhook Secret (Optional)')}</Label>
-            <Input
-              id="keeal_webhook_secret"
-              value={webhookSecret}
-              onChange={(e) => setWebhookSecret(e.target.value)}
-              placeholder="keeal_whsec_..."
-              disabled={!canEdit}
-            />
+            <p className="text-[11px] text-muted-foreground mt-1">
+              {t('Enter the API key provided in your Keeal merchant dashboard for instant connection.')}
+            </p>
           </div>
         </div>
       </CardContent>

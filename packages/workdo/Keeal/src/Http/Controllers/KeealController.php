@@ -54,13 +54,11 @@ class KeealController extends Controller
         try {
             $orderID = strtoupper(substr(uniqid(), -12));
             $keeal_enabled = $admin_settings['keeal_enabled'] ?? 'off';
-            $keeal_mode = $admin_settings['keeal_mode'] ?? 'sandbox';
-            $secret_key = ($keeal_mode === 'live') 
-                ? ($admin_settings['keeal_secret_key'] ?? '') 
-                : ($admin_settings['keeal_test_secret_key'] ?? '');
+            $keeal_mode = $admin_settings['keeal_mode'] ?? 'live';
+            $secret_key = $admin_settings['keeal_api_key'] ?? $admin_settings['keeal_secret_key'] ?? $admin_settings['keeal_test_secret_key'] ?? '';
 
             if ($keeal_enabled !== 'on' || empty($secret_key)) {
-                return redirect()->route('plans.index')->with('error', __('Keeal payment gateway is not configured properly.'));
+                return redirect()->route('plans.index')->with('error', __('Keeal payment gateway is not configured properly with an API key.'));
             }
 
             $returnUrl = route('payment.keeal.status', [

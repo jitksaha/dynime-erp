@@ -909,6 +909,47 @@ class SalesInvoiceController extends Controller
             }
         }
 
+        // 4. Keeal Hosted Checkout (Live Capture Session)
+        if ($gateway === 'keeal') {
+            $apiKey = $settings['keeal_api_key'] ?? $settings['keeal_secret_key'] ?? $settings['keeal_test_secret_key'] ?? '';
+            $mode = $settings['keeal_mode'] ?? 'live';
+
+            if (empty($apiKey)) {
+                return redirect()->back()->with('error', __('Keeal API Key is not configured in settings.'));
+            }
+
+            $baseUrl = ($mode === 'live') ? 'https://api.keeal.com' : 'https://sandbox.keeal.com';
+            $successUrl = url("/invoice/{$salesInvoice->invoice_number}?payment=success");
+            $cancelUrl = url("/invoice/{$salesInvoice->invoice_number}?payment=cancel");
+
+            try {
+                $response = \Illuminate\Support\Facades\Http::withHeaders([
+                    'Authorization' => 'Bearer ' . $apiKey,
+                    'Content-Type' => 'application/json',
+                ])->post($baseUrl . '/v1/checkout/sessions', [
+                    'amount' => $amount,
+                    'currency' => strtoupper($salesInvoice->service_brief['currency'] ?? $settings['keeal_currency'] ?? 'USD'),
+                    'customer_email' => $salesInvoice->customer->email ?? 'client@dynime.com',
+                    'customer_name' => $salesInvoice->customer->name ?? 'Client',
+                    'reference_id' => $salesInvoice->invoice_number,
+                    'success_url' => $successUrl,
+                    'cancel_url' => $cancelUrl,
+                ]);
+
+                if ($response->successful()) {
+                    $checkoutUrl = $response->json('checkout_url') ?? $response->json('url');
+                    if ($checkoutUrl) {
+                        return Inertia::location($checkoutUrl);
+                    }
+                }
+
+                $err = $response->json('message') ?? $response->body();
+                return redirect()->back()->with('error', __('Keeal error: ') . $err);
+            } catch (\Exception $e) {
+                return redirect()->back()->with('error', __('Keeal connection error: ') . $e->getMessage());
+            }
+        }
+
         // Check if merchant credentials are set for other gateways before processing
         $gatewayKey = $settings[$gateway . '_secret_key'] ?? $settings[$gateway . '_api_key'] ?? $settings[$gateway . '_key'] ?? $settings[$gateway . '_app_key'] ?? '';
         if (empty($gatewayKey) && $gateway !== 'bank_transfer') {
