@@ -16,6 +16,7 @@ import jsPDF from 'jspdf';
 import QRCode from 'qrcode';
 import axios from 'axios';
 import { Button } from "@/components/ui/button";
+import { EmployeeProfileInspectionWizard } from '../../Components/EmployeeProfileInspectionWizard';
 
 const getCroppedCircularImage = (base64Str: string): Promise<string> => {
     return new Promise((resolve) => {
@@ -65,52 +66,17 @@ function IDCardQRCodeCanvas({ text }: { text: string }) {
 }
 
 export default function Show() {
-    const { auth, companyAllSetting = {} } = usePage<any>().props;
-    const isEmployee = auth?.user?.id === employee.user_id;
+    const { auth, employee, documents, issuedDocuments, companyAllSetting = {} } = usePage<any>().props;
+    const { t } = useTranslation();
+    const isEmployee = auth?.user?.id === employee?.user_id;
 
     const [isChangeModalOpen, setIsChangeModalOpen] = useState(false);
-    const [changeMethod, setChangeMethod] = useState(employee.payment_method || 'bank_transfer');
-    const [changeDetails, setChangeDetails] = useState<any>(employee.payment_details || {});
+    const [changeMethod, setChangeMethod] = useState(employee?.payment_method || 'bank_transfer');
+    const [changeDetails, setChangeDetails] = useState<any>(employee?.payment_details || {});
 
-    const handleRequestSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        router.post(route('hrm.payroll-requests.store'), {
-            requested_payment_method: changeMethod,
-            requested_payment_details: changeDetails,
-        }, {
-            onSuccess: () => {
-                setIsChangeModalOpen(false);
-            }
-        });
-    };
-
-    const handleDetailChange = (key: string, value: string) => {
-        setChangeDetails((prev: any) => ({
-            ...prev,
-            [key]: value
-        }));
-    };
-
-    const paymentMethods = [
-        { value: 'bank_transfer', label: t('Bank Transfer') },
-        { value: 'cards_transfer', label: t('Cards Transfer') },
-        { value: 'paypal', label: t('PayPal') },
-        { value: 'kast', label: t('Kast') },
-        { value: 'redotpay', label: t('Redotpay') },
-        { value: 'remitly', label: t('Remitly') },
-        { value: 'western_union', label: t('Western Union') },
-        { value: 'binance_bybit', label: t('Binance / Bybit') }
-    ];
-
-    const enabledMethods = paymentMethods.filter(method => {
-        const val = companyAllSetting[`payroll_method_enabled_${method.value}`];
-        return val === undefined ? (method.value === 'bank_transfer') : (val === 'on');
-    });
-
-    const { employee, documents, issuedDocuments } = usePage<any>().props;
-    const { t } = useTranslation();
     const [copiedDocId, setCopiedDocId] = useState<number | null>(null);
     const [isIDCardModalOpen, setIsIDCardModalOpen] = useState(false);
+    const [isWizardOpen, setIsWizardOpen] = useState(false);
     const [sealBase64, setSealBase64] = useState<string>('');
 
     useEffect(() => {
@@ -441,6 +407,13 @@ export default function Show() {
                                         >
                                             <Eye className="w-3.5 h-3.5" />
                                             {t('Preview & Download ID Card')}
+                                        </button>
+                                        <button 
+                                            onClick={() => setIsWizardOpen(true)}
+                                            className="mt-2 inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-900 text-white rounded-md text-xs font-bold hover:bg-slate-800 transition shadow-sm w-full"
+                                        >
+                                            <PenTool className="w-3.5 h-3.5 text-indigo-400" />
+                                            {t('Verify & Inspect Profile (Wizard)')}
                                         </button>
                                     </div>
                                 </div>
@@ -1544,6 +1517,13 @@ export default function Show() {
                     </form>
                 </DialogContent>
             </Dialog>
+
+            {/* Profile Inspection Step-by-Step Wizard */}
+            <EmployeeProfileInspectionWizard
+                employee={employee}
+                isOpen={isWizardOpen}
+                onClose={() => setIsWizardOpen(false)}
+            />
         </AuthenticatedLayout>
     );
 }

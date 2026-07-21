@@ -24,6 +24,16 @@ export const hrmCompanyMenu = (t: (key: string) => string) => [
                 permission: 'manage-employees',
             },
             {
+                title: t('Profile Change Requests'),
+                href: route('hrm.profile-change-requests.index'),
+                permission: 'manage-employees',
+            },
+            {
+                title: t('Document Requests (E-Sign)'),
+                href: route('hrm.document-requests.index'),
+                permission: 'manage-employees',
+            },
+            {
                 title: t('Payroll Requests'),
                 href: route('hrm.payroll-requests.index'),
                 permission: 'manage-employees',

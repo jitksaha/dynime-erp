@@ -464,6 +464,22 @@ Route::middleware(['web', 'auth', 'verified', 'PlanModuleCheck:Hrm'])->group(fun
         Route::delete('/{iprestrict}', [IpRestrictController::class, 'destroy'])->name('destroy');
         Route::post('/toggle-setting', [IpRestrictController::class, 'toggleSetting'])->name('toggle-setting');
     });
+
+    // Employee Document Requests with E-Signature
+    Route::prefix('hrm/document-requests')->name('hrm.document-requests.')->group(function () {
+        Route::get('/', [\Workdo\Hrm\Http\Controllers\EmployeeDocumentRequestController::class, 'index'])->name('index');
+        Route::post('/', [\Workdo\Hrm\Http\Controllers\EmployeeDocumentRequestController::class, 'store'])->name('store');
+        Route::put('/{id}/approve', [\Workdo\Hrm\Http\Controllers\EmployeeDocumentRequestController::class, 'approve'])->name('approve');
+        Route::put('/{id}/reject', [\Workdo\Hrm\Http\Controllers\EmployeeDocumentRequestController::class, 'reject'])->name('reject');
+    });
+
+    // Employee Profile Change Requests (Admin Approval Queue)
+    Route::prefix('hrm/profile-change-requests')->name('hrm.profile-change-requests.')->group(function () {
+        Route::get('/', [\Workdo\Hrm\Http\Controllers\EmployeeProfileChangeRequestController::class, 'index'])->name('index');
+        Route::post('/', [\Workdo\Hrm\Http\Controllers\EmployeeProfileChangeRequestController::class, 'store'])->name('store');
+        Route::put('/{id}/approve', [\Workdo\Hrm\Http\Controllers\EmployeeProfileChangeRequestController::class, 'approve'])->name('approve');
+        Route::put('/{id}/reject', [\Workdo\Hrm\Http\Controllers\EmployeeProfileChangeRequestController::class, 'reject'])->name('reject');
+    });
 });
 
 Route::middleware(['web'])->group(function () {

@@ -316,8 +316,6 @@ export default function PublicView({ invoice, companySettings, paymentGateways, 
                     {/* PAGE 1 CONTENT */}
                     {/* ============================================================== */}
                     <div className="p-6 sm:p-10 pb-4 print:p-0 print:pb-0">
-                        {/* Golden/Orange Accent top bar */}
-                    <div className="p-6 sm:p-10 pb-4 print:p-0 print:pb-0">
                         {/* Logo & Invoice Title Header */}
                         <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-4 mt-2">
                             <div>
