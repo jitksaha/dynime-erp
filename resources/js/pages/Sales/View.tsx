@@ -309,8 +309,8 @@ export default function View() {
                                             size="sm"
                                             onClick={downloadPDF}
                                         >
-                                            <Download className="h-4 w-4 mr-2" />
-                                            {t('Download PDF')}
+                                            <Printer className="h-4 w-4 mr-2" />
+                                            {t('Print PDF')}
                                         </Button>
                                     )}
                                     {auth.user?.permissions?.includes('edit-sales-invoices') && (

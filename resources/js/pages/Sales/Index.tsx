@@ -261,14 +261,14 @@ export default function Index() {
                                     <Button
                                         variant="ghost"
                                         size="sm"
-                                        onClick={() => window.open(route('sales-invoices.print', invoice.id) + '?download=pdf', '_blank')}
+                                        onClick={() => window.open(route('sales-invoices.print', invoice.id) + '?print=1', '_blank')}
                                         className="h-8 w-8 p-0 text-orange-600 hover:text-orange-700"
                                     >
-                                        <Download className="h-4 w-4" />
+                                        <Printer className="h-4 w-4" />
                                     </Button>
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                    <p>{t('Download PDF')}</p>
+                                    <p>{t('Print PDF')}</p>
                                 </TooltipContent>
                             </Tooltip>
                         )}

@@ -226,13 +226,11 @@ export default function PublicView({ invoice, companySettings, paymentGateways, 
         const shouldDownload = urlParams.get('download') === 'pdf' || autoDownloadPdf;
         const shouldPrint = urlParams.get('print') === '1' || autoPrint;
 
-        if (shouldDownload) {
+        if (shouldDownload || shouldPrint) {
             const timer = setTimeout(() => {
-                downloadPDF();
-            }, 600);
+                window.print();
+            }, 500);
             return () => clearTimeout(timer);
-        } else if (shouldPrint) {
-            window.print();
         }
     }, [autoDownloadPdf, autoPrint]);
 
@@ -278,44 +276,6 @@ export default function PublicView({ invoice, companySettings, paymentGateways, 
         setTimeout(() => setCopied(false), 2000);
     };
 
-    const downloadPDF = async () => {
-        setIsDownloading(true);
-        setIsExportingPdf(true);
-        document.body.classList.add('is-generating-pdf');
-
-        // Allow React to re-render DOM without non-PDF elements
-        await new Promise(r => setTimeout(r, 450));
-
-        const printContent = document.querySelector('.invoice-card-container');
-        if (printContent) {
-            const opt = {
-                margin: [0.3, 0.35, 0.3, 0.35],
-                filename: `Invoice-${invoice.invoice_number}.pdf`,
-                image: { type: 'jpeg' as const, quality: 0.98 },
-                html2canvas: { 
-                    scale: 2, 
-                    useCORS: true, 
-                    allowTaint: true, 
-                    logging: false,
-                    windowWidth: 850
-                },
-                jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' as const },
-                pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
-            };
-
-            try {
-                const html2pdfModule = await import('html2pdf.js');
-                const html2pdf = html2pdfModule.default || html2pdfModule;
-                await html2pdf().set(opt).from(printContent as HTMLElement).save();
-            } catch (error) {
-                console.error('PDF generation failed:', error);
-            }
-        }
-        document.body.classList.remove('is-generating-pdf');
-        setIsExportingPdf(false);
-        setIsDownloading(false);
-    };
-
     const handlePrint = () => {
         window.print();
     };
@@ -324,45 +284,30 @@ export default function PublicView({ invoice, companySettings, paymentGateways, 
         <div className="min-h-screen bg-white pb-24 print:pb-0 print:bg-white">
             <Head title={`Invoice ${invoice.invoice_number}`} />
 
-            {isDownloading && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 print:hidden">
-                    <div className="bg-white p-6 rounded-2xl shadow-xl flex items-center space-x-3">
-                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600"></div>
-                        <p className="text-lg font-semibold text-slate-700">Generating PDF...</p>
-                    </div>
+            {/* Quick Action bar (hidden in print) */}
+            <div className="max-w-[850px] mx-auto mt-2 mb-3 px-4 sm:px-0 flex flex-col sm:flex-row justify-between items-center gap-3 print:hidden">
+                <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold text-slate-400">Share Invoice URL</span>
                 </div>
-            )}
-
-            {/* Quick Action bar (hidden in print & PDF export) */}
-            {!isExportingPdf && (
-                <div className="max-w-[850px] mx-auto mt-2 mb-3 px-4 sm:px-0 flex flex-col sm:flex-row justify-between items-center gap-3 print:hidden">
-                    <div className="flex items-center gap-2">
-                        <span className="text-sm font-semibold text-slate-400">Share Invoice URL</span>
-                    </div>
-                    <div className="flex flex-wrap justify-center gap-2">
-                        {balanceDue > 0 && (
-                            <Button
-                                onClick={() => { setPaymentMode('full'); setPartialAmount(''); setIsPayModalOpen(true); }}
-                                className="bg-[#4F46E5] hover:bg-[#4338CA] text-white font-bold shadow-lg shadow-indigo-500/25 rounded-xl px-5 transition-all duration-200"
-                            >
-                                <CreditCard className="h-4 w-4 mr-2" /> Pay Online ({formatCurrency(balanceDue)})
-                            </Button>
-                        )}
-                        <Button variant="outline" size="sm" onClick={copyLink} className="bg-white border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl">
-                            <Share2 className="h-4 w-4 mr-2 text-slate-500" />
-                            {copied ? 'Copied!' : 'Copy link'}
+                <div className="flex flex-wrap justify-center gap-2">
+                    {balanceDue > 0 && (
+                        <Button
+                            onClick={() => { setPaymentMode('full'); setPartialAmount(''); setIsPayModalOpen(true); }}
+                            className="bg-[#4F46E5] hover:bg-[#4338CA] text-white font-bold shadow-lg shadow-indigo-500/25 rounded-xl px-5 transition-all duration-200"
+                        >
+                            <CreditCard className="h-4 w-4 mr-2" /> Pay Online ({formatCurrency(balanceDue)})
                         </Button>
-                        <Button variant="outline" size="sm" onClick={downloadPDF} className="bg-white border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl">
-                            <Download className="h-4 w-4 mr-2 text-slate-500" />
-                            Save PDF
-                        </Button>
-                        <Button variant="outline" size="sm" onClick={handlePrint} className="bg-white border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl">
-                            <Printer className="h-4 w-4 mr-2 text-slate-500" />
-                            Print
-                        </Button>
-                    </div>
+                    )}
+                    <Button variant="outline" size="sm" onClick={copyLink} className="bg-white border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl">
+                        <Share2 className="h-4 w-4 mr-2 text-slate-500" />
+                        {copied ? 'Copied!' : 'Copy link'}
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={handlePrint} className="bg-white border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl font-medium">
+                        <Printer className="h-4 w-4 mr-2 text-slate-500" />
+                        Print PDF
+                    </Button>
                 </div>
-            )}
+            </div>
 
             {/* Print Container (Single Card on Web Screen, Split Page during Print) */}
             <div className="invoice-card-container max-w-[850px] mx-auto px-4 sm:px-0 print:p-0 print:max-w-full">
