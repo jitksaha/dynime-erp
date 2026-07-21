@@ -378,9 +378,9 @@ export default function PublicView({ invoice, companySettings, paymentGateways, 
                         </div>
 
                         {/* Statuses Horizontal Banner */}
-                        <div className={`status-banner-grid-print grid grid-cols-1 ${invoice.project_category && invoice.project_category !== 'N/A' ? 'sm:grid-cols-3 print:grid-cols-3' : 'sm:grid-cols-2 print:grid-cols-2'} gap-4 bg-white border border-slate-200 rounded-xl p-4 mb-4 pdf-avoid-break`}>
+                        <div className={`status-banner-grid-print grid grid-cols-1 ${invoice.project_category && invoice.project_category !== 'N/A' ? 'sm:grid-cols-12 print:grid-cols-12' : 'sm:grid-cols-2 print:grid-cols-2'} gap-4 bg-white border border-slate-200 rounded-xl p-4 mb-4 pdf-avoid-break`}>
                             {/* Payment Status */}
-                            <div className="flex items-center gap-3 bg-white/60 rounded-lg px-3 py-2.5">
+                            <div className={`${invoice.project_category && invoice.project_category !== 'N/A' ? 'sm:col-span-3 print:col-span-3' : 'sm:col-span-1 print:col-span-1'} flex items-center gap-3 bg-white/60 rounded-lg px-3 py-2.5`}>
                                 <div className="shrink-0">
                                     <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-900 block mb-1">Payment status</span>
                                     <span className={getPaymentStatusBadgeClasses(invoice.payment_status || 'Unpaid')}>
@@ -390,7 +390,7 @@ export default function PublicView({ invoice, companySettings, paymentGateways, 
                             </div>
 
                             {/* Operational Status */}
-                            <div className="flex items-center gap-3 bg-white/60 rounded-lg px-3 py-2.5">
+                            <div className={`${invoice.project_category && invoice.project_category !== 'N/A' ? 'sm:col-span-3 print:col-span-3' : 'sm:col-span-1 print:col-span-1'} flex items-center gap-3 bg-white/60 rounded-lg px-3 py-2.5`}>
                                 <div className="shrink-0">
                                     <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-900 block mb-1">Operational status</span>
                                     <span className={getOperationalStatusBadgeClasses(invoice.operational_status || 'Pending')}>
@@ -401,7 +401,7 @@ export default function PublicView({ invoice, companySettings, paymentGateways, 
 
                             {/* Project Status */}
                             {invoice.project_category && invoice.project_category !== 'N/A' && (
-                                <div className="flex items-start gap-3 bg-white/60 rounded-lg px-3 py-2.5">
+                                <div className="sm:col-span-6 print:col-span-6 flex items-start gap-3 bg-white/60 rounded-lg px-3 py-2.5">
                                     <div className="w-full">
                                         <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-900 block mb-1">Project status</span>
                                         <div className="flex items-center gap-2 flex-wrap">
@@ -903,7 +903,7 @@ export default function PublicView({ invoice, companySettings, paymentGateways, 
                     }
                     .status-banner-grid-print {
                         display: grid !important;
-                        grid-template-columns: repeat(${invoice.project_category && invoice.project_category !== 'N/A' ? '3' : '2'}, 1fr) !important;
+                        grid-template-columns: ${invoice.project_category && invoice.project_category !== 'N/A' ? '1fr 1fr 2.5fr' : '1fr 1fr'} !important;
                         gap: 1rem !important;
                     }
                     .addresses-grid-print {
