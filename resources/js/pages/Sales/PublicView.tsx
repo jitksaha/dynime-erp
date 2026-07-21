@@ -279,14 +279,26 @@ export default function PublicView({ invoice, companySettings, paymentGateways, 
 
     const downloadPDF = async () => {
         setIsDownloading(true);
+        document.body.classList.add('is-generating-pdf');
+
+        // Allow DOM to apply hidden classes and finish rendering
+        await new Promise(r => setTimeout(r, 450));
+
         const printContent = document.querySelector('.invoice-card-container');
         if (printContent) {
             const opt = {
-                margin: 0,
+                margin: [0.35, 0.3, 0.35, 0.3],
                 filename: `Invoice-${invoice.invoice_number}.pdf`,
                 image: { type: 'jpeg' as const, quality: 0.98 },
-                html2canvas: { scale: 2, useCORS: true },
-                jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' as const }
+                html2canvas: { 
+                    scale: 2, 
+                    useCORS: true, 
+                    allowTaint: true, 
+                    logging: false,
+                    windowWidth: 850
+                },
+                jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' as const },
+                pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
             };
 
             try {
@@ -297,6 +309,7 @@ export default function PublicView({ invoice, companySettings, paymentGateways, 
                 console.error('PDF generation failed:', error);
             }
         }
+        document.body.classList.remove('is-generating-pdf');
         setIsDownloading(false);
     };
 
@@ -373,6 +386,7 @@ export default function PublicView({ invoice, companySettings, paymentGateways, 
                             <div className="sm:text-right flex flex-col items-end">
                                 <img 
                                     src={logoUrl} 
+                                    crossOrigin="anonymous"
                                     alt={companyName} 
                                     className="h-[32px] object-contain mb-1.5" 
                                 />
@@ -618,7 +632,7 @@ export default function PublicView({ invoice, companySettings, paymentGateways, 
                             {/* ============================================================== */}
                     {/* LIVE CURRENCY CONVERTER (Screen Only) */}
                     {/* ============================================================== */}
-                    <div className="px-6 sm:px-10 py-2.5 bg-[#FAFBFD] border-t border-b border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 print:hidden text-xs text-slate-500 font-medium">
+                    <div className="px-6 sm:px-10 py-2.5 bg-[#FAFBFD] border-t border-b border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 print:hidden pdf-hide text-xs text-slate-500 font-medium">
                         <div className="flex items-center gap-1.5">
                             <ArrowLeftRight className="w-3.5 h-3.5 text-indigo-500" />
                             <span>Currency Converter:</span>
@@ -698,7 +712,7 @@ export default function PublicView({ invoice, companySettings, paymentGateways, 
                                 </div>
 
                                 {/* 2-Column inclusions grid */}
-                                <div className="inclusions-grid-print grid grid-cols-1 sm:grid-cols-2 print:grid-cols-2 gap-x-12 gap-y-3 mb-6 pb-6 border-b border-slate-100">
+                                <div className="inclusions-grid-print grid grid-cols-1 sm:grid-cols-2 print:grid-cols-2 gap-x-12 gap-y-3 mb-6 pb-6 border-b border-slate-100 pdf-avoid-break">
                                     {includedServices.map((service: string, index: number) => (
                                         <div key={index} className="flex items-start gap-3 text-[12.5px] text-slate-700 leading-tight">
                                             <div className="bg-[#ECFDF5] border border-emerald-100 p-0.5 rounded-full mt-0.5 text-emerald-600">
@@ -711,7 +725,7 @@ export default function PublicView({ invoice, companySettings, paymentGateways, 
                             </>
                         )}
 
-                        <div className="print-avoid-break">
+                        <div className="pdf-avoid-break">
                             {/* Project Brief Columns */}
                             <div className="mb-8">
                                 <h3 className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400 mb-4 flex items-center gap-2">
@@ -741,7 +755,7 @@ export default function PublicView({ invoice, companySettings, paymentGateways, 
                             {/* Page 2 Footer / Signature */}
                             <div className="border-t border-slate-100 pt-6 text-center space-y-3.5">
                                 <div className="flex items-center justify-center text-[13px] font-bold text-slate-800">
-                                    <img src={logoUrl} alt={companyName} className="h-6 object-contain" />
+                                    <img src={logoUrl} crossOrigin="anonymous" alt={companyName} className="h-6 object-contain" />
                                 </div>
                                 <p className="text-[12.5px] text-slate-600 font-medium">Thank you for choosing <span className="font-bold">Dynime</span>.</p>
                                 <p className="text-[11.5px] text-slate-400">
@@ -756,7 +770,7 @@ export default function PublicView({ invoice, companySettings, paymentGateways, 
                 </div>
 
                 {/* Public Link Label under Card (hidden in print) */}
-                <div className="mt-6 text-center print:hidden">
+                <div className="mt-6 text-center print:hidden pdf-hide">
                     <p className="text-xs text-slate-400 font-medium">
                         Public link: <span className="text-[#4F46E5] font-semibold">https://billing.dynime.com/{invoice.invoice_number}</span>
                     </p>
