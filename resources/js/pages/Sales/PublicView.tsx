@@ -413,7 +413,7 @@ export default function PublicView({ invoice, companySettings, paymentGateways, 
                                         </div>
                                         {invoice.project_status && PROJECT_STATUS_MAP[invoice.project_category]?.find(x => x.label === invoice.project_status)?.desc && (
                                             <p className="text-[11px] text-slate-500 mt-1.5 leading-snug">
-                                                {PROJECT_STATUS_MAP[invoice.project_category].find(x => x.label === invoice.project_status)?.desc}
+                                                {PROJECT_STATUS_MAP[invoice.project_category]?.find(x => x.label === invoice.project_status)?.desc}
                                             </p>
                                         )}
                                     </div>
