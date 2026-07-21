@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/data-table";
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
-import { Plus, Edit as EditIcon, Trash2, Eye, FileText, Receipt, Download, Share2 } from "lucide-react";
+import { Plus, Edit as EditIcon, Trash2, Eye, FileText, Receipt, Download, Share2, CreditCard } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { FilterButton } from '@/components/ui/filter-button';
 import { Pagination } from "@/components/ui/pagination";
@@ -21,6 +21,8 @@ import { getStatusBadgeClasses, getPaymentStatusBadgeClasses, getOperationalStat
 import { DateRangePicker } from '@/components/ui/date-range-picker';
 import NoRecordsFound from '@/components/no-records-found';
 import { SalesInvoice, SalesFilters } from './types';
+import PaymentModal from './components/PaymentModal';
+
 interface SalesIndexProps {
     invoices: {
         data: SalesInvoice[];
@@ -37,6 +39,8 @@ export default function Index() {
     const { t } = useTranslation();
     const { invoices, customers, warehouses, auth } = usePage<SalesIndexProps>().props;
     const urlParams = new URLSearchParams(window.location.search);
+    const [selectedInvoiceForPayment, setSelectedInvoiceForPayment] = useState<SalesInvoice | null>(null);
+    const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
 
     const [filters, setFilters] = useState<SalesFilters>({
         search: urlParams.get('search') || '',
@@ -181,9 +185,21 @@ export default function Index() {
             header: t('Payment Status'),
             sortable: true,
             render: (_: any, invoice: SalesInvoice) => (
-                <span className={getPaymentStatusBadgeClasses(invoice.payment_status || 'Unpaid')}>
-                    {t(invoice.payment_status || 'Unpaid')}
-                </span>
+                <button
+                    type="button"
+                    onClick={() => {
+                        if (auth.user?.permissions?.includes('edit-sales-invoices')) {
+                            setSelectedInvoiceForPayment(invoice);
+                            setIsPaymentModalOpen(true);
+                        }
+                    }}
+                    className={`text-left transition-transform hover:scale-105 ${auth.user?.permissions?.includes('edit-sales-invoices') ? 'cursor-pointer' : 'cursor-default'}`}
+                    title={auth.user?.permissions?.includes('edit-sales-invoices') ? t('Click to edit/record payment') : ''}
+                >
+                    <span className={getPaymentStatusBadgeClasses(invoice.payment_status || 'Unpaid')}>
+                        {t(invoice.payment_status || 'Unpaid')}
+                    </span>
+                </button>
             )
         },
         {
@@ -218,6 +234,26 @@ export default function Index() {
             render: (_: any, invoice: SalesInvoice) => (
                 <div className="flex gap-1">
                     <TooltipProvider>
+                        {auth.user?.permissions?.includes('edit-sales-invoices') && (
+                            <Tooltip delayDuration={0}>
+                                <TooltipTrigger asChild>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => {
+                                            setSelectedInvoiceForPayment(invoice);
+                                            setIsPaymentModalOpen(true);
+                                        }}
+                                        className="h-8 w-8 p-0 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50"
+                                    >
+                                        <CreditCard className="h-4 w-4" />
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>{t('Record / Edit Payment')}</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        )}
                         <SignatureButtons invoice={invoice} />
                         {auth.user?.permissions?.includes('print-sales-invoices') && (
                             <Tooltip delayDuration={0}>
@@ -687,6 +723,15 @@ export default function Index() {
                 confirmText={t('Delete')}
                 onConfirm={confirmDelete}
                 variant="destructive"
+            />
+
+            <PaymentModal
+                isOpen={isPaymentModalOpen}
+                onClose={() => setIsPaymentModalOpen(false)}
+                invoice={selectedInvoiceForPayment}
+                onSuccess={() => {
+                    router.reload();
+                }}
             />
         </AuthenticatedLayout>
     );

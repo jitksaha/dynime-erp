@@ -554,10 +554,40 @@ class SalesInvoiceController extends Controller
                 'operational_status' => 'nullable|string|in:Pending,Processing,In Review,Action Required,Delivered,Completed,Cancelled',
                 'project_category' => 'nullable|string',
                 'project_status' => 'nullable|string',
-                'paid_amount' => 'nullable|numeric|min:0'
+                'paid_amount' => 'nullable|numeric|min:0',
+                'add_amount' => 'nullable|numeric|min:0'
             ]);
 
-            if ($request->has('payment_status')) {
+            if ($request->has('add_amount') && floatval($request->add_amount) > 0) {
+                $additional = floatval($request->add_amount);
+                $salesInvoice->paid_amount += $additional;
+                $salesInvoice->balance_amount = max(0, $salesInvoice->total_amount - $salesInvoice->paid_amount);
+                if ($salesInvoice->balance_amount <= 0) {
+                    $salesInvoice->payment_status = 'Paid';
+                    $salesInvoice->status = 'paid';
+                    $salesInvoice->balance_amount = 0;
+                } else {
+                    $salesInvoice->payment_status = 'Partially Paid';
+                    $salesInvoice->status = 'partial';
+                }
+            } elseif ($request->has('paid_amount')) {
+                $paid = floatval($request->paid_amount);
+                $salesInvoice->paid_amount = $paid;
+                $salesInvoice->balance_amount = max(0, $salesInvoice->total_amount - $paid);
+                if ($paid >= $salesInvoice->total_amount) {
+                    $salesInvoice->payment_status = 'Paid';
+                    $salesInvoice->status = 'paid';
+                    $salesInvoice->balance_amount = 0;
+                } elseif ($paid > 0) {
+                    $salesInvoice->payment_status = 'Partially Paid';
+                    $salesInvoice->status = 'partial';
+                } else {
+                    $salesInvoice->payment_status = 'Unpaid';
+                    $salesInvoice->status = 'posted';
+                    $salesInvoice->paid_amount = 0;
+                    $salesInvoice->balance_amount = $salesInvoice->total_amount;
+                }
+            } elseif ($request->has('payment_status')) {
                 $salesInvoice->payment_status = $request->payment_status;
                 if ($request->payment_status === 'Paid') {
                     $salesInvoice->status = 'paid';
@@ -565,8 +595,8 @@ class SalesInvoiceController extends Controller
                     $salesInvoice->balance_amount = 0;
                 } elseif ($request->payment_status === 'Partially Paid') {
                     $salesInvoice->status = 'partial';
-                    if ($request->has('paid_amount')) {
-                        $salesInvoice->paid_amount = floatval($request->paid_amount);
+                    if ($salesInvoice->paid_amount <= 0) {
+                        $salesInvoice->paid_amount = round($salesInvoice->total_amount / 2, 2);
                     }
                     $salesInvoice->balance_amount = max(0, $salesInvoice->total_amount - $salesInvoice->paid_amount);
                 } elseif ($request->payment_status === 'Unpaid' || $request->payment_status === 'Failed') {
@@ -574,9 +604,6 @@ class SalesInvoiceController extends Controller
                     $salesInvoice->paid_amount = 0;
                     $salesInvoice->balance_amount = $salesInvoice->total_amount;
                 }
-            } elseif ($request->has('paid_amount') && $salesInvoice->payment_status === 'Partially Paid') {
-                $salesInvoice->paid_amount = floatval($request->paid_amount);
-                $salesInvoice->balance_amount = max(0, $salesInvoice->total_amount - $salesInvoice->paid_amount);
             }
 
             if ($request->has('operational_status')) {
@@ -585,7 +612,6 @@ class SalesInvoiceController extends Controller
 
             if ($request->has('project_category')) {
                 $salesInvoice->project_category = $request->project_category;
-                // Default project status for new category if category is changing
                 if (empty($request->project_status)) {
                     $salesInvoice->project_status = null;
                 }
@@ -600,7 +626,7 @@ class SalesInvoiceController extends Controller
             if ($request->expectsJson()) {
                 return response()->json([
                     'success' => true,
-                    'message' => __('Invoice status updated successfully.'),
+                    'message' => __('Invoice payment status updated successfully.'),
                     'data' => [
                         'payment_status' => $salesInvoice->payment_status,
                         'operational_status' => $salesInvoice->operational_status,

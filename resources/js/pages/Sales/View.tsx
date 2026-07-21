@@ -7,13 +7,14 @@ import { formatCurrency, formatDate } from '@/utils/helpers';
 import { getStatusBadgeClasses } from './utils';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { FileText, Download, Share2, Pencil } from 'lucide-react';
+import { FileText, Download, Share2, Pencil, CreditCard } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { usePageButtons } from '@/hooks/usePageButtons';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PAYMENT_STATUSES, OPERATIONAL_STATUSES, PROJECT_CATEGORIES, PROJECT_STATUS_MAP, getPaymentStatusBadgeClasses, getOperationalStatusBadgeClasses, getProjectStatusBadgeClasses } from './utils';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
+import PaymentModal from './components/PaymentModal';
 
 interface ViewProps {
     invoice: SalesInvoice;
@@ -27,6 +28,7 @@ export default function View() {
     const [localInvoice, setLocalInvoice] = useState(invoice);
     const [copied, setCopied] = useState(false);
     const [paidAmountInput, setPaidAmountInput] = useState(invoice.paid_amount?.toString() || '0');
+    const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
 
     React.useEffect(() => {
         setPaidAmountInput(localInvoice.paid_amount?.toString() || '0');
@@ -106,48 +108,44 @@ export default function View() {
                                     <div className="flex items-center gap-2">
                                         <span className="text-xs text-muted-foreground font-medium">{t('Payment')}:</span>
                                         {auth.user?.permissions?.includes('edit-sales-invoices') ? (
-                                            <Select
-                                                value={localInvoice.payment_status || 'Unpaid'}
-                                                onValueChange={(value) => {
-                                                    updateInvoiceStatus({ payment_status: value });
-                                                }}
-                                            >
-                                                <SelectTrigger className="w-[130px] h-8 text-xs font-semibold capitalize border border-slate-200 bg-white">
-                                                    <SelectValue />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    {PAYMENT_STATUSES.map((status) => (
-                                                        <SelectItem key={status} value={status}>{t(status)}</SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
+                                            <div className="flex items-center gap-2">
+                                                <Select
+                                                    value={localInvoice.payment_status || 'Unpaid'}
+                                                    onValueChange={(value) => {
+                                                        if (value === 'Partially Paid') {
+                                                            setIsPaymentModalOpen(true);
+                                                        } else {
+                                                            updateInvoiceStatus({ payment_status: value });
+                                                        }
+                                                    }}
+                                                >
+                                                    <SelectTrigger className="w-[130px] h-8 text-xs font-semibold capitalize border border-slate-200 bg-white">
+                                                        <SelectValue />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {PAYMENT_STATUSES.map((status) => (
+                                                            <SelectItem key={status} value={status}>{t(status)}</SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => setIsPaymentModalOpen(true)}
+                                                    className="h-8 text-xs font-bold gap-1 border-indigo-200 bg-indigo-50/50 text-[#4F46E5] hover:bg-indigo-100"
+                                                >
+                                                    <CreditCard className="h-3.5 w-3.5" />
+                                                    {t('Record / Edit Payment')}
+                                                </Button>
+                                            </div>
                                         ) : (
                                             <span className={getPaymentStatusBadgeClasses(localInvoice.payment_status || 'Unpaid')}>
                                                 {t(localInvoice.payment_status || 'Unpaid')}
                                             </span>
                                         )}
                                     </div>
-
-                                    {localInvoice.payment_status === 'Partially Paid' && auth.user?.permissions?.includes('edit-sales-invoices') && (
-                                        <div className="flex items-center gap-1.5 border-l border-slate-200 pl-3">
-                                            <span className="text-xs text-muted-foreground font-medium">{t('Paid')}:</span>
-                                            <div className="flex items-center gap-1">
-                                                <Input
-                                                    type="number"
-                                                    value={paidAmountInput}
-                                                    onChange={(e) => setPaidAmountInput(e.target.value)}
-                                                    onBlur={handleSavePaidAmount}
-                                                    onKeyDown={(e) => {
-                                                        if (e.key === 'Enter') {
-                                                            handleSavePaidAmount();
-                                                        }
-                                                    }}
-                                                    className="w-[90px] h-8 text-xs font-semibold px-2 py-0 border-slate-200 bg-white"
-                                                    placeholder="0.00"
-                                                />
-                                            </div>
-                                        </div>
-                                    )}
 
                                     <div className="flex items-center gap-2">
                                         <span className="text-xs text-muted-foreground font-medium">{t('Operational')}:</span>
@@ -497,6 +495,19 @@ export default function View() {
                     </CardContent>
                 </Card>
             </div>
+
+            <PaymentModal
+                isOpen={isPaymentModalOpen}
+                onClose={() => setIsPaymentModalOpen(false)}
+                invoice={localInvoice}
+                onSuccess={(data) => {
+                    setLocalInvoice(prev => ({
+                        ...prev,
+                        ...data
+                    }));
+                    toast.success(t('Invoice payment updated successfully!'));
+                }}
+            />
         </AuthenticatedLayout>
     );
 }
