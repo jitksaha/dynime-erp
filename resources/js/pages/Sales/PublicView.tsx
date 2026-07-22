@@ -399,19 +399,19 @@ export default function PublicView({ invoice, companySettings, paymentGateways, 
 
                             {/* Project Status */}
                             {invoice.project_category && invoice.project_category !== 'N/A' && (
-                                <div className="flex items-start gap-3 bg-white/60 rounded-lg px-3 py-2.5 min-w-0">
+                                <div className="flex items-center gap-3 bg-white/60 rounded-lg px-3 py-2.5 min-w-0">
                                     <div className="w-full">
                                         <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-900 block mb-1">Project status</span>
-                                        <div className="flex items-center gap-2 flex-wrap">
-                                            <span className={getProjectStatusBadgeClasses(invoice.project_status || '')}>
+                                        <div className="flex items-center gap-2.5">
+                                            <span className={`${getProjectStatusBadgeClasses(invoice.project_status || '')} shrink-0`}>
                                                 {invoice.project_status || 'N/A'}
                                             </span>
+                                            {invoice.project_status && PROJECT_STATUS_MAP[invoice.project_category]?.find(x => x.label === invoice.project_status)?.desc && (
+                                                <span className="text-[11px] text-slate-700 leading-snug font-medium">
+                                                    {PROJECT_STATUS_MAP[invoice.project_category]?.find(x => x.label === invoice.project_status)?.desc}
+                                                </span>
+                                            )}
                                         </div>
-                                        {invoice.project_status && PROJECT_STATUS_MAP[invoice.project_category]?.find(x => x.label === invoice.project_status)?.desc && (
-                                            <p className="text-[11px] text-slate-700 mt-1.5 leading-snug font-medium">
-                                                {PROJECT_STATUS_MAP[invoice.project_category]?.find(x => x.label === invoice.project_status)?.desc}
-                                            </p>
-                                        )}
                                     </div>
                                 </div>
                             )}
