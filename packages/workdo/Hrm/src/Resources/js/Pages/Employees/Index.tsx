@@ -221,8 +221,11 @@ export default function Index() {
                     )}
                     <div className="flex flex-col min-w-0">
                         <span className="font-medium truncate">{row.user?.name || '-'}</span>
+                        {row.user?.email && (
+                            <span className="text-xs text-gray-500 truncate">{row.user.email}</span>
+                        )}
                         {row.official_email && (
-                            <span className="text-[10px] text-emerald-600 font-semibold truncate mt-0.5">{row.official_email}</span>
+                            <span className="text-[10px] text-emerald-600 font-semibold truncate mt-0.5" title={row.official_email}>{row.official_email}</span>
                         )}
                     </div>
                 </div>
@@ -725,8 +728,12 @@ export default function Index() {
                     {selectedEmployee && (
                         <div className="space-y-4 py-4">
                             <div className="bg-muted/40 p-3 rounded-lg border text-sm space-y-1">
-                                <p className="font-medium text-foreground">{selectedEmployee.user?.name}</p>
+                                <p className="font-semibold text-foreground">{selectedEmployee.user?.name}</p>
                                 <p className="text-xs text-muted-foreground">{t('Employee ID')}: {selectedEmployee.employee_id}</p>
+                                <div className="text-xs pt-1.5 mt-1 border-t border-muted/80 flex items-center justify-between">
+                                    <span className="text-muted-foreground">{t('Account / Personal Email')}:</span>
+                                    <span className="font-bold text-indigo-600">{selectedEmployee.user?.email || t('N/A')}</span>
+                                </div>
                                 {selectedEmployee.official_email && (
                                     <div className="mt-2 pt-2 border-t border-emerald-100/50 flex items-center justify-between">
                                         <p className="text-xs text-emerald-600 font-semibold">

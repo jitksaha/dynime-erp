@@ -35,7 +35,7 @@ class EmployeeController extends Controller
     {
         if (Auth::user()->can('manage-employees')) {
             $employees = Employee::query()
-                ->with(['user:id,name,avatar,is_disable', 'branch', 'department', 'designation', 'shift'])
+                ->with(['user:id,name,email,avatar,is_disable', 'branch', 'department', 'designation', 'shift'])
                 ->where(function ($q) {
                     if (Auth::user()->can('manage-any-employees')) {
                         $q->where('created_by', creatorId());
@@ -63,7 +63,7 @@ class EmployeeController extends Controller
 
             return Inertia::render('Hrm/Employees/Index', [
                 'employees' => $employees,
-                'users' => User::emp()->where('created_by', creatorId())->select('id', 'name')->get(),
+                'users' => User::emp()->where('created_by', creatorId())->select('id', 'name', 'email')->get(),
                 'branches' => Branch::where('created_by', creatorId())->orderBy('priority', 'asc')->orderBy('id', 'desc')->select('id', 'branch_name')->get(),
                 'departments' => Department::where('created_by', creatorId())->select('id', 'department_name', 'branch_id')->get(),
                 'designations' => Designation::where('created_by', creatorId())->select('id', 'designation_name', 'branch_id', 'department_id')->get(),
@@ -581,22 +581,27 @@ class EmployeeController extends Controller
                 return redirect()->back()->with('error', __('Employee user not found.'));
             }
 
+            $user = $employee->user;
+            $targetEmail = $user->email;
+            if (empty($targetEmail)) {
+                return redirect()->back()->with('error', __('User email set during creation is missing.'));
+            }
+
             // Generate temporary password
             $password = \Str::random(10);
-            $user = $employee->user;
             $user->password = \Hash::make($password);
             $user->save();
 
-            // Set SMTP Config
+            // Set SMTP Config & Send Email
             try {
                 \App\Services\MailConfigService::setDynamicConfig(creatorId());
                 
-                \Mail::to($user->email)->send(new \App\Mail\SendCredentialsMail($user, $password));
+                \Mail::to($targetEmail)->send(new \App\Mail\SendCredentialsMail($user, $password));
                 
-                return redirect()->back()->with('success', __('Login credentials sent successfully to ') . $user->name);
+                return redirect()->back()->with('success', __('Login credentials sent successfully to ') . $targetEmail);
             } catch (\Exception $e) {
-                \Log::error('Send credentials failed: ' . $e->getMessage());
-                return redirect()->back()->with('error', __('SMTP Configuration Error: ') . $e->getMessage());
+                \Log::error('Send credentials failed for ' . $targetEmail . ': ' . $e->getMessage());
+                return redirect()->back()->with('error', __('SMTP Configuration Error for ' . $targetEmail . ': ') . $e->getMessage());
             }
         } else {
             return redirect()->back()->with('error', __('Permission denied.'));
@@ -609,6 +614,11 @@ class EmployeeController extends Controller
             $employee = Employee::with('user')->find($employeeId);
             if (!$employee || !$employee->user) {
                 return redirect()->back()->with('error', __('Employee not found.'));
+            }
+
+            $targetEmail = $employee->user->email;
+            if (empty($targetEmail)) {
+                return redirect()->back()->with('error', __('User creation email is missing for this employee.'));
             }
 
             $request->validate([
@@ -637,16 +647,16 @@ class EmployeeController extends Controller
                 $employee->official_email_password = $password;
                 $employee->save();
 
-                // Send Email Notification to Employee's Personal Email
+                // Send Email Notification to Employee's Creation Email
                 try {
                     \App\Services\MailConfigService::setDynamicConfig(creatorId());
-                    \Mail::to($employee->user->email)->send(new \App\Mail\SendOfficialEmailCredentialsMail($employee->user, $officialEmail, $password));
+                    \Mail::to($targetEmail)->send(new \App\Mail\SendOfficialEmailCredentialsMail($employee->user, $officialEmail, $password));
                 } catch (\Exception $e) {
-                    \Log::error('Send official email credentials failed: ' . $e->getMessage());
-                    return redirect()->back()->with('success', __('Official email created successfully, but notification email failed to send.'));
+                    \Log::error('Send official email credentials failed for ' . $targetEmail . ': ' . $e->getMessage());
+                    return redirect()->back()->with('success', __('Official email created successfully ('). $officialEmail .__('), but credentials notification email failed to send to ') . $targetEmail);
                 }
 
-                return redirect()->back()->with('success', __('Official cPanel email account created successfully: ') . $officialEmail);
+                return redirect()->back()->with('success', __('Official cPanel email created successfully. Credentials sent to ') . $targetEmail);
             } else {
                 return redirect()->back()->with('error', $response['message']);
             }
@@ -663,22 +673,27 @@ class EmployeeController extends Controller
                 return redirect()->back()->with('error', __('Employee not found.'));
             }
 
+            $targetEmail = $employee->user->email;
+            if (empty($targetEmail)) {
+                return redirect()->back()->with('error', __('User creation email is missing for this employee.'));
+            }
+
             if (empty($employee->official_email) || empty($employee->official_email_password)) {
                 return redirect()->back()->with('error', __('Official email has not been created yet for this employee.'));
             }
 
             try {
                 \App\Services\MailConfigService::setDynamicConfig(creatorId());
-                \Mail::to($employee->user->email)->send(new \App\Mail\SendOfficialEmailCredentialsMail(
+                \Mail::to($targetEmail)->send(new \App\Mail\SendOfficialEmailCredentialsMail(
                     $employee->user,
                     $employee->official_email,
                     $employee->official_email_password
                 ));
 
-                return redirect()->back()->with('success', __('Official email credentials resent successfully to ') . $employee->user->name);
+                return redirect()->back()->with('success', __('Official email credentials resent successfully to ') . $targetEmail);
             } catch (\Exception $e) {
-                \Log::error('Resend official email credentials failed: ' . $e->getMessage());
-                return redirect()->back()->with('error', __('SMTP Configuration Error: ') . $e->getMessage());
+                \Log::error('Resend official email credentials failed for ' . $targetEmail . ': ' . $e->getMessage());
+                return redirect()->back()->with('error', __('SMTP Configuration Error for ' . $targetEmail . ': ') . $e->getMessage());
             }
         } else {
             return redirect()->back()->with('error', __('Permission denied.'));

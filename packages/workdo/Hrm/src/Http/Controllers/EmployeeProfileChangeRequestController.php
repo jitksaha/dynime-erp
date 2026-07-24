@@ -78,10 +78,8 @@ class EmployeeProfileChangeRequestController extends Controller
 
             if ($key === 'name' && $user) {
                 $userDataToUpdate['name'] = $newValue;
-                $employeeDataToUpdate['name'] = $newValue;
             } elseif ($key === 'email' && $user) {
                 $userDataToUpdate['email'] = $newValue;
-                $employeeDataToUpdate['email'] = $newValue;
             } elseif (in_array($key, [
                 'phone', 'dob', 'gender', 'address', 'emergency_contact', 'emergency_phone',
                 'bank_name', 'account_number', 'account_holder', 'bank_country', 'passport_number', 'nid_number'
