@@ -699,5 +699,37 @@ class EmployeeController extends Controller
             return redirect()->back()->with('error', __('Permission denied.'));
         }
     }
+
+    public function deleteOfficialEmail($employeeId)
+    {
+        if (\Auth::user()->can('edit-employees')) {
+            $employee = Employee::find($employeeId);
+            if (!$employee) {
+                return redirect()->back()->with('error', __('Employee not found.'));
+            }
+
+            if (empty($employee->official_email)) {
+                return redirect()->back()->with('error', __('No official email to delete.'));
+            }
+
+            $officialEmail = $employee->official_email;
+
+            // Delete from cPanel
+            $response = \App\Services\CPanelEmailService::deleteEmail($officialEmail, creatorId());
+
+            // Clear database record
+            $employee->official_email = null;
+            $employee->official_email_password = null;
+            $employee->save();
+
+            if ($response['success']) {
+                return redirect()->back()->with('success', __('Official email ') . $officialEmail . __(' deleted successfully from cPanel and system.'));
+            } else {
+                return redirect()->back()->with('success', __('Official email ') . $officialEmail . __(' removed from system. (cPanel: ') . $response['message'] . ')');
+            }
+        } else {
+            return redirect()->back()->with('error', __('Permission denied.'));
+        }
+    }
 }
 

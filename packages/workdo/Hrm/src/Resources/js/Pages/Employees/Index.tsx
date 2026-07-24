@@ -55,6 +55,7 @@ export default function Index() {
     const [emailPassword, setEmailPassword] = useState('');
     const [emailQuota, setEmailQuota] = useState('0');
     const [isCreatingEmail, setIsCreatingEmail] = useState(false);
+    const [isDeletingEmail, setIsDeletingEmail] = useState(false);
 
     const generateRandomPassword = () => {
         const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#%^&*";
@@ -116,6 +117,26 @@ export default function Index() {
                 setIsResending(false);
             }
         });
+    };
+
+    const handleDeleteOfficialEmail = () => {
+        if (!selectedEmployee || !selectedEmployee.official_email) return;
+        if (confirm(t(`Are you sure you want to delete official email (${selectedEmployee.official_email})? This will delete the email account from cPanel and ERP system.`))) {
+            setIsDeletingEmail(true);
+            router.post(route('hrm.employees.delete-official-email', selectedEmployee.id), {}, {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setCpanelModalOpen(false);
+                    setIsDeletingEmail(false);
+                },
+                onError: () => {
+                    setIsDeletingEmail(false);
+                },
+                onFinish: () => {
+                    setIsDeletingEmail(false);
+                }
+            });
+        }
     };
 
     // Handle dependent dropdown for department filters
@@ -735,20 +756,33 @@ export default function Index() {
                                     <span className="font-bold text-indigo-600">{selectedEmployee.user?.email || t('N/A')}</span>
                                 </div>
                                 {selectedEmployee.official_email && (
-                                    <div className="mt-2 pt-2 border-t border-emerald-100/50 flex items-center justify-between">
-                                        <p className="text-xs text-emerald-600 font-semibold">
+                                    <div className="mt-2 pt-2 border-t border-emerald-100/50 flex items-center justify-between gap-2">
+                                        <p className="text-xs text-emerald-600 font-semibold truncate">
                                             {t('Official Email')}: {selectedEmployee.official_email}
                                         </p>
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={handleResendCredentials}
-                                            disabled={isResending}
-                                            className="h-7 px-2.5 text-xs text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border-emerald-200"
-                                        >
-                                            {isResending ? t('Resending...') : t('Resend Credentials')}
-                                        </Button>
+                                        <div className="flex items-center gap-1.5 shrink-0">
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={handleResendCredentials}
+                                                disabled={isResending || isDeletingEmail}
+                                                className="h-7 px-2.5 text-xs text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border-emerald-200"
+                                            >
+                                                {isResending ? t('Resending...') : t('Resend Credentials')}
+                                            </Button>
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={handleDeleteOfficialEmail}
+                                                disabled={isDeletingEmail || isResending}
+                                                className="h-7 px-2 text-xs text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 border-rose-200 flex items-center gap-1"
+                                            >
+                                                <Trash2 className="h-3 w-3" />
+                                                {isDeletingEmail ? t('Deleting...') : t('Delete Email')}
+                                            </Button>
+                                        </div>
                                     </div>
                                 )}
                             </div>

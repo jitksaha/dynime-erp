@@ -83,4 +83,86 @@ class CPanelEmailService
             ];
         }
     }
+
+    /**
+     * Delete an email account in cPanel.
+     *
+     * @param string $officialEmail E.g., 'john.doe@domain.com'
+     * @param int|null $userId Company creator ID
+     * @return array ['success' => bool, 'message' => string]
+     */
+    public static function deleteEmail(string $officialEmail, $userId = null)
+    {
+        if (empty($userId)) {
+            $userId = auth()->id();
+        }
+
+        $parts = explode('@', $officialEmail);
+        if (count($parts) !== 2) {
+            return [
+                'success' => false,
+                'message' => __('Invalid email format.')
+            ];
+        }
+
+        $emailPrefix = $parts[0];
+        $domain = $parts[1];
+
+        $host = company_setting('cpanel_host', $userId);
+        $username = company_setting('cpanel_username', $userId);
+        $token = company_setting('cpanel_api_token', $userId);
+
+        if (empty($host) || empty($username) || empty($token)) {
+            return [
+                'success' => false,
+                'message' => __('cPanel Integration is not configured.')
+            ];
+        }
+
+        // Standardize Host URL
+        $host = trim($host);
+        if (!str_starts_with($host, 'http://') && !str_starts_with($host, 'https://')) {
+            $host = 'https://' . $host;
+        }
+        if (!str_contains($host, ':2083') && !str_contains($host, ':2087')) {
+            $host = rtrim($host, '/') . ':2083';
+        }
+
+        $url = rtrim($host, '/') . '/execute/Email/delete_pop';
+
+        try {
+            $client = new Client(['verify' => false]);
+            $response = $client->post($url, [
+                'headers' => [
+                    'Authorization' => 'cpanel ' . $username . ':' . $token,
+                ],
+                'form_params' => [
+                    'email' => $emailPrefix,
+                    'domain' => $domain,
+                ],
+                'timeout' => 15
+            ]);
+
+            $body = json_decode($response->getBody()->getContents(), true);
+
+            if (isset($body['status']) && $body['status'] == 1) {
+                return [
+                    'success' => true,
+                    'message' => __('Email account deleted successfully from cPanel.')
+                ];
+            }
+
+            $errorMsg = isset($body['errors']) && is_array($body['errors']) ? implode(', ', $body['errors']) : __('Unknown error');
+            return [
+                'success' => false,
+                'message' => __('cPanel Error: ') . $errorMsg
+            ];
+        } catch (\Exception $e) {
+            Log::error('cPanel Email Deletion failed: ' . $e->getMessage());
+            return [
+                'success' => false,
+                'message' => __('Connection failed: ') . $e->getMessage()
+            ];
+        }
+    }
 }
