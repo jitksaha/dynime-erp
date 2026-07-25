@@ -17,7 +17,7 @@ class SubdomainRoleRedirect
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (Auth::check()) {
+        if (env('ENABLE_SUBDOMAIN_ROUTING', true) && Auth::check()) {
             $user = Auth::user();
             $targetUrl = PortalRedirectService::getTargetUrlForUser($user);
             $targetHost = parse_url($targetUrl, PHP_URL_HOST);

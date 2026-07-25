@@ -18,10 +18,16 @@ class PortalRedirectService
             return route('login');
         }
 
+        // Check if subdomain routing is enabled (defaults to true if env ENABLE_SUBDOMAIN_ROUTING is true or SESSION_DOMAIN is set)
+        $subdomainRoutingEnabled = env('ENABLE_SUBDOMAIN_ROUTING', true);
+        if (!$subdomainRoutingEnabled) {
+            return route('dashboard');
+        }
+
         $type = strtolower(trim($user->type ?? ''));
         $appUrl = config('app.url', 'http://localhost');
         $parsedUrl = parse_url($appUrl);
-        $host = $parsedUrl['host'] ?? 'localhost';
+        $host = request()->getHost() ?: ($parsedUrl['host'] ?? 'localhost');
 
         // Local development fallback (localhost / 127.0.0.1 / .test)
         if ($host === 'localhost' || $host === '127.0.0.1' || str_ends_with($host, '.test')) {
@@ -36,8 +42,9 @@ class PortalRedirectService
             $rootDomain = $host;
         }
 
-        $scheme = $parsedUrl['scheme'] ?? 'https';
-        $port = isset($parsedUrl['port']) ? ':' . $parsedUrl['port'] : '';
+        $scheme = request()->getScheme() ?: ($parsedUrl['scheme'] ?? 'https');
+        $port = request()->getPort();
+        $portString = ($port && !in_array($port, [80, 443])) ? ':' . $port : '';
 
         // Role-based subdomain mapping
         if ($type === 'client') {
@@ -51,6 +58,6 @@ class PortalRedirectService
             $subdomain = 'hrm';
         }
 
-        return "{$scheme}://{$subdomain}.{$rootDomain}{$port}/dashboard";
+        return "{$scheme}://{$subdomain}.{$rootDomain}{$portString}/dashboard";
     }
 }
