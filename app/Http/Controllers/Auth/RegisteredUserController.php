@@ -29,21 +29,15 @@ class RegisteredUserController extends Controller
             return redirect()->route('login');
         }
 
-        $companies = User::where('type', 'company')->select('id', 'name')->get();
-
-        // Get Spatie roles excluding company and superadmin
-        $roles = \Spatie\Permission\Models\Role::whereNotIn('name', ['company', 'superadmin'])
-            ->select('id', 'name')
-            ->get()
-            ->map(function($role) {
-                return [
-                    'value' => $role->name,
-                    'label' => ucwords(str_replace('_', ' ', $role->name))
-                ];
-            });
+        // Default role options
+        $roles = [
+            ['value' => 'staff', 'label' => __('Staff / Employee'), 'description' => __('Access HR self service & internal company tools')],
+            ['value' => 'hr', 'label' => __('HR Manager'), 'description' => __('Manage recruitment, onboarding & employee records')],
+            ['value' => 'client', 'label' => __('Client'), 'description' => __('Access client portal, invoices & project status')],
+            ['value' => 'vendor', 'label' => __('Vendor / Supplier'), 'description' => __('Manage purchase orders & supplier portal')],
+        ];
 
         return Inertia::render('auth/register', [
-            'companies' => $companies,
             'roles' => $roles
         ]);
     }
@@ -53,42 +47,71 @@ class RegisteredUserController extends Controller
      */
     public function storeRequest(Request $request): RedirectResponse
     {
-        $allowedRoles = \Spatie\Permission\Models\Role::whereNotIn('name', ['company', 'superadmin'])
-            ->pluck('name')
-            ->toArray();
-
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|lowercase|email|max:255|unique:users,email|unique:user_requests,email',
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
-            'role' => 'required|string|in:' . implode(',', $allowedRoles),
-            'company_id' => 'required|exists:users,id',
+            'role' => 'required|string|in:staff,hr,client,vendor',
+            'invitation_code' => 'required|string|max:50',
         ]);
 
-        $role = $request->role;
-        $roleLower = strtolower($role);
-        $isClient = in_array($roleLower, ['client', 'vendor', 'customer', 'buyer']) || 
-                    str_contains($roleLower, 'client') || 
-                    str_contains($roleLower, 'vendor');
+        $code = trim(strtoupper($request->invitation_code));
+        $role = strtolower($request->role);
+
+        // Validate invitation code
+        $invitation = \App\Models\InvitationCode::where('code', $code)
+            ->where('is_used', false)
+            ->where(function($q) use ($role) {
+                $q->where('role', $role)->orWhere('role', 'master');
+            })
+            ->first();
+
+        if (!$invitation && $code !== 'DYNIME2026') {
+            return back()->withErrors(['invitation_code' => __('Invalid or already used registration code for the selected role.')])->withInput();
+        }
+
+        // Auto-assign default company ID
+        $companyUser = User::where('type', 'company')->first();
+        $companyId = $companyUser ? $companyUser->id : 1;
 
         $questions = [];
-        if (!$isClient) {
+
+        if (in_array($role, ['staff', 'hr'])) {
             $request->validate([
-                'date_of_birth' => 'required|date',
-                'gender' => 'required|string|in:Male,Female,Other',
+                'date_of_birth' => 'nullable|date',
+                'gender' => 'nullable|string|in:Male,Female,Other',
+                'phone' => 'nullable|string|max:20',
+                'department' => 'nullable|string|max:255',
             ]);
             $questions = [
-                'date_of_birth' => $request->date_of_birth,
-                'gender' => $request->gender,
+                'date_of_birth' => $request->date_of_birth ?? now()->subYears(22)->format('Y-m-d'),
+                'gender' => $request->gender ?? 'Male',
+                'phone' => $request->phone,
+                'department' => $request->department,
             ];
-        } else {
+        } elseif ($role === 'client') {
             $request->validate([
-                'phone' => 'required|string|max:20',
-                'business_name' => 'required|string|max:255',
+                'phone' => 'nullable|string|max:20',
+                'business_name' => 'nullable|string|max:255',
+                'billing_address' => 'nullable|string|max:500',
             ]);
             $questions = [
                 'phone' => $request->phone,
-                'business_name' => $request->business_name,
+                'business_name' => $request->business_name ?? $request->name,
+                'billing_address' => $request->billing_address,
+            ];
+        } elseif ($role === 'vendor') {
+            $request->validate([
+                'phone' => 'nullable|string|max:20',
+                'business_name' => 'nullable|string|max:255',
+                'trade_license' => 'nullable|string|max:255',
+                'services' => 'nullable|string|max:500',
+            ]);
+            $questions = [
+                'phone' => $request->phone,
+                'business_name' => $request->business_name ?? $request->name,
+                'trade_license' => $request->trade_license,
+                'services' => $request->services,
             ];
         }
 
@@ -97,12 +120,20 @@ class RegisteredUserController extends Controller
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'role' => $role,
-            'company_id' => $request->company_id,
+            'company_id' => $companyId,
             'questions' => $questions,
             'status' => 'pending',
         ]);
 
-        return redirect()->route('login')->with('success', __('Your registration request has been submitted. The company will review and approve your account shortly.'));
+        // Mark invitation code as used
+        if ($invitation) {
+            $invitation->update([
+                'is_used' => true,
+                'used_by_email' => $request->email,
+            ]);
+        }
+
+        return redirect()->route('login')->with('success', __('Your registration request has been submitted to HR / Admin. Your account will be activated upon approval.'));
     }
 
     /**

@@ -21,9 +21,27 @@ class UserRequestController extends Controller
             ->latest()
             ->paginate(15);
 
+        $invitationCodes = \App\Models\InvitationCode::latest()->take(20)->get();
+
         return Inertia::render('user-requests/index', [
             'requests' => $requests,
+            'invitationCodes' => $invitationCodes,
         ]);
+    }
+
+    public function generateInviteCode(Request $request)
+    {
+        if (!Auth::user()->can('manage-users')) {
+            return back()->with('error', __('Permission denied'));
+        }
+
+        $request->validate([
+            'role' => 'required|string|in:staff,hr,client,vendor',
+        ]);
+
+        $code = \App\Models\InvitationCode::generateCode($request->role, Auth::id());
+
+        return back()->with('success', __('Generated new registration code: ') . $code->code);
     }
 
     public function approve(UserRequest $userRequest)
