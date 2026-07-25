@@ -8,24 +8,23 @@ import { Head, Link, useForm } from '@inertiajs/react';
 import { FormEventHandler, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Users, UserCheck, Building2, ShoppingBag, Key, ShieldCheck, ChevronRight, ChevronLeft, CheckCircle2, User, Briefcase, MapPin, CreditCard } from 'lucide-react';
+import { Users, UserCheck, Building2, ShoppingBag, Key, ChevronRight, ChevronLeft, User, Briefcase, MapPin, CreditCard, Clock, ShieldCheck } from 'lucide-react';
 
 export default function Register() {
     const { t } = useTranslation();
-
     const [currentStep, setCurrentStep] = useState(1);
 
     const roleOptions = [
         { 
             value: 'staff', 
             label: t('Staff / Employee'), 
-            desc: t('Access HR portal, attendance & employee tools'),
+            desc: t('Access HR portal & employee self-service'),
             icon: Users 
         },
         { 
             value: 'hr', 
             label: t('HR Manager'), 
-            desc: t('Manage recruitment, onboarding & HR records'),
+            desc: t('Manage recruitment, onboarding & employee records'),
             icon: UserCheck 
         },
         { 
@@ -49,30 +48,52 @@ export default function Register() {
         password_confirmation: '',
         role: 'staff',
         invitation_code: '',
-        // Step 1: Personal
+        
+        // Tab 1: Personal
         date_of_birth: '',
         gender: 'Male',
         phone: '',
         emergency_contact_name: '',
+        emergency_contact_relationship: '',
         emergency_contact_number: '',
-        // Step 2: Employment
+
+        // Tab 2: Employment
         department: '',
+        designation: '',
         employment_type: 'Full Time',
+        employment_status: 'probation',
+        work_mode: 'Remote',
         joining_date: '',
-        // Step 3: Contact & Address
+        work_location_country: 'Bangladesh',
+
+        // Tab 3: Contact & Address
         address_line_1: '',
+        address_line_2: '',
         city: '',
         state: '',
         country: 'Bangladesh',
         postal_code: '',
-        // Step 4: Bank & ID
+
+        // Tab 4: Financial & Payroll
         tax_payer_id: '',
+        payment_method: 'bank_transfer',
         bank_name: '',
+        account_holder_name: '',
         account_number: '',
+        bank_identifier_code: '',
+        bank_branch: '',
+        bank_country: 'Bangladesh',
+
+        // Tab 5: Hours & Rates
+        hours_per_day: '8',
+        days_per_week: '5',
+        basic_salary: '',
+
         // Business (Client / Vendor)
         business_name: '',
         trade_license: '',
         services: '',
+        billing_address: '',
     });
 
     useEffect(() => {
@@ -110,9 +131,9 @@ export default function Register() {
                                 <div
                                     key={item.value}
                                     onClick={() => setData('role', item.value)}
-                                    className={`relative flex flex-col p-2.5 rounded-xl border-2 cursor-pointer transition-all duration-200 ${
+                                    className={`relative flex flex-col p-2 rounded-xl border-2 cursor-pointer transition-all duration-200 ${
                                         isSelected 
-                                            ? 'bg-indigo-50/50 dark:bg-indigo-950/40 border-indigo-600 dark:border-indigo-500 shadow-sm' 
+                                            ? 'bg-indigo-50/60 dark:bg-indigo-950/40 border-indigo-600 dark:border-indigo-500 shadow-sm' 
                                             : 'bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 hover:border-gray-300 dark:hover:border-slate-600'
                                     }`}
                                 >
@@ -135,14 +156,14 @@ export default function Register() {
                 </div>
 
                 {/* 2. Invitation Code Field */}
-                <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 space-y-1.5">
+                <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 space-y-1">
                     <div className="flex items-center justify-between">
                         <Label htmlFor="invitation_code" className="text-xs font-bold text-amber-900 dark:text-amber-300 flex items-center gap-1.5">
                             <Key className="w-3.5 h-3.5 text-amber-600" />
                             {t('Company Invite Code')} *
                         </Label>
                         <span className="text-[9px] font-semibold text-amber-700 dark:text-amber-400 bg-amber-500/20 px-2 py-0.5 rounded-full">
-                            {t('Required')}
+                            {t('One-Time Code')}
                         </span>
                     </div>
                     <Input
@@ -161,48 +182,57 @@ export default function Register() {
                 {/* 3. Multi-Step Onboarding Tabs for Staff / HR */}
                 {isStaffOrHr ? (
                     <div className="space-y-3">
-                        {/* Steps Indicator */}
-                        <div className="flex items-center justify-between border-b pb-2 text-[11px] font-semibold text-gray-600 dark:text-gray-400">
+                        {/* Steps Navigation Bar */}
+                        <div className="flex items-center justify-between border-b pb-1.5 text-[11px] font-semibold text-gray-600 dark:text-gray-400 overflow-x-auto">
                             <button
                                 type="button"
                                 onClick={() => setCurrentStep(1)}
-                                className={`flex items-center gap-1 pb-1 border-b-2 transition-colors ${currentStep === 1 ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400 font-bold' : 'border-transparent'}`}
+                                className={`flex items-center gap-1 pb-1 border-b-2 whitespace-nowrap transition-colors ${currentStep === 1 ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400 font-bold' : 'border-transparent'}`}
                             >
-                                <User className="w-3.5 h-3.5" />
+                                <User className="w-3 h-3" />
                                 {t('1. Personal')}
                             </button>
 
                             <button
                                 type="button"
                                 onClick={() => setCurrentStep(2)}
-                                className={`flex items-center gap-1 pb-1 border-b-2 transition-colors ${currentStep === 2 ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400 font-bold' : 'border-transparent'}`}
+                                className={`flex items-center gap-1 pb-1 border-b-2 whitespace-nowrap transition-colors ${currentStep === 2 ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400 font-bold' : 'border-transparent'}`}
                             >
-                                <Briefcase className="w-3.5 h-3.5" />
+                                <Briefcase className="w-3 h-3" />
                                 {t('2. Employment')}
                             </button>
 
                             <button
                                 type="button"
                                 onClick={() => setCurrentStep(3)}
-                                className={`flex items-center gap-1 pb-1 border-b-2 transition-colors ${currentStep === 3 ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400 font-bold' : 'border-transparent'}`}
+                                className={`flex items-center gap-1 pb-1 border-b-2 whitespace-nowrap transition-colors ${currentStep === 3 ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400 font-bold' : 'border-transparent'}`}
                             >
-                                <MapPin className="w-3.5 h-3.5" />
+                                <MapPin className="w-3 h-3" />
                                 {t('3. Contact')}
                             </button>
 
                             <button
                                 type="button"
                                 onClick={() => setCurrentStep(4)}
-                                className={`flex items-center gap-1 pb-1 border-b-2 transition-colors ${currentStep === 4 ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400 font-bold' : 'border-transparent'}`}
+                                className={`flex items-center gap-1 pb-1 border-b-2 whitespace-nowrap transition-colors ${currentStep === 4 ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400 font-bold' : 'border-transparent'}`}
                             >
-                                <CreditCard className="w-3.5 h-3.5" />
-                                {t('4. Bank & ID')}
+                                <CreditCard className="w-3 h-3" />
+                                {t('4. Payroll')}
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => setCurrentStep(5)}
+                                className={`flex items-center gap-1 pb-1 border-b-2 whitespace-nowrap transition-colors ${currentStep === 5 ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400 font-bold' : 'border-transparent'}`}
+                            >
+                                <Clock className="w-3 h-3" />
+                                {t('5. Password')}
                             </button>
                         </div>
 
-                        {/* STEP 1: Personal */}
+                        {/* STEP 1: Personal Information */}
                         {currentStep === 1 && (
-                            <div className="space-y-3">
+                            <div className="space-y-2.5">
                                 <div className="space-y-1">
                                     <Label htmlFor="name" className="text-xs font-medium text-gray-900 dark:text-white">{t('Full Name')} *</Label>
                                     <Input
@@ -271,13 +301,38 @@ export default function Register() {
                                     </div>
 
                                     <div className="space-y-1">
-                                        <Label htmlFor="emergency_contact_number" className="text-xs font-medium text-gray-900 dark:text-white">{t('Emergency Contact')}</Label>
+                                        <Label htmlFor="emergency_contact_name" className="text-xs font-medium text-gray-900 dark:text-white">{t('Emergency Contact Person')}</Label>
+                                        <Input
+                                            id="emergency_contact_name"
+                                            type="text"
+                                            value={data.emergency_contact_name}
+                                            onChange={(e) => setData('emergency_contact_name', e.target.value)}
+                                            placeholder={t('Name of relative')}
+                                            className="w-full px-3 py-1.5 text-xs border-gray-300 dark:border-gray-600 rounded-md dark:bg-slate-700 dark:text-white"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-2">
+                                    <div className="space-y-1">
+                                        <Label htmlFor="emergency_contact_relationship" className="text-xs font-medium text-gray-900 dark:text-white">{t('Relationship')}</Label>
+                                        <Input
+                                            id="emergency_contact_relationship"
+                                            type="text"
+                                            value={data.emergency_contact_relationship}
+                                            onChange={(e) => setData('emergency_contact_relationship', e.target.value)}
+                                            placeholder={t('Spouse, Parent, Sibling')}
+                                            className="w-full px-3 py-1.5 text-xs border-gray-300 dark:border-gray-600 rounded-md dark:bg-slate-700 dark:text-white"
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <Label htmlFor="emergency_contact_number" className="text-xs font-medium text-gray-900 dark:text-white">{t('Emergency Phone')}</Label>
                                         <Input
                                             id="emergency_contact_number"
                                             type="text"
                                             value={data.emergency_contact_number}
                                             onChange={(e) => setData('emergency_contact_number', e.target.value)}
-                                            placeholder={t('Contact number')}
+                                            placeholder={t('+8801800000000')}
                                             className="w-full px-3 py-1.5 text-xs border-gray-300 dark:border-gray-600 rounded-md dark:bg-slate-700 dark:text-white"
                                         />
                                     </div>
@@ -285,19 +340,33 @@ export default function Register() {
                             </div>
                         )}
 
-                        {/* STEP 2: Employment */}
+                        {/* STEP 2: Employment Details */}
                         {currentStep === 2 && (
-                            <div className="space-y-3">
-                                <div className="space-y-1">
-                                    <Label htmlFor="department" className="text-xs font-medium text-gray-900 dark:text-white">{t('Department / Role Interest')}</Label>
-                                    <Input
-                                        id="department"
-                                        type="text"
-                                        value={data.department}
-                                        onChange={(e) => setData('department', e.target.value)}
-                                        placeholder={t('e.g. Software Engineering, Accounts, HR...')}
-                                        className="w-full px-3 py-1.5 text-xs border-gray-300 dark:border-gray-600 rounded-md dark:bg-slate-700 dark:text-white"
-                                    />
+                            <div className="space-y-2.5">
+                                <div className="grid grid-cols-2 gap-2">
+                                    <div className="space-y-1">
+                                        <Label htmlFor="department" className="text-xs font-medium text-gray-900 dark:text-white">{t('Department Interest')}</Label>
+                                        <Input
+                                            id="department"
+                                            type="text"
+                                            value={data.department}
+                                            onChange={(e) => setData('department', e.target.value)}
+                                            placeholder={t('Software Engineering, Sales')}
+                                            className="w-full px-3 py-1.5 text-xs border-gray-300 dark:border-gray-600 rounded-md dark:bg-slate-700 dark:text-white"
+                                        />
+                                    </div>
+
+                                    <div className="space-y-1">
+                                        <Label htmlFor="designation" className="text-xs font-medium text-gray-900 dark:text-white">{t('Designation / Title')}</Label>
+                                        <Input
+                                            id="designation"
+                                            type="text"
+                                            value={data.designation}
+                                            onChange={(e) => setData('designation', e.target.value)}
+                                            placeholder={t('Senior Developer, Executive')}
+                                            className="w-full px-3 py-1.5 text-xs border-gray-300 dark:border-gray-600 rounded-md dark:bg-slate-700 dark:text-white"
+                                        />
+                                    </div>
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-2">
@@ -311,11 +380,27 @@ export default function Register() {
                                                 <SelectItem value="Full Time">Full Time</SelectItem>
                                                 <SelectItem value="Part Time">Part Time</SelectItem>
                                                 <SelectItem value="Contract">Contract</SelectItem>
-                                                <SelectItem value="Internship">Internship</SelectItem>
+                                                <SelectItem value="Probation">Probation</SelectItem>
                                             </SelectContent>
                                         </Select>
                                     </div>
 
+                                    <div className="space-y-1">
+                                        <Label htmlFor="work_mode" className="text-xs font-medium text-gray-900 dark:text-white">{t('Work Mode')}</Label>
+                                        <Select value={data.work_mode} onValueChange={(val) => setData('work_mode', val)}>
+                                            <SelectTrigger className="w-full h-8 text-xs dark:bg-slate-700 dark:text-white">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="Remote">Remote</SelectItem>
+                                                <SelectItem value="Onsite">Onsite</SelectItem>
+                                                <SelectItem value="Hybrid">Hybrid</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-2">
                                     <div className="space-y-1">
                                         <Label htmlFor="joining_date" className="text-xs font-medium text-gray-900 dark:text-white">{t('Expected Joining Date')}</Label>
                                         <Input
@@ -326,15 +411,27 @@ export default function Register() {
                                             className="w-full px-3 py-1.5 text-xs border-gray-300 dark:border-gray-600 rounded-md dark:bg-slate-700 dark:text-white"
                                         />
                                     </div>
+
+                                    <div className="space-y-1">
+                                        <Label htmlFor="work_location_country" className="text-xs font-medium text-gray-900 dark:text-white">{t('Work Location Country')}</Label>
+                                        <Input
+                                            id="work_location_country"
+                                            type="text"
+                                            value={data.work_location_country}
+                                            onChange={(e) => setData('work_location_country', e.target.value)}
+                                            placeholder={t('Bangladesh')}
+                                            className="w-full px-3 py-1.5 text-xs border-gray-300 dark:border-gray-600 rounded-md dark:bg-slate-700 dark:text-white"
+                                        />
+                                    </div>
                                 </div>
                             </div>
                         )}
 
                         {/* STEP 3: Contact & Address */}
                         {currentStep === 3 && (
-                            <div className="space-y-3">
+                            <div className="space-y-2.5">
                                 <div className="space-y-1">
-                                    <Label htmlFor="address_line_1" className="text-xs font-medium text-gray-900 dark:text-white">{t('Street Address / Location')}</Label>
+                                    <Label htmlFor="address_line_1" className="text-xs font-medium text-gray-900 dark:text-white">{t('Address Line 1')}</Label>
                                     <Input
                                         id="address_line_1"
                                         type="text"
@@ -345,7 +442,19 @@ export default function Register() {
                                     />
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-2">
+                                <div className="space-y-1">
+                                    <Label htmlFor="address_line_2" className="text-xs font-medium text-gray-900 dark:text-white">{t('Address Line 2 (Optional)')}</Label>
+                                    <Input
+                                        id="address_line_2"
+                                        type="text"
+                                        value={data.address_line_2}
+                                        onChange={(e) => setData('address_line_2', e.target.value)}
+                                        placeholder={t('Apartment, Suite, Unit')}
+                                        className="w-full px-3 py-1.5 text-xs border-gray-300 dark:border-gray-600 rounded-md dark:bg-slate-700 dark:text-white"
+                                    />
+                                </div>
+
+                                <div className="grid grid-cols-3 gap-2">
                                     <div className="space-y-1">
                                         <Label htmlFor="city" className="text-xs font-medium text-gray-900 dark:text-white">{t('City')}</Label>
                                         <Input
@@ -353,6 +462,17 @@ export default function Register() {
                                             type="text"
                                             value={data.city}
                                             onChange={(e) => setData('city', e.target.value)}
+                                            placeholder={t('Dhaka')}
+                                            className="w-full px-3 py-1.5 text-xs border-gray-300 dark:border-gray-600 rounded-md dark:bg-slate-700 dark:text-white"
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <Label htmlFor="state" className="text-xs font-medium text-gray-900 dark:text-white">{t('State / Division')}</Label>
+                                        <Input
+                                            id="state"
+                                            type="text"
+                                            value={data.state}
+                                            onChange={(e) => setData('state', e.target.value)}
                                             placeholder={t('Dhaka')}
                                             className="w-full px-3 py-1.5 text-xs border-gray-300 dark:border-gray-600 rounded-md dark:bg-slate-700 dark:text-white"
                                         />
@@ -372,11 +492,11 @@ export default function Register() {
                             </div>
                         )}
 
-                        {/* STEP 4: Bank & ID Credentials */}
+                        {/* STEP 4: Financial & Payroll Details */}
                         {currentStep === 4 && (
-                            <div className="space-y-3">
+                            <div className="space-y-2.5">
                                 <div className="space-y-1">
-                                    <Label htmlFor="tax_payer_id" className="text-xs font-medium text-gray-900 dark:text-white">{t('NID / Passport / Tax ID Number')}</Label>
+                                    <Label htmlFor="tax_payer_id" className="text-xs font-medium text-gray-900 dark:text-white">{t('NID / Passport / Tax Payer ID')}</Label>
                                     <Input
                                         id="tax_payer_id"
                                         type="text"
@@ -389,18 +509,32 @@ export default function Register() {
 
                                 <div className="grid grid-cols-2 gap-2">
                                     <div className="space-y-1">
-                                        <Label htmlFor="bank_name" className="text-xs font-medium text-gray-900 dark:text-white">{t('Bank / Mobile Banking Name')}</Label>
+                                        <Label htmlFor="bank_name" className="text-xs font-medium text-gray-900 dark:text-white">{t('Bank / Wallet Name')}</Label>
                                         <Input
                                             id="bank_name"
                                             type="text"
                                             value={data.bank_name}
                                             onChange={(e) => setData('bank_name', e.target.value)}
-                                            placeholder={t('City Bank / bKash')}
+                                            placeholder={t('City Bank / bKash / Nagad')}
                                             className="w-full px-3 py-1.5 text-xs border-gray-300 dark:border-gray-600 rounded-md dark:bg-slate-700 dark:text-white"
                                         />
                                     </div>
                                     <div className="space-y-1">
-                                        <Label htmlFor="account_number" className="text-xs font-medium text-gray-900 dark:text-white">{t('Account Number')}</Label>
+                                        <Label htmlFor="account_holder_name" className="text-xs font-medium text-gray-900 dark:text-white">{t('Account Holder Name')}</Label>
+                                        <Input
+                                            id="account_holder_name"
+                                            type="text"
+                                            value={data.account_holder_name}
+                                            onChange={(e) => setData('account_holder_name', e.target.value)}
+                                            placeholder={t('Name on account')}
+                                            className="w-full px-3 py-1.5 text-xs border-gray-300 dark:border-gray-600 rounded-md dark:bg-slate-700 dark:text-white"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-2">
+                                    <div className="space-y-1">
+                                        <Label htmlFor="account_number" className="text-xs font-medium text-gray-900 dark:text-white">{t('Account Number / Mobile Wallet No')}</Label>
                                         <Input
                                             id="account_number"
                                             type="text"
@@ -410,10 +544,50 @@ export default function Register() {
                                             className="w-full px-3 py-1.5 text-xs border-gray-300 dark:border-gray-600 rounded-md dark:bg-slate-700 dark:text-white"
                                         />
                                     </div>
+                                    <div className="space-y-1">
+                                        <Label htmlFor="bank_identifier_code" className="text-xs font-medium text-gray-900 dark:text-white">{t('SWIFT / Routing Code')}</Label>
+                                        <Input
+                                            id="bank_identifier_code"
+                                            type="text"
+                                            value={data.bank_identifier_code}
+                                            onChange={(e) => setData('bank_identifier_code', e.target.value)}
+                                            placeholder={t('CBLDBDHX')}
+                                            className="w-full px-3 py-1.5 text-xs border-gray-300 dark:border-gray-600 rounded-md dark:bg-slate-700 dark:text-white"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* STEP 5: Password Credentials & Hours */}
+                        {currentStep === 5 && (
+                            <div className="space-y-2.5">
+                                <div className="grid grid-cols-2 gap-2">
+                                    <div className="space-y-1">
+                                        <Label htmlFor="hours_per_day" className="text-xs font-medium text-gray-900 dark:text-white">{t('Hours Per Day')}</Label>
+                                        <Input
+                                            id="hours_per_day"
+                                            type="number"
+                                            value={data.hours_per_day}
+                                            onChange={(e) => setData('hours_per_day', e.target.value)}
+                                            placeholder="8"
+                                            className="w-full px-3 py-1.5 text-xs border-gray-300 dark:border-gray-600 rounded-md dark:bg-slate-700 dark:text-white"
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <Label htmlFor="days_per_week" className="text-xs font-medium text-gray-900 dark:text-white">{t('Days Per Week')}</Label>
+                                        <Input
+                                            id="days_per_week"
+                                            type="number"
+                                            value={data.days_per_week}
+                                            onChange={(e) => setData('days_per_week', e.target.value)}
+                                            placeholder="5"
+                                            className="w-full px-3 py-1.5 text-xs border-gray-300 dark:border-gray-600 rounded-md dark:bg-slate-700 dark:text-white"
+                                        />
+                                    </div>
                                 </div>
 
-                                {/* Password Credentials */}
-                                <div className="grid grid-cols-2 gap-2 pt-2 border-t">
+                                <div className="grid grid-cols-2 gap-2 pt-1 border-t">
                                     <div className="space-y-1">
                                         <Label htmlFor="password" className="text-xs font-medium text-gray-900 dark:text-white">{t('Password')} *</Label>
                                         <Input
@@ -459,7 +633,7 @@ export default function Register() {
                                 </Button>
                             ) : <div></div>}
 
-                            {currentStep < 4 ? (
+                            {currentStep < 5 ? (
                                 <Button
                                     type="button"
                                     size="sm"
@@ -475,14 +649,14 @@ export default function Register() {
                                     disabled={processing}
                                     className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-5 py-2 rounded-xl shadow-sm"
                                 >
-                                    {processing ? t('Submitting...') : t('Submit Complete Profile')}
+                                    {processing ? t('Submitting...') : t('Submit Complete Onboarding')}
                                 </Button>
                             )}
                         </div>
                     </div>
                 ) : (
                     /* Business Onboarding (Client / Vendor) */
-                    <div className="space-y-3">
+                    <div className="space-y-2.5">
                         <div className="space-y-1">
                             <Label htmlFor="name" className="text-xs font-medium text-gray-900 dark:text-white">{t('Contact Person Name')} *</Label>
                             <Input
@@ -559,7 +733,7 @@ export default function Register() {
                     </div>
                 )}
 
-                <div className="text-center text-xs text-gray-600 dark:text-gray-400 pt-2">
+                <div className="text-center text-xs text-gray-600 dark:text-gray-400 pt-1">
                     {t('Already registered?')} {' '}
                     <Link
                         href={route('login')}

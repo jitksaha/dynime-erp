@@ -98,29 +98,34 @@ class UserRequestController extends Controller
                         $q = $userRequest->questions ?? [];
                         $employee = new \Workdo\Hrm\Models\Employee();
                         $employee->employee_id = \Workdo\Hrm\Models\Employee::generateEmployeeId();
-                        $employee->date_of_birth = $q['date_of_birth'] ?? now()->subYears(20)->format('Y-m-d');
-                        $employee->gender = $q['gender'] ?? 'Male';
-                        $employee->date_of_joining = $q['joining_date'] ?? now()->format('Y-m-d');
-                        $employee->employment_type = $q['employment_type'] ?? 'Full Time';
-                        $employee->employment_status = 'permanent';
-                        $employee->work_mode = 'Remote';
-                        $employee->work_location_country = $q['country'] ?? 'Bangladesh';
-                        $employee->address_line_1 = $q['address_line_1'] ?? '-';
-                        $employee->city = $q['city'] ?? '-';
-                        $employee->postal_code = $q['postal_code'] ?? '-';
-                        $employee->country = $q['country'] ?? 'Bangladesh';
-                        $employee->emergency_contact_number = $q['emergency_contact_number'] ?? null;
-                        $employee->tax_payer_id = $q['tax_payer_id'] ?? null;
-                        $employee->bank_name = $q['bank_name'] ?? null;
-                        $employee->account_number = $q['account_number'] ?? null;
-                        $employee->basic_salary = 0;
-                        $employee->salary_type = 'monthly';
-                        $employee->hours_per_day = 8;
-                        $employee->days_per_week = 5;
-                        $employee->rate_per_hour = 0;
                         $employee->user_id = $user->id;
                         $employee->creator_id = Auth::id();
                         $employee->created_by = creatorId();
+
+                        // Default fallback values for standard required fields
+                        $employee->date_of_birth = $q['date_of_birth'] ?? now()->subYears(22)->format('Y-m-d');
+                        $employee->gender = $q['gender'] ?? 'Male';
+                        $employee->date_of_joining = $q['joining_date'] ?? $q['date_of_joining'] ?? now()->format('Y-m-d');
+                        $employee->employment_type = $q['employment_type'] ?? 'Full Time';
+                        $employee->employment_status = $q['employment_status'] ?? 'probation';
+                        $employee->work_mode = $q['work_mode'] ?? 'Remote';
+                        $employee->work_location_country = $q['country'] ?? $q['work_location_country'] ?? 'Bangladesh';
+                        $employee->basic_salary = $q['basic_salary'] ?? 0;
+                        $employee->salary_type = $q['salary_type'] ?? 'monthly';
+                        $employee->hours_per_day = $q['hours_per_day'] ?? 8;
+                        $employee->days_per_week = $q['days_per_week'] ?? 5;
+                        $employee->rate_per_hour = $q['rate_per_hour'] ?? 0;
+
+                        // DYNAMICALLY SYNC ANY CURRENT & FUTURE ATTRIBUTES MATCHING EMPLOYEE FILLABLE
+                        $fillable = $employee->getFillable();
+                        if (is_array($q)) {
+                            foreach ($q as $key => $val) {
+                                if ($val !== null && $val !== '' && in_array($key, $fillable)) {
+                                    $employee->$key = $val;
+                                }
+                            }
+                        }
+
                         $employee->save();
                     }
                 } else {
