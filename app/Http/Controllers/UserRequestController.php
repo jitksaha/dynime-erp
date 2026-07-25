@@ -95,15 +95,24 @@ class UserRequestController extends Controller
                 // If not client-like (e.g. staff, hr, manager), create Employee record
                 if (!$isClient) {
                     if (class_exists(\Workdo\Hrm\Models\Employee::class)) {
+                        $q = $userRequest->questions ?? [];
                         $employee = new \Workdo\Hrm\Models\Employee();
                         $employee->employee_id = \Workdo\Hrm\Models\Employee::generateEmployeeId();
-                        $employee->date_of_birth = $userRequest->questions['date_of_birth'] ?? now()->subYears(20)->format('Y-m-d');
-                        $employee->gender = $userRequest->questions['gender'] ?? 'Male';
-                        $employee->date_of_joining = now()->format('Y-m-d');
-                        $employee->employment_type = 'Full Time';
+                        $employee->date_of_birth = $q['date_of_birth'] ?? now()->subYears(20)->format('Y-m-d');
+                        $employee->gender = $q['gender'] ?? 'Male';
+                        $employee->date_of_joining = $q['joining_date'] ?? now()->format('Y-m-d');
+                        $employee->employment_type = $q['employment_type'] ?? 'Full Time';
                         $employee->employment_status = 'permanent';
                         $employee->work_mode = 'Remote';
-                        $employee->work_location_country = 'Bangladesh';
+                        $employee->work_location_country = $q['country'] ?? 'Bangladesh';
+                        $employee->address_line_1 = $q['address_line_1'] ?? '-';
+                        $employee->city = $q['city'] ?? '-';
+                        $employee->postal_code = $q['postal_code'] ?? '-';
+                        $employee->country = $q['country'] ?? 'Bangladesh';
+                        $employee->emergency_contact_number = $q['emergency_contact_number'] ?? null;
+                        $employee->tax_payer_id = $q['tax_payer_id'] ?? null;
+                        $employee->bank_name = $q['bank_name'] ?? null;
+                        $employee->account_number = $q['account_number'] ?? null;
                         $employee->basic_salary = 0;
                         $employee->salary_type = 'monthly';
                         $employee->hours_per_day = 8;

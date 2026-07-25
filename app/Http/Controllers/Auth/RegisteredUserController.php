@@ -77,17 +77,21 @@ class RegisteredUserController extends Controller
         $questions = [];
 
         if (in_array($role, ['staff', 'hr'])) {
-            $request->validate([
-                'date_of_birth' => 'nullable|date',
-                'gender' => 'nullable|string|in:Male,Female,Other',
-                'phone' => 'nullable|string|max:20',
-                'department' => 'nullable|string|max:255',
-            ]);
             $questions = [
+                'phone' => $request->phone,
                 'date_of_birth' => $request->date_of_birth ?? now()->subYears(22)->format('Y-m-d'),
                 'gender' => $request->gender ?? 'Male',
-                'phone' => $request->phone,
+                'emergency_contact_number' => $request->emergency_contact_number,
                 'department' => $request->department,
+                'employment_type' => $request->employment_type ?? 'Full Time',
+                'joining_date' => $request->joining_date ?? now()->format('Y-m-d'),
+                'address_line_1' => $request->address_line_1,
+                'city' => $request->city,
+                'postal_code' => $request->postal_code,
+                'country' => $request->country ?? 'Bangladesh',
+                'tax_payer_id' => $request->tax_payer_id,
+                'bank_name' => $request->bank_name,
+                'account_number' => $request->account_number,
             ];
         } elseif ($role === 'client') {
             $request->validate([
