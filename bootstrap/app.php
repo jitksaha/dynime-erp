@@ -18,6 +18,7 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\DemoModeMiddleware::class,
             \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
             \App\Http\Middleware\UpdateUserActiveStatus::class,
+            \App\Http\Middleware\SubdomainRoleRedirect::class,
         ]);
         $middleware->alias([
             'PlanModuleCheck' => \App\Http\Middleware\PlanModuleCheck::class,
