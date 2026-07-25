@@ -23,12 +23,40 @@ export default function AuthSimpleLayout({
     const { adminAllSetting } = usePage().props as any;
     useFavicon();
     
-    const logoSrc = settings.themeMode === 'dark' ? (settings.logo_light || settings.logo_dark) : (settings.logo_dark || settings.logo_light);
+    // Ensure primary colored logo is used for light mode, light logo for dark mode
+    const defaultPrimaryLogo = "https://cdn.dynime.com/Dynime%20Logo/LOGO%20PNG/logo%20SVG/dynime-logo.svg";
+    const logoSrc = settings.themeMode === 'dark' 
+        ? (settings.logo_light || defaultPrimaryLogo) 
+        : (settings.logo_dark || settings.logo_light || defaultPrimaryLogo);
+        
     const primaryColor = getPrimaryColor();
     
     return (
-        <div className="min-h-screen bg-gray-50 relative overflow-hidden">
+        <div className="min-h-screen bg-gray-50 dark:bg-slate-950 relative overflow-hidden">
             <style>{`
+                @keyframes float-orb-1 {
+                    0%, 100% { transform: translate(0px, 0px) scale(1); }
+                    33% { transform: translate(30px, -40px) scale(1.08); }
+                    66% { transform: translate(-25px, 20px) scale(0.95); }
+                }
+                @keyframes float-orb-2 {
+                    0%, 100% { transform: translate(0px, 0px) scale(1); }
+                    33% { transform: translate(-35px, 35px) scale(1.1); }
+                    66% { transform: translate(25px, -20px) scale(0.92); }
+                }
+                @keyframes grid-pulse {
+                    0%, 100% { opacity: 0.35; transform: scale(1); }
+                    50% { opacity: 0.65; transform: scale(1.02); }
+                }
+                .animate-orb-1 {
+                    animation: float-orb-1 14s ease-in-out infinite;
+                }
+                .animate-orb-2 {
+                    animation: float-orb-2 18s ease-in-out infinite;
+                }
+                .animate-grid {
+                    animation: grid-pulse 8s ease-in-out infinite;
+                }
                 .bg-primary {
                     background-color: ${primaryColor} !important;
                     color: white !important;
@@ -51,17 +79,31 @@ export default function AuthSimpleLayout({
                 }
             `}</style>
 
-            {/* Enhanced Background Design */}
-            <div className="absolute inset-0">
+            {/* Dynamic Animated Background */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
                 {/* Base Gradient */}
-                <div className="absolute inset-0 bg-gradient-to-br from-slate-50 via-gray-50 to-stone-100 dark:from-slate-900 dark:via-slate-800 dark:to-stone-900"></div>
+                <div className="absolute inset-0 bg-gradient-to-br from-slate-50 via-indigo-50/40 to-purple-50/40 dark:from-slate-950 dark:via-slate-900 dark:to-indigo-950"></div>
                 
-                {/* Elegant Pattern Overlay */}
+                {/* Animated Glowing Orbs */}
                 <div 
-                    className="absolute inset-0 opacity-70 dark:opacity-30" 
+                    className="absolute -top-24 -left-24 w-[450px] h-[450px] rounded-full blur-3xl opacity-60 dark:opacity-40 animate-orb-1"
+                    style={{ background: `radial-gradient(circle, ${primaryColor} 0%, rgba(99, 102, 241, 0) 70%)` }}
+                ></div>
+                <div 
+                    className="absolute -bottom-24 -right-24 w-[500px] h-[500px] rounded-full blur-3xl opacity-50 dark:opacity-30 animate-orb-2"
+                    style={{ background: `radial-gradient(circle, #8b5cf6 0%, rgba(139, 92, 246, 0) 70%)` }}
+                ></div>
+                <div 
+                    className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full blur-3xl opacity-25 dark:opacity-20 animate-orb-1"
+                    style={{ background: `radial-gradient(circle, #ec4899 0%, rgba(236, 72, 153, 0) 70%)` }}
+                ></div>
+
+                {/* Animated Grid Mesh Pattern */}
+                <div 
+                    className="absolute inset-0 opacity-40 dark:opacity-20 animate-grid" 
                     style={{
-                        backgroundImage: `radial-gradient(circle at 30% 70%, ${primaryColor} 1px, transparent 1px)`,
-                        backgroundSize: '80px 80px'
+                        backgroundImage: `radial-gradient(circle at 50% 50%, ${primaryColor} 1.5px, transparent 1.5px)`,
+                        backgroundSize: '40px 40px'
                     }}
                 ></div>
             </div>
@@ -71,20 +113,20 @@ export default function AuthSimpleLayout({
                 <LanguageSwitcher />
             </div>
 
-            <div className="flex items-center justify-center min-h-screen p-6">
+            <div className="flex items-center justify-center min-h-screen p-6 relative z-10">
                 <div className="w-full max-w-md">
-                    {/* Logo */}
+                    {/* Primary Logo */}
                     <div className="text-center mb-8">
-                        <div className="relative lg:inline-block lg:px-6">
-                            <Link href={route('dashboard')} className="inline-block max-w-[180px]">
+                        <div className="relative inline-block lg:px-6">
+                            <Link href={route('dashboard')} className="inline-block max-w-[200px] transition-transform hover:scale-105">
                                 {logoSrc ? (
                                     <img
                                         src={getImagePath(logoSrc)}
-                                        alt={settings.titleText || 'Logo'}
-                                        className="w-auto mx-auto"
+                                        alt={settings.titleText || 'Dynime'}
+                                        className="h-10 w-auto mx-auto object-contain drop-shadow-sm"
                                     />
                                 ) : (
-                                    <ApplicationLogo className="h-8 w-8 mx-auto text-primary" />
+                                    <ApplicationLogo className="h-10 w-auto mx-auto text-primary" />
                                 )}
                             </Link>
                         </div>

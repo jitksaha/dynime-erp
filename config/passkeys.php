@@ -13,22 +13,26 @@ return [
     |
     */
 
-    'relying_party_id' => parse_url(config('app.url'), PHP_URL_HOST),
+    'relying_party_id' => (function() {
+        $host = isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : (parse_url(config('app.url'), PHP_URL_HOST) ?? 'localhost');
+        $cleanHost = explode(':', $host)[0];
+        if (str_contains($cleanHost, 'dynime.com')) {
+            return 'dynime.com';
+        }
+        return $cleanHost;
+    })(),
 
-    /*
-    |--------------------------------------------------------------------------
-    | Allowed Origins
-    |--------------------------------------------------------------------------
-    |
-    | The origins permitted to complete WebAuthn ceremonies. Passkeys bound
-    | to the relying party ID above will only verify when the browser
-    | reports one of these origins. Defaults to your application URL.
-    |
-    */
-
-    'allowed_origins' => [
-        config('app.url'),
-    ],
+    'allowed_origins' => (function() {
+        $origins = [config('app.url')];
+        if (isset($_SERVER['HTTP_HOST'])) {
+            $scheme = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? 'https' : 'http';
+            $origins[] = "{$scheme}://{$_SERVER['HTTP_HOST']}";
+            $cleanHost = explode(':', $_SERVER['HTTP_HOST'])[0];
+            $origins[] = "https://{$cleanHost}";
+            $origins[] = "http://{$cleanHost}";
+        }
+        return array_values(array_unique($origins));
+    })(),
 
     /*
     |--------------------------------------------------------------------------
