@@ -9,12 +9,8 @@ import { FormEventHandler, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Users, UserCheck, Building2, ShoppingBag, Key, CheckCircle2, ShieldCheck } from 'lucide-react';
-import { useBrand } from '@/contexts/brand-context';
-
 export default function Register() {
     const { t } = useTranslation();
-    const { getPrimaryColor } = useBrand();
-    const primaryColor = getPrimaryColor();
 
     const roleOptions = [
         { 
