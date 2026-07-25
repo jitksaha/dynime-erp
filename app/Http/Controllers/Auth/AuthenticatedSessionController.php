@@ -78,13 +78,7 @@ class AuthenticatedSessionController extends Controller
             }
         }
 
-        $targetUrl = \App\Services\PortalRedirectService::getTargetUrlForUser(Auth::user());
-        $host = parse_url($targetUrl, PHP_URL_HOST);
-        if ($host === 'localhost' || $host === '127.0.0.1') {
-            return redirect()->route('dashboard');
-        }
-
-        return Inertia::location($targetUrl);
+        return redirect()->route('dashboard');
 
         // old code
         // return redirect()->intended(route('dashboard', absolute: false));
