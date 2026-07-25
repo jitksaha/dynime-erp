@@ -17,6 +17,7 @@ use Workdo\Recruitment\Http\Controllers\InterviewTypeController;
 use Workdo\Recruitment\Http\Controllers\CandidateSourcesController;
 use Workdo\Recruitment\Http\Controllers\JobTypeController;
 
+use Workdo\Recruitment\Http\Controllers\FlowmingoHiringController;
 use Workdo\Recruitment\Http\Controllers\DashboardController as RecruitmentDashboardController;
 use Workdo\Recruitment\Http\Controllers\RecruitmentSettingController;
 use Workdo\Recruitment\Http\Controllers\FrontendController;
@@ -190,6 +191,15 @@ Route::middleware(['web', 'auth', 'verified', 'PlanModuleCheck:Recruitment'])->g
 
     // Dependent dropdown routes
     Route::get('recruitment/candidates/{candidate}/checklists', [CandidateOnboardingController::class, 'getChecklistsByCandidate'])->name('recruitment.candidates.checklists');
+
+    // Hiring Flowmingo ATS Routes
+    Route::prefix('recruitment/flowmingo')->name('recruitment.flowmingo.')->group(function () {
+        Route::get('/', [FlowmingoHiringController::class, 'index'])->name('index');
+        Route::post('/sync', [FlowmingoHiringController::class, 'sync'])->name('sync');
+        Route::post('/store', [FlowmingoHiringController::class, 'store'])->name('store');
+        Route::put('/{id}', [FlowmingoHiringController::class, 'update'])->name('update');
+        Route::delete('/{id}', [FlowmingoHiringController::class, 'destroy'])->name('destroy');
+    });
 });
 
 // Public frontend routes with slug support (no authentication required)
@@ -209,4 +219,11 @@ Route::middleware(['web', RecruitmentSharedDataMiddleware::class])->group(functi
 
     // Public offer letter download route
     Route::get('/recruitment/offer-letter/download/{encryptedId}', [OfferController::class, 'downloadOfferLetter'])->name('recruitment.offers.public-download');
+});
+
+// Public API routes for Flowmingo ATS synced jobs (for website integration)
+Route::middleware(['web'])->group(function () {
+    Route::get('/api/jobs', [FlowmingoHiringController::class, 'publicApiList']);
+    Route::get('/api/jobs/{slug}', [FlowmingoHiringController::class, 'publicApiShow']);
+    Route::post('/admin/jobs/sync', [FlowmingoHiringController::class, 'sync']);
 });

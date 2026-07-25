@@ -34,6 +34,11 @@ export const recruitmentCompanyMenu = (t: (key: string) => string) => [
                 permission: 'manage-job-postings',
             },
             {
+                title: t('Hiring Flowmingo'),
+                href: route('recruitment.flowmingo.index'),
+                permission: 'manage-job-postings',
+            },
+            {
                 title: t('Candidates'),
                 href: route('recruitment.candidates.index'),
                 permission: 'manage-candidates',
