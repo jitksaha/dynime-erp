@@ -43,12 +43,22 @@ class RegisteredUserController extends Controller
         $departments = [];
         $designations = [];
 
-        if (class_exists(\Workdo\Hrm\Models\Department::class)) {
-            if (class_exists(\Workdo\Hrm\Models\Branch::class)) {
-                $branches = \Workdo\Hrm\Models\Branch::where('created_by', $creatorId)->select('id', 'name')->get();
+        try {
+            if (class_exists(\Workdo\Hrm\Models\Department::class)) {
+                if (class_exists(\Workdo\Hrm\Models\Branch::class)) {
+                    $branches = \Workdo\Hrm\Models\Branch::where('created_by', $creatorId)
+                        ->select('id', 'branch_name as name')
+                        ->get();
+                }
+                $departments = \Workdo\Hrm\Models\Department::where('created_by', $creatorId)
+                    ->select('id', 'department_name as name', 'branch_id')
+                    ->get();
+                $designations = \Workdo\Hrm\Models\Designation::where('created_by', $creatorId)
+                    ->select('id', 'designation_name as name', 'department_id')
+                    ->get();
             }
-            $departments = \Workdo\Hrm\Models\Department::where('created_by', $creatorId)->select('id', 'name', 'branch_id')->get();
-            $designations = \Workdo\Hrm\Models\Designation::where('created_by', $creatorId)->select('id', 'name', 'department_id')->get();
+        } catch (\Throwable $e) {
+            // Failsafe fallback
         }
 
         return Inertia::render('auth/register', [
