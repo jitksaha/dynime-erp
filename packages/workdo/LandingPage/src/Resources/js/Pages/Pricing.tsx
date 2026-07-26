@@ -262,7 +262,7 @@ export default function Pricing(props: PricingProps) {
                                                             <button
                                                                 className="w-full py-2 px-4 rounded-md text-white font-medium transition-colors"
                                                                 style={{ backgroundColor: colors.primary }}
-                                                                onClick={() => router.visit(settings?.is_authenticated ? route('dashboard') : route('register'))}
+                                                                onClick={() => router.visit(settings?.is_authenticated ? route('dashboard') : route('login'))}
                                                             >
                                                                 {settings?.is_authenticated ? t('Go to Dashboard') : t('Get Started')}
                                                             </button>
@@ -270,7 +270,7 @@ export default function Pricing(props: PricingProps) {
                                                                 <button
                                                                     className="w-full py-2 px-4 rounded-md border font-medium transition-colors"
                                                                     style={{ borderColor: colors.primary, color: colors.primary }}
-                                                                    onClick={() => router.visit(route('register'))}
+                                                                    onClick={() => router.visit(route('login'))}
                                                                 >
                                                                     {t("Start Trial")} ({plan.trial_days}d)
                                                                 </button>
@@ -382,7 +382,7 @@ export default function Pricing(props: PricingProps) {
                                                 <button
                                                     className="w-full py-4 px-4 rounded-xl text-white font-bold transition-all shadow-lg active:scale-[0.98]"
                                                     style={{ backgroundColor: colors.primary, boxShadow: `0 8px 20px ${colors.primary}30` }}
-                                                    onClick={() => router.visit(settings?.is_authenticated ? route('dashboard') : route('register'))}
+                                                    onClick={() => router.visit(settings?.is_authenticated ? route('dashboard') : route('login'))}
                                                 >
                                                     {settings?.is_authenticated ? t('Go to Dashboard') : t('Get Started')}
                                                 </button>
@@ -390,7 +390,7 @@ export default function Pricing(props: PricingProps) {
                                                     <button
                                                         className="w-full py-4 px-4 rounded-xl border-2 font-bold transition-all bg-white active:scale-[0.98]"
                                                         style={{ borderColor: colors.primary, color: colors.primary }}
-                                                        onClick={() => router.visit(route('register'))}
+                                                        onClick={() => router.visit(route('login'))}
                                                     >
                                                         {t("Start Trial")} ({plan.trial_days}d)
                                                     </button>

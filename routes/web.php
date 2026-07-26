@@ -12,7 +12,6 @@ use App\Http\Controllers\SettingController;
 use App\Http\Controllers\TranslationController;
 use App\Http\Controllers\ModuleController;
 use App\Http\Controllers\BankTransferPaymentController;
-use App\Http\Controllers\UserRequestController;
 
 
 use App\Http\Controllers\CouponController;
@@ -57,12 +56,6 @@ Route::middleware(['auth', 'verified', 'PlanModuleCheck'])->group(function () {
     Route::post('users/leave-impersonation', [UserController::class, 'leaveImpersonation'])->name('users.leave-impersonation');
     Route::get('users/login/history', [UserController::class, 'loginHistory'])->name('users.login-history');
     
-    // User Requests & Invitation Codes
-    Route::get('user-requests', [UserRequestController::class, 'index'])->name('user-requests.index');
-    Route::post('user-requests/{userRequest}/approve', [UserRequestController::class, 'approve'])->name('user-requests.approve');
-    Route::post('user-requests/{userRequest}/reject', [UserRequestController::class, 'reject'])->name('user-requests.reject');
-    Route::post('user-requests/generate-invite', [UserRequestController::class, 'generateInviteCode'])->name('user-requests.generate-invite');
-
     Route::resource('warehouses', WarehouseController::class);
     Route::resource('transfers', TransferController::class)->except(['edit', 'update']);
 

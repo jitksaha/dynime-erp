@@ -11,23 +11,17 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules;
 use Inertia\Inertia;
-use Inertia\Response;
 use App\Models\EmailTemplate;
-use App\Models\UserRequest;
 
 class RegisteredUserController extends Controller
 {
     /**
      * Display the registration view.
      */
-    public function create(): Response|RedirectResponse
+    public function create(): RedirectResponse
     {
-        // Check if registration is enabled
-        $enableRegistration = admin_setting('enableRegistration');
-
-        if ($enableRegistration !== 'on') {
-            return redirect()->route('login');
-        }
+        return redirect()->route('login');
+    }
 
         $roles = [
             ['value' => 'staff', 'label' => __('Staff / Employee'), 'description' => __('Access HR self service & internal company tools')],

@@ -253,17 +253,6 @@ export default function Login({
                     )}
                 </div>
 
-                {enableRegistration && (
-                    <div className="text-center mt-5">
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                            {t("Don't have an account?")}{' '}
-                            <Link href={route('register')} tabIndex={6} className="text-primary font-medium hover:underline">
-                                {t('Create one')}
-                            </Link>
-                        </p>
-                    </div>
-                )}
-
                 {isDemo && (
                     <div className="mt-5">
                         <div className="flex items-center">

@@ -19,16 +19,6 @@ export const hrmCompanyMenu = (t: (key: string) => string) => [
         order: 450,
         children: [
             {
-                title: t('Registration Invite Codes'),
-                href: route('user-requests.index'),
-                permission: 'manage-employees',
-            },
-            {
-                title: t('Pending Onboarding Requests'),
-                href: route('user-requests.index'),
-                permission: 'manage-employees',
-            },
-            {
                 title: t('Employees'),
                 href: route('hrm.employees.index'),
                 permission: 'manage-employees',
