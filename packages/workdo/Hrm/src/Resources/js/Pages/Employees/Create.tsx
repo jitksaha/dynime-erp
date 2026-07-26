@@ -466,20 +466,15 @@ export default function Create() {
         >
             <Head title={t('Create Employee')} />
 
-            <Card className="shadow-sm">
-                <CardContent>
-                    <form onSubmit={submit} className="pt-5">
-                        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                            <TabsList className="grid w-full grid-cols-6">
-                                <TabsTrigger value="personal">{t('Personal')}</TabsTrigger>
-                                <TabsTrigger value="employment">{t('Employment')}</TabsTrigger>
-                                <TabsTrigger value="contact">{t('Contact')}</TabsTrigger>
-                                <TabsTrigger value="payroll">{t('Payroll')}</TabsTrigger>
-                                <TabsTrigger value="hours">{t('Hours & Rates')}</TabsTrigger>
-                                <TabsTrigger value="documents">{t('Documents')}</TabsTrigger>
-                            </TabsList>
-
-                            <TabsContent value="personal" className="space-y-6 mt-6">
+            <form onSubmit={submit} className="space-y-8">
+                        {/* SECTION 1: Personal Information */}
+                        <Card className="shadow-xs border border-slate-200 dark:border-slate-800">
+                            <div className="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-6 py-3.5 rounded-t-xl">
+                                <h3 className="text-sm font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">
+                                    1. {t('Personal Information')}
+                                </h3>
+                            </div>
+                            <CardContent className="pt-6 space-y-6">
                                 <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                                     <div className="md:col-span-2 flex flex-col items-center justify-center p-4 border border-dashed border-slate-200 rounded-xl bg-slate-50/50 gap-3">
                                         <div className="relative cursor-pointer group" onClick={() => setIsMediaModalOpen(true)}>
@@ -522,7 +517,7 @@ export default function Create() {
                                         />
                                     </div>
 
-                                                                    <div>
+                                    <div>
                                         <div className="flex items-center justify-between mb-2">
                                             <Label htmlFor="user_id" required className="mb-0">{t('User')}</Label>
                                             <Button
@@ -586,9 +581,7 @@ export default function Create() {
                                         />
                                         <InputError message={errors.date_of_birth} />
                                     </div>
-                                </div>
 
-                                <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                                     <div>
                                         <Label>{t('Gender')}</Label>
                                         <RadioGroup value={data.gender || 'Male'} onValueChange={(value) => setData('gender', value)} className="flex gap-6 mt-2">
@@ -614,22 +607,18 @@ export default function Create() {
                                         </div>
                                     ))}
                                 </div>
-                                <div className="flex justify-end">
-                                    <Button
-                                        type="button"
-                                        onClick={() => setActiveTab('employment')}
-                                        disabled={!validatePersonalTab()}
-                                    >
-                                        {t('Next')}
-                                    </Button>
-                                </div>
-                            </TabsContent>
+                            </CardContent>
+                        </Card>
 
-                            <TabsContent value="employment" className="space-y-6 mt-6">
+                        {/* SECTION 2: Employment Details */}
+                        <Card className="shadow-xs border border-slate-200 dark:border-slate-800">
+                            <div className="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-6 py-3.5 rounded-t-xl">
+                                <h3 className="text-sm font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">
+                                    2. {t('Employment Details')}
+                                </h3>
+                            </div>
+                            <CardContent className="pt-6 space-y-6">
                                 <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-
-
-
                                     <div>
                                         <Label htmlFor="shift_id" required>{t('Shift')}</Label>
                                         <Select value={data.shift_id?.toString() || ''} onValueChange={(value) => setData('shift_id', value)} required>
@@ -647,8 +636,6 @@ export default function Create() {
                                         <InputError message={errors.shift_id} />
                                     </div>
 
-
-
                                     <div>
                                         <Label>{t('Date Of Joining')}</Label>
                                         <DatePicker
@@ -661,104 +648,103 @@ export default function Create() {
                                     </div>
 
                                     <div>
-                                         <Label htmlFor="employment_type" required>{t('Employment Type')}</Label>
-                                         <Select value={data.employment_type || 'Full Time'} onValueChange={(value) => setData('employment_type', value)} required>
-                                             <SelectTrigger>
-                                                 <SelectValue placeholder={t('Select Employment Type')} />
-                                             </SelectTrigger>
-                                             <SelectContent>
-                                                 <SelectItem value="Full Time">{t('Full Time')}</SelectItem>
-                                                 <SelectItem value="Part Time">{t('Part Time')}</SelectItem>
-                                                 <SelectItem value="Temporary">{t('Temporary')}</SelectItem>
-                                                 <SelectItem value="Contract">{t('Contract')}</SelectItem>
-                                             </SelectContent>
-                                         </Select>
-                                         <InputError message={errors.employment_type} />
-                                     </div>
+                                        <Label htmlFor="employment_type" required>{t('Employment Type')}</Label>
+                                        <Select value={data.employment_type || 'Full Time'} onValueChange={(value) => setData('employment_type', value)} required>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder={t('Select Employment Type')} />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="Full Time">{t('Full Time')}</SelectItem>
+                                                <SelectItem value="Part Time">{t('Part Time')}</SelectItem>
+                                                <SelectItem value="Temporary">{t('Temporary')}</SelectItem>
+                                                <SelectItem value="Contract">{t('Contract')}</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                        <InputError message={errors.employment_type} />
+                                    </div>
 
-                                     <div>
-                                          <Label htmlFor="employment_status" required>{t('Employment Status')}</Label>
-                                          <Select value={data.employment_status || 'probation'} onValueChange={(value) => {
-                                              setData((prev) => ({
-                                                  ...prev,
-                                                  employment_status: value,
-                                                  probation_percentage: value === 'permanent' ? '' : prev.probation_percentage || '70',
-                                                  probation_period: value === 'permanent' ? '' : prev.probation_period || '3'
-                                              }));
-                                          }} required>
-                                              <SelectTrigger>
-                                                  <SelectValue placeholder={t('Select Employment Status')} />
-                                              </SelectTrigger>
-                                              <SelectContent>
-                                                  <SelectItem value="probation">{t('Probation')}</SelectItem>
-                                                  <SelectItem value="permanent">{t('Permanent')}</SelectItem>
-                                              </SelectContent>
-                                          </Select>
-                                          <InputError message={errors.employment_status} />
-                                      </div>
+                                    <div>
+                                        <Label htmlFor="employment_status" required>{t('Employment Status')}</Label>
+                                        <Select value={data.employment_status || 'probation'} onValueChange={(value) => {
+                                            setData((prev) => ({
+                                                ...prev,
+                                                employment_status: value,
+                                                probation_percentage: value === 'permanent' ? '' : prev.probation_percentage || '70',
+                                                probation_period: value === 'permanent' ? '' : prev.probation_period || '3'
+                                            }));
+                                        }} required>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder={t('Select Employment Status')} />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="probation">{t('Probation')}</SelectItem>
+                                                <SelectItem value="permanent">{t('Permanent')}</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                        <InputError message={errors.employment_status} />
+                                    </div>
 
-                                      {data.employment_status === 'probation' && (
-                                          <>
-                                              <div>
-                                                  <Label htmlFor="probation_percentage" required>{t('Probation Salary Percentage (%)')}</Label>
-                                                  <Input
-                                                      type="number"
-                                                      id="probation_percentage"
-                                                      min="50"
-                                                      max="70"
-                                                      value={data.probation_percentage}
-                                                      onChange={(e) => setData('probation_percentage', e.target.value)}
-                                                      placeholder="e.g. 70"
-                                                      required
-                                                  />
-                                                  <InputError message={errors.probation_percentage} />
-                                              </div>
+                                    {data.employment_status === 'probation' && (
+                                        <>
+                                            <div>
+                                                <Label htmlFor="probation_percentage" required>{t('Probation Salary Percentage (%)')}</Label>
+                                                <Input
+                                                    type="number"
+                                                    id="probation_percentage"
+                                                    min="50"
+                                                    max="70"
+                                                    value={data.probation_percentage}
+                                                    onChange={(e) => setData('probation_percentage', e.target.value)}
+                                                    placeholder="e.g. 70"
+                                                    required
+                                                />
+                                                <InputError message={errors.probation_percentage} />
+                                            </div>
 
-                                              <div>
-                                                  <Label htmlFor="probation_period" required>{t('Probation Period (Months)')}</Label>
-                                                  <Input
-                                                      type="number"
-                                                      id="probation_period"
-                                                      min="2"
-                                                      max="6"
-                                                      value={data.probation_period}
-                                                      onChange={(e) => setData('probation_period', e.target.value)}
-                                                      placeholder="e.g. 3"
-                                                      required
-                                                  />
-                                                  <InputError message={errors.probation_period} />
-                                              </div>
-                                          </>
-                                      )}
+                                            <div>
+                                                <Label htmlFor="probation_period" required>{t('Probation Period (Months)')}</Label>
+                                                <Input
+                                                    type="number"
+                                                    id="probation_period"
+                                                    min="2"
+                                                    max="6"
+                                                    value={data.probation_period}
+                                                    onChange={(e) => setData('probation_period', e.target.value)}
+                                                    placeholder="e.g. 3"
+                                                    required
+                                                />
+                                                <InputError message={errors.probation_period} />
+                                            </div>
+                                        </>
+                                    )}
 
-                                     <div>
-                                         <Label htmlFor="work_mode" required>{t('Work Mode')}</Label>
-                                         <Select value={data.work_mode || ''} onValueChange={(value) => setData('work_mode', value)} required>
-                                             <SelectTrigger>
-                                                 <SelectValue placeholder={t('Select Work Mode')} />
-                                             </SelectTrigger>
-                                             <SelectContent>
-                                                 <SelectItem value="Remote">{t('Remote')}</SelectItem>
-                                                 <SelectItem value="On-site">{t('On-site')}</SelectItem>
-                                                 <SelectItem value="Hybrid">{t('Hybrid')}</SelectItem>
-                                             </SelectContent>
-                                         </Select>
-                                         <InputError message={errors.work_mode} />
-                                     </div>
+                                    <div>
+                                        <Label htmlFor="work_mode" required>{t('Work Mode')}</Label>
+                                        <Select value={data.work_mode || ''} onValueChange={(value) => setData('work_mode', value)} required>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder={t('Select Work Mode')} />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="Remote">{t('Remote')}</SelectItem>
+                                                <SelectItem value="On-site">{t('On-site')}</SelectItem>
+                                                <SelectItem value="Hybrid">{t('Hybrid')}</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                        <InputError message={errors.work_mode} />
+                                    </div>
 
-                                     <div>
-                                         <Label htmlFor="work_location_country" required>{t('Work Location Country')}</Label>
-                                         <Input
-                                             id="work_location_country"
-                                             type="text"
-                                             value={data.work_location_country}
-                                             onChange={(e) => setData('work_location_country', e.target.value)}
-                                             placeholder={t('Enter Work Location Country (e.g. Bangladesh)')}
-                                             required
-                                         />
-                                         <InputError message={errors.work_location_country} />
-                                     </div>
-
+                                    <div>
+                                        <Label htmlFor="work_location_country" required>{t('Work Location Country')}</Label>
+                                        <Input
+                                            id="work_location_country"
+                                            type="text"
+                                            value={data.work_location_country}
+                                            onChange={(e) => setData('work_location_country', e.target.value)}
+                                            placeholder={t('Enter Work Location Country (e.g. Bangladesh)')}
+                                            required
+                                        />
+                                        <InputError message={errors.work_location_country} />
+                                    </div>
 
                                     <div>
                                         <Label htmlFor="branch_id" required>{t('Branch')}</Label>
@@ -826,22 +812,17 @@ export default function Create() {
                                         <InputError message={errors.designation_id} />
                                     </div>
                                 </div>
+                            </CardContent>
+                        </Card>
 
-                                <div className="flex justify-between">
-                                    <Button type="button" variant="outline" onClick={() => setActiveTab('personal')}>
-                                        {t('Previous')}
-                                    </Button>
-                                    <Button
-                                        type="button"
-                                        onClick={() => setActiveTab('contact')}
-                                        disabled={!validateEmploymentTab()}
-                                    >
-                                        {t('Next')}
-                                    </Button>
-                                </div>
-                            </TabsContent>
-
-                            <TabsContent value="contact" className="space-y-6 mt-6">
+                        {/* SECTION 3: Contact Details */}
+                        <Card className="shadow-xs border border-slate-200 dark:border-slate-800">
+                            <div className="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-6 py-3.5 rounded-t-xl">
+                                <h3 className="text-sm font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">
+                                    3. {t('Contact Details')}
+                                </h3>
+                            </div>
+                            <CardContent className="pt-6 space-y-6">
                                 <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                                     <div>
                                         <Label htmlFor="address_line_1">{t('Address Line 1')}</Label>
@@ -956,22 +937,17 @@ export default function Create() {
                                         required
                                     />
                                 </div>
+                            </CardContent>
+                        </Card>
 
-                                <div className="flex justify-between">
-                                    <Button type="button" variant="outline" onClick={() => setActiveTab('employment')}>
-                                        {t('Previous')}
-                                    </Button>
-                                    <Button
-                                        type="button"
-                                        onClick={() => setActiveTab('payroll')}
-                                        disabled={!validateContactTab()}
-                                    >
-                                        {t('Next')}
-                                    </Button>
-                                </div>
-                            </TabsContent>
-
-                            <TabsContent value="payroll" className="space-y-6 mt-6">
+                        {/* SECTION 4: Payroll Information */}
+                        <Card className="shadow-xs border border-slate-200 dark:border-slate-800">
+                            <div className="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-6 py-3.5 rounded-t-xl">
+                                <h3 className="text-sm font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">
+                                    4. {t('Payroll Information')}
+                                </h3>
+                            </div>
+                            <CardContent className="pt-6 space-y-6">
                                 <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                                     <div className="md:col-span-2">
                                         <Label htmlFor="payment_method" required>{t('Payment Method')}</Label>
@@ -998,513 +974,488 @@ export default function Create() {
                                             const basicSalary = parseFloat(data.basic_salary || '0') || 0;
 
                                             let feeText = '';
-                                            let estimatedCharge = 0;
-
-                                            if (feeType === 'percentage') {
-                                                feeText = `${percentageFee}%`;
-                                                estimatedCharge = (basicSalary * percentageFee) / 100;
-                                            } else if (feeType === 'fixed') {
-                                                feeText = `${formatCurrency(fixedFee)}`;
-                                                estimatedCharge = fixedFee;
+                                            if (feeType === 'percentage' && percentageFee > 0) {
+                                                feeText = `${percentageFee}% fee`;
+                                            } else if (feeType === 'fixed' && fixedFee > 0) {
+                                                feeText = `${formatCurrency(fixedFee)} fee`;
                                             } else if (feeType === 'both') {
-                                                feeText = `${percentageFee}% + ${formatCurrency(fixedFee)}`;
-                                                estimatedCharge = ((basicSalary * percentageFee) / 100) + fixedFee;
+                                                const parts = [];
+                                                if (percentageFee > 0) parts.push(`${percentageFee}%`);
+                                                if (fixedFee > 0) parts.push(`${formatCurrency(fixedFee)}`);
+                                                feeText = parts.length ? `${parts.join(' + ')} fee` : '';
                                             }
-
-                                            return (
-                                                <div className="mt-3 p-3 bg-slate-50 border border-slate-100 rounded-lg text-sm flex flex-col gap-1">
-                                                    <div className="flex justify-between items-center">
-                                                        <span className="text-slate-500 font-medium">{t('Transaction Fee')}:</span>
-                                                        <span className="font-semibold text-slate-800">{feeText}</span>
-                                                    </div>
-                                                    {basicSalary > 0 && (
-                                                        <div className="flex justify-between items-center border-t border-slate-200/60 pt-1 mt-1">
-                                                            <span className="text-slate-500 font-medium">{t('Estimated Charge')}:</span>
-                                                            <span className="font-bold text-primary">{formatCurrency(estimatedCharge)}</span>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            );
+                                            return feeText ? (
+                                                <p className="text-xs font-semibold text-amber-600 mt-1">
+                                                    Note: {feeText} will be calculated on payroll processing.
+                                                </p>
+                                            ) : null;
                                         })()}
                                     </div>
                                 </div>
 
-                                <div className="border-t pt-6">
-                                    <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                                        {data.payment_method === 'bank_transfer' && (
-                                            <>
-                                                <div className="md:col-span-2">
-                                                    <Label htmlFor="bank_country" required>{t('Bank Country')}</Label>
-                                                    <Select
-                                                        value={data.payment_details?.bank_country || 'Other'}
-                                                        onValueChange={(val) => handleDetailChange('bank_country', val)}
-                                                    >
-                                                        <SelectTrigger id="bank_country">
-                                                            <SelectValue placeholder={t('Select Country')} />
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            <SelectItem value="Other">{t('Other (Standard SWIFT/BIC)')}</SelectItem>
-                                                            <SelectItem value="US">{t('United States (ACH)')}</SelectItem>
-                                                            <SelectItem value="EU">{t('Europe (SEPA IBAN)')}</SelectItem>
-                                                            <SelectItem value="UK">{t('United Kingdom (FPS)')}</SelectItem>
-                                                        </SelectContent>
-                                                    </Select>
-                                                </div>
+                                <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                                    {data.payment_method === 'bank_transfer' && (
+                                        <>
+                                            <div className="md:col-span-2">
+                                                <Label htmlFor="bank_country" required>{t('Bank Country')}</Label>
+                                                <Select
+                                                    value={data.payment_details?.bank_country || 'Other'}
+                                                    onValueChange={(val) => handleDetailChange('bank_country', val)}
+                                                >
+                                                    <SelectTrigger id="bank_country">
+                                                        <SelectValue />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="Other">{t('Standard Bank Account')}</SelectItem>
+                                                        <SelectItem value="US">{t('United States (ACH / Routing)')}</SelectItem>
+                                                        <SelectItem value="EU">{t('Europe (SEPA / IBAN)')}</SelectItem>
+                                                        <SelectItem value="UK">{t('United Kingdom (Sort Code)')}</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
 
-                                                <div>
-                                                    <Label htmlFor="account_holder_name" required>{t('Account Holder Name')}</Label>
-                                                    <Input
-                                                        id="account_holder_name"
-                                                        value={data.payment_details?.account_holder_name || ''}
-                                                        onChange={(e) => handleDetailChange('account_holder_name', e.target.value)}
-                                                        placeholder={t('Enter Account Holder Name')}
-                                                        required
-                                                    />
-                                                </div>
-
-                                                <div>
-                                                    <Label htmlFor="bank_name" required>{t('Bank Name')}</Label>
-                                                    <Input
-                                                        id="bank_name"
-                                                        value={data.payment_details?.bank_name || ''}
-                                                        onChange={(e) => handleDetailChange('bank_name', e.target.value)}
-                                                        placeholder={t('Enter Bank Name')}
-                                                        required
-                                                    />
-                                                </div>
-
-                                                {data.payment_details?.bank_country === 'US' && (
-                                                    <>
-                                                        <div>
-                                                            <Label htmlFor="routing_number" required>{t('Routing Number (ABA)')}</Label>
-                                                            <Input
-                                                                id="routing_number"
-                                                                value={data.payment_details?.routing_number || ''}
-                                                                onChange={(e) => handleDetailChange('routing_number', e.target.value)}
-                                                                placeholder={t('9-digit Routing Number')}
-                                                                required
-                                                            />
-                                                        </div>
-                                                        <div>
-                                                            <Label htmlFor="account_number" required>{t('Account Number')}</Label>
-                                                            <Input
-                                                                id="account_number"
-                                                                value={data.payment_details?.account_number || ''}
-                                                                onChange={(e) => handleDetailChange('account_number', e.target.value)}
-                                                                placeholder={t('Enter Account Number')}
-                                                                required
-                                                            />
-                                                        </div>
-                                                        <div>
-                                                            <Label htmlFor="account_type" required>{t('Account Type')}</Label>
-                                                            <Select
-                                                                value={data.payment_details?.account_type || 'Checking'}
-                                                                onValueChange={(val) => handleDetailChange('account_type', val)}
-                                                            >
-                                                                <SelectTrigger id="account_type">
-                                                                    <SelectValue />
-                                                                </SelectTrigger>
-                                                                <SelectContent>
-                                                                    <SelectItem value="Checking">{t('Checking')}</SelectItem>
-                                                                    <SelectItem value="Savings">{t('Savings')}</SelectItem>
-                                                                </SelectContent>
-                                                            </Select>
-                                                        </div>
-                                                    </>
-                                                )}
-
-                                                {data.payment_details?.bank_country === 'EU' && (
-                                                    <>
-                                                        <div>
-                                                            <Label htmlFor="iban" required>{t('IBAN')}</Label>
-                                                            <Input
-                                                                id="iban"
-                                                                value={data.payment_details?.iban || ''}
-                                                                onChange={(e) => handleDetailChange('iban', e.target.value)}
-                                                                placeholder={t('Enter IBAN')}
-                                                                required
-                                                            />
-                                                        </div>
-                                                        <div>
-                                                            <Label htmlFor="bic_swift">{t('BIC / SWIFT')}</Label>
-                                                            <Input
-                                                                id="bic_swift"
-                                                                value={data.payment_details?.bic_swift || ''}
-                                                                onChange={(e) => handleDetailChange('bic_swift', e.target.value)}
-                                                                placeholder={t('Enter BIC/SWIFT Code')}
-                                                            />
-                                                        </div>
-                                                    </>
-                                                )}
-
-                                                {data.payment_details?.bank_country === 'UK' && (
-                                                    <>
-                                                        <div>
-                                                            <Label htmlFor="sort_code" required>{t('Sort Code')}</Label>
-                                                            <Input
-                                                                id="sort_code"
-                                                                value={data.payment_details?.sort_code || ''}
-                                                                onChange={(e) => handleDetailChange('sort_code', e.target.value)}
-                                                                placeholder={t('6-digit Sort Code (e.g. 20-00-00)')}
-                                                                required
-                                                            />
-                                                        </div>
-                                                        <div>
-                                                            <Label htmlFor="account_number" required>{t('Account Number')}</Label>
-                                                            <Input
-                                                                id="account_number"
-                                                                value={data.payment_details?.account_number || ''}
-                                                                onChange={(e) => handleDetailChange('account_number', e.target.value)}
-                                                                placeholder={t('8-digit Account Number')}
-                                                                required
-                                                            />
-                                                        </div>
-                                                    </>
-                                                )}
-
-                                                {(data.payment_details?.bank_country === 'Other' || !data.payment_details?.bank_country) && (
-                                                    <>
-                                                        <div>
-                                                            <Label htmlFor="account_number" required>{t('Account Number / IBAN')}</Label>
-                                                            <Input
-                                                                id="account_number"
-                                                                value={data.payment_details?.account_number || ''}
-                                                                onChange={(e) => handleDetailChange('account_number', e.target.value)}
-                                                                placeholder={t('Enter Account Number or IBAN')}
-                                                                required
-                                                            />
-                                                        </div>
-                                                        <div>
-                                                            <Label htmlFor="bank_branch">{t('Bank Branch')}</Label>
-                                                            <Input
-                                                                id="bank_branch"
-                                                                value={data.payment_details?.bank_branch || ''}
-                                                                onChange={(e) => handleDetailChange('bank_branch', e.target.value)}
-                                                                placeholder={t('Enter Bank Branch')}
-                                                            />
-                                                        </div>
-                                                        <div>
-                                                            <Label htmlFor="bank_identifier_code">{t('SWIFT / BIC Code')}</Label>
-                                                            <Input
-                                                                id="bank_identifier_code"
-                                                                value={data.payment_details?.bank_identifier_code || ''}
-                                                                onChange={(e) => handleDetailChange('bank_identifier_code', e.target.value)}
-                                                                placeholder={t('Enter SWIFT/BIC Code')}
-                                                            />
-                                                        </div>
-                                                        <div>
-                                                            <Label htmlFor="tax_payer_id">{t('Tax Payer ID / SSN')}</Label>
-                                                            <Input
-                                                                id="tax_payer_id"
-                                                                value={data.payment_details?.tax_payer_id || ''}
-                                                                onChange={(e) => handleDetailChange('tax_payer_id', e.target.value)}
-                                                                placeholder={t('Enter Tax Payer ID')}
-                                                            />
-                                                        </div>
-                                                    </>
-                                                )}
-
-                                                <div className="md:col-span-2">
-                                                    <Label htmlFor="bank_notes">{t('Payment Notes')}</Label>
-                                                    <textarea
-                                                        id="bank_notes"
-                                                        className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                                                        value={data.payment_details?.bank_notes || ''}
-                                                        onChange={(e) => handleDetailChange('bank_notes', e.target.value)}
-                                                        placeholder={t('Enter any notes (e.g. intermediary bank details)')}
-                                                    />
-                                                </div>
-                                            </>
-                                        )}
-
-                                        {data.payment_method === 'cards_transfer' && (
-                                            <>
-                                                <div>
-                                                    <Label htmlFor="cardholder_name" required>{t('Cardholder Name')}</Label>
-                                                    <Input
-                                                        id="cardholder_name"
-                                                        value={data.payment_details?.cardholder_name || ''}
-                                                        onChange={(e) => handleDetailChange('cardholder_name', e.target.value)}
-                                                        placeholder={t('Enter Cardholder Name')}
-                                                        required
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <Label htmlFor="card_type" required>{t('Card Type')}</Label>
-                                                    <Select
-                                                        value={data.payment_details?.card_type || 'Visa'}
-                                                        onValueChange={(val) => handleDetailChange('card_type', val)}
-                                                    >
-                                                        <SelectTrigger id="card_type">
-                                                            <SelectValue />
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            <SelectItem value="Visa">{t('Visa')}</SelectItem>
-                                                            <SelectItem value="Mastercard">{t('Mastercard')}</SelectItem>
-                                                            <SelectItem value="Amex">{t('American Express')}</SelectItem>
-                                                            <SelectItem value="UnionPay">{t('UnionPay')}</SelectItem>
-                                                        </SelectContent>
-                                                    </Select>
-                                                </div>
-                                                <div>
-                                                    <Label htmlFor="card_number" required>{t('Card Number')}</Label>
-                                                    <Input
-                                                        id="card_number"
-                                                        value={data.payment_details?.card_number || ''}
-                                                        onChange={(e) => handleDetailChange('card_number', e.target.value)}
-                                                        placeholder={t('Enter 16-digit Card Number')}
-                                                        required
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <Label htmlFor="expiry_date" required>{t('Expiry Date (MM/YY)')}</Label>
-                                                    <Input
-                                                        id="expiry_date"
-                                                        value={data.payment_details?.expiry_date || ''}
-                                                        onChange={(e) => handleDetailChange('expiry_date', e.target.value)}
-                                                        placeholder={t('MM/YY')}
-                                                        required
-                                                    />
-                                                </div>
-                                            </>
-                                        )}
-
-                                        {data.payment_method === 'paypal' && (
                                             <div>
-                                                <Label htmlFor="paypal_email" required>{t('PayPal Registered Email')}</Label>
+                                                <Label htmlFor="account_holder_name" required>{t('Account Holder Name')}</Label>
                                                 <Input
-                                                    id="paypal_email"
-                                                    type="email"
-                                                    value={data.payment_details?.paypal_email || ''}
-                                                    onChange={(e) => handleDetailChange('paypal_email', e.target.value)}
-                                                    placeholder={t('paypal@example.com')}
+                                                    id="account_holder_name"
+                                                    value={data.payment_details?.account_holder_name || ''}
+                                                    onChange={(e) => handleDetailChange('account_holder_name', e.target.value)}
+                                                    placeholder={t('Enter Account Holder Name')}
                                                     required
                                                 />
                                             </div>
-                                        )}
 
-                                        {data.payment_method === 'kast' && (
                                             <div>
-                                                <Label htmlFor="kast_username" required>{t('Kast Username / Phone / Email')}</Label>
+                                                <Label htmlFor="bank_name" required>{t('Bank Name')}</Label>
                                                 <Input
-                                                    id="kast_username"
-                                                    value={data.payment_details?.kast_username || ''}
-                                                    onChange={(e) => handleDetailChange('kast_username', e.target.value)}
-                                                    placeholder={t('Enter Kast Username')}
+                                                    id="bank_name"
+                                                    value={data.payment_details?.bank_name || ''}
+                                                    onChange={(e) => handleDetailChange('bank_name', e.target.value)}
+                                                    placeholder={t('Enter Bank Name')}
                                                     required
                                                 />
                                             </div>
-                                        )}
 
-                                        {data.payment_method === 'redotpay' && (
+                                            {data.payment_details?.bank_country === 'US' ? (
+                                                <>
+                                                    <div>
+                                                        <Label htmlFor="routing_number" required>{t('ABA / Routing Number (9 Digits)')}</Label>
+                                                        <Input
+                                                            id="routing_number"
+                                                            value={data.payment_details?.routing_number || ''}
+                                                            onChange={(e) => handleDetailChange('routing_number', e.target.value)}
+                                                            placeholder="123456789"
+                                                            required
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <Label htmlFor="account_number" required>{t('Account Number')}</Label>
+                                                        <Input
+                                                            id="account_number"
+                                                            value={data.payment_details?.account_number || ''}
+                                                            onChange={(e) => handleDetailChange('account_number', e.target.value)}
+                                                            placeholder={t('Enter Account Number')}
+                                                            required
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <Label htmlFor="account_type">{t('Account Type')}</Label>
+                                                        <Select
+                                                            value={data.payment_details?.account_type || 'Checking'}
+                                                            onValueChange={(val) => handleDetailChange('account_type', val)}
+                                                        >
+                                                            <SelectTrigger id="account_type">
+                                                                <SelectValue />
+                                                            </SelectTrigger>
+                                                            <SelectContent>
+                                                                <SelectItem value="Checking">{t('Checking')}</SelectItem>
+                                                                <SelectItem value="Savings">{t('Savings')}</SelectItem>
+                                                            </SelectContent>
+                                                        </Select>
+                                                    </div>
+                                                </>
+                                            ) : data.payment_details?.bank_country === 'EU' ? (
+                                                <>
+                                                    <div>
+                                                        <Label htmlFor="iban" required>{t('IBAN Number')}</Label>
+                                                        <Input
+                                                            id="iban"
+                                                            value={data.payment_details?.iban || ''}
+                                                            onChange={(e) => handleDetailChange('iban', e.target.value)}
+                                                            placeholder="DE89370400440532013000"
+                                                            required
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <Label htmlFor="bic">{t('BIC / SWIFT Code')}</Label>
+                                                        <Input
+                                                            id="bic"
+                                                            value={data.payment_details?.bic || ''}
+                                                            onChange={(e) => handleDetailChange('bic', e.target.value)}
+                                                            placeholder="DEUTDEDDBSS"
+                                                        />
+                                                    </div>
+                                                </>
+                                            ) : data.payment_details?.bank_country === 'UK' ? (
+                                                <>
+                                                    <div>
+                                                        <Label htmlFor="sort_code" required>{t('Sort Code (6 Digits)')}</Label>
+                                                        <Input
+                                                            id="sort_code"
+                                                            value={data.payment_details?.sort_code || ''}
+                                                            onChange={(e) => handleDetailChange('sort_code', e.target.value)}
+                                                            placeholder="12-34-56"
+                                                            required
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <Label htmlFor="account_number" required>{t('Account Number (8 Digits)')}</Label>
+                                                        <Input
+                                                            id="account_number"
+                                                            value={data.payment_details?.account_number || ''}
+                                                            onChange={(e) => handleDetailChange('account_number', e.target.value)}
+                                                            placeholder="12345678"
+                                                            required
+                                                        />
+                                                    </div>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <div>
+                                                        <Label htmlFor="account_number" required>{t('Account Number / IBAN')}</Label>
+                                                        <Input
+                                                            id="account_number"
+                                                            value={data.payment_details?.account_number || ''}
+                                                            onChange={(e) => handleDetailChange('account_number', e.target.value)}
+                                                            placeholder={t('Enter Account Number')}
+                                                            required
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <Label htmlFor="bank_identifier_code">{t('SWIFT / BIC / Routing Code')}</Label>
+                                                        <Input
+                                                            id="bank_identifier_code"
+                                                            value={data.payment_details?.bank_identifier_code || ''}
+                                                            onChange={(e) => handleDetailChange('bank_identifier_code', e.target.value)}
+                                                            placeholder={t('Enter SWIFT / BIC Code')}
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <Label htmlFor="bank_branch">{t('Bank Branch')}</Label>
+                                                        <Input
+                                                            id="bank_branch"
+                                                            value={data.payment_details?.bank_branch || ''}
+                                                            onChange={(e) => handleDetailChange('bank_branch', e.target.value)}
+                                                            placeholder={t('Enter Bank Branch')}
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <Label htmlFor="tax_payer_id">{t('Tax Payer ID / NID')}</Label>
+                                                        <Input
+                                                            id="tax_payer_id"
+                                                            value={data.payment_details?.tax_payer_id || ''}
+                                                            onChange={(e) => handleDetailChange('tax_payer_id', e.target.value)}
+                                                            placeholder={t('Enter Tax Payer ID')}
+                                                        />
+                                                    </div>
+                                                </>
+                                            )}
+
+                                            <div className="md:col-span-2">
+                                                <Label htmlFor="bank_notes">{t('Payment Notes')}</Label>
+                                                <textarea
+                                                    id="bank_notes"
+                                                    className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                                    value={data.payment_details?.bank_notes || ''}
+                                                    onChange={(e) => handleDetailChange('bank_notes', e.target.value)}
+                                                    placeholder={t('Enter any notes (e.g. intermediary bank details)')}
+                                                />
+                                            </div>
+                                        </>
+                                    )}
+
+                                    {data.payment_method === 'cards_transfer' && (
+                                        <>
                                             <div>
-                                                <Label htmlFor="redotpay_id" required>{t('Redotpay ID / Email / Phone')}</Label>
+                                                <Label htmlFor="cardholder_name" required>{t('Cardholder Name')}</Label>
                                                 <Input
-                                                    id="redotpay_id"
-                                                    value={data.payment_details?.redotpay_id || ''}
-                                                    onChange={(e) => handleDetailChange('redotpay_id', e.target.value)}
-                                                    placeholder={t('Enter Redotpay Identifier')}
+                                                    id="cardholder_name"
+                                                    value={data.payment_details?.cardholder_name || ''}
+                                                    onChange={(e) => handleDetailChange('cardholder_name', e.target.value)}
+                                                    placeholder={t('Enter Cardholder Name')}
                                                     required
                                                 />
                                             </div>
-                                        )}
+                                            <div>
+                                                <Label htmlFor="card_type" required>{t('Card Type')}</Label>
+                                                <Select
+                                                    value={data.payment_details?.card_type || 'Visa'}
+                                                    onValueChange={(val) => handleDetailChange('card_type', val)}
+                                                >
+                                                    <SelectTrigger id="card_type">
+                                                        <SelectValue />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="Visa">{t('Visa')}</SelectItem>
+                                                        <SelectItem value="Mastercard">{t('Mastercard')}</SelectItem>
+                                                        <SelectItem value="Amex">{t('American Express')}</SelectItem>
+                                                        <SelectItem value="UnionPay">{t('UnionPay')}</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                            <div>
+                                                <Label htmlFor="card_number" required>{t('Card Number')}</Label>
+                                                <Input
+                                                    id="card_number"
+                                                    value={data.payment_details?.card_number || ''}
+                                                    onChange={(e) => handleDetailChange('card_number', e.target.value)}
+                                                    placeholder={t('Enter 16-digit Card Number')}
+                                                    required
+                                                />
+                                            </div>
+                                            <div>
+                                                <Label htmlFor="expiry_date" required>{t('Expiry Date (MM/YY)')}</Label>
+                                                <Input
+                                                    id="expiry_date"
+                                                    value={data.payment_details?.expiry_date || ''}
+                                                    onChange={(e) => handleDetailChange('expiry_date', e.target.value)}
+                                                    placeholder={t('MM/YY')}
+                                                    required
+                                                />
+                                            </div>
+                                        </>
+                                    )}
 
-                                        {data.payment_method === 'remitly' && (
-                                            <>
-                                                <div>
-                                                    <Label htmlFor="recipient_name" required>{t('Recipient Full Name')}</Label>
-                                                    <Input
-                                                        id="recipient_name"
-                                                        value={data.payment_details?.recipient_name || ''}
-                                                        onChange={(e) => handleDetailChange('recipient_name', e.target.value)}
-                                                        placeholder={t('Enter Recipient Name')}
-                                                        required
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <Label htmlFor="recipient_phone" required>{t('Recipient Phone Number')}</Label>
-                                                    <Input
-                                                        id="recipient_phone"
-                                                        value={data.payment_details?.recipient_phone || ''}
-                                                        onChange={(e) => handleDetailChange('recipient_phone', e.target.value)}
-                                                        placeholder={t('+1234567890')}
-                                                        required
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <Label htmlFor="recipient_country" required>{t('Recipient Target Country')}</Label>
-                                                    <Input
-                                                        id="recipient_country"
-                                                        value={data.payment_details?.recipient_country || ''}
-                                                        onChange={(e) => handleDetailChange('recipient_country', e.target.value)}
-                                                        placeholder={t('e.g. Philippines, India')}
-                                                        required
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <Label htmlFor="delivery_method" required>{t('Delivery Method')}</Label>
-                                                    <Select
-                                                        value={data.payment_details?.delivery_method || 'Bank Deposit'}
-                                                        onValueChange={(val) => handleDetailChange('delivery_method', val)}
-                                                    >
-                                                        <SelectTrigger id="delivery_method">
-                                                            <SelectValue />
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            <SelectItem value="Bank Deposit">{t('Bank Deposit')}</SelectItem>
-                                                            <SelectItem value="Cash Pickup">{t('Cash Pickup')}</SelectItem>
-                                                            <SelectItem value="Mobile Money">{t('Mobile Money')}</SelectItem>
-                                                        </SelectContent>
-                                                    </Select>
-                                                </div>
-                                                <div>
-                                                    <Label htmlFor="wallet_provider">{t('Recipient Bank / Mobile Wallet Name')}</Label>
-                                                    <Input
-                                                        id="wallet_provider"
-                                                        value={data.payment_details?.wallet_provider || ''}
-                                                        onChange={(e) => handleDetailChange('wallet_provider', e.target.value)}
-                                                        placeholder={t('e.g. GCash, bKash, Metrobank')}
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <Label htmlFor="wallet_number">{t('Account / Wallet Number')}</Label>
-                                                    <Input
-                                                        id="wallet_number"
-                                                        value={data.payment_details?.wallet_number || ''}
-                                                        onChange={(e) => handleDetailChange('wallet_number', e.target.value)}
-                                                        placeholder={t('Enter account or wallet number')}
-                                                    />
-                                                </div>
-                                            </>
-                                        )}
+                                    {data.payment_method === 'paypal' && (
+                                        <div>
+                                            <Label htmlFor="paypal_email" required>{t('PayPal Registered Email')}</Label>
+                                            <Input
+                                                id="paypal_email"
+                                                type="email"
+                                                value={data.payment_details?.paypal_email || ''}
+                                                onChange={(e) => handleDetailChange('paypal_email', e.target.value)}
+                                                placeholder={t('paypal@example.com')}
+                                                required
+                                            />
+                                        </div>
+                                    )}
 
-                                        {data.payment_method === 'western_union' && (
-                                            <>
-                                                <div>
-                                                    <Label htmlFor="recipient_name" required>{t('Recipient Full Name')}</Label>
-                                                    <Input
-                                                        id="recipient_name"
-                                                        value={data.payment_details?.recipient_name || ''}
-                                                        onChange={(e) => handleDetailChange('recipient_name', e.target.value)}
-                                                        placeholder={t('Must match official ID card')}
-                                                        required
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <Label htmlFor="recipient_city" required>{t('Recipient City')}</Label>
-                                                    <Input
-                                                        id="recipient_city"
-                                                        value={data.payment_details?.recipient_city || ''}
-                                                        onChange={(e) => handleDetailChange('recipient_city', e.target.value)}
-                                                        placeholder={t('Enter City')}
-                                                        required
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <Label htmlFor="recipient_country" required>{t('Recipient Country')}</Label>
-                                                    <Input
-                                                        id="recipient_country"
-                                                        value={data.payment_details?.recipient_country || ''}
-                                                        onChange={(e) => handleDetailChange('recipient_country', e.target.value)}
-                                                        placeholder={t('Enter Country')}
-                                                        required
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <Label htmlFor="recipient_phone">{t('Recipient Phone Number')}</Label>
-                                                    <Input
-                                                        id="recipient_phone"
-                                                        value={data.payment_details?.recipient_phone || ''}
-                                                        onChange={(e) => handleDetailChange('recipient_phone', e.target.value)}
-                                                        placeholder={t('Enter Phone Number')}
-                                                    />
-                                                </div>
-                                            </>
-                                        )}
+                                    {data.payment_method === 'kast' && (
+                                        <div>
+                                            <Label htmlFor="kast_username" required>{t('Kast Username / Phone / Email')}</Label>
+                                            <Input
+                                                id="kast_username"
+                                                value={data.payment_details?.kast_username || ''}
+                                                onChange={(e) => handleDetailChange('kast_username', e.target.value)}
+                                                placeholder={t('Enter Kast Username')}
+                                                required
+                                            />
+                                        </div>
+                                    )}
 
-                                        {data.payment_method === 'binance_bybit' && (
-                                            <>
-                                                <div>
-                                                    <Label htmlFor="exchange" required>{t('Exchange / Platform')}</Label>
-                                                    <Select
-                                                        value={data.payment_details?.exchange || 'Binance'}
-                                                        onValueChange={(val) => handleDetailChange('exchange', val)}
-                                                    >
-                                                        <SelectTrigger id="exchange">
-                                                            <SelectValue />
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            <SelectItem value="Binance">{t('Binance')}</SelectItem>
-                                                            <SelectItem value="Bybit">{t('Bybit')}</SelectItem>
-                                                            <SelectItem value="External Wallet">{t('External Web3 Wallet')}</SelectItem>
-                                                        </SelectContent>
-                                                    </Select>
-                                                </div>
-                                                <div>
-                                                    <Label htmlFor="network" required>{t('Network')}</Label>
-                                                    <Select
-                                                        value={data.payment_details?.network || 'TRC20'}
-                                                        onValueChange={(val) => handleDetailChange('network', val)}
-                                                    >
-                                                        <SelectTrigger id="network">
-                                                            <SelectValue />
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            <SelectItem value="TRC20">{t('TRON (TRC20)')}</SelectItem>
-                                                            <SelectItem value="ERC20">{t('Ethereum (ERC20)')}</SelectItem>
-                                                            <SelectItem value="BEP20">{t('BNB Smart Chain (BEP20)')}</SelectItem>
-                                                            <SelectItem value="Solana">{t('Solana')}</SelectItem>
-                                                            <SelectItem value="Polygon">{t('Polygon (MATIC)')}</SelectItem>
-                                                        </SelectContent>
-                                                    </Select>
-                                                </div>
-                                                <div className="md:col-span-2">
-                                                    <Label htmlFor="wallet_address" required>{t('Wallet Address')}</Label>
-                                                    <Input
-                                                        id="wallet_address"
-                                                        value={data.payment_details?.wallet_address || ''}
-                                                        onChange={(e) => handleDetailChange('wallet_address', e.target.value)}
-                                                        placeholder={t('Paste wallet address (verify network matches)')}
-                                                        required
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <Label htmlFor="coin" required>{t('Coin')}</Label>
-                                                    <Select
-                                                        value={data.payment_details?.coin || 'USDT'}
-                                                        onValueChange={(val) => handleDetailChange('coin', val)}
-                                                    >
-                                                        <SelectTrigger id="coin">
-                                                            <SelectValue />
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            <SelectItem value="USDT">{t('USDT')}</SelectItem>
-                                                            <SelectItem value="USDC">{t('USDC')}</SelectItem>
-                                                            <SelectItem value="BTC">{t('BTC')}</SelectItem>
-                                                            <SelectItem value="ETH">{t('ETH')}</SelectItem>
-                                                        </SelectContent>
-                                                    </Select>
-                                                </div>
-                                            </>
-                                        )}
-                                    </div>
+                                    {data.payment_method === 'redotpay' && (
+                                        <div>
+                                            <Label htmlFor="redotpay_id" required>{t('Redotpay ID / Email / Phone')}</Label>
+                                            <Input
+                                                id="redotpay_id"
+                                                value={data.payment_details?.redotpay_id || ''}
+                                                onChange={(e) => handleDetailChange('redotpay_id', e.target.value)}
+                                                placeholder={t('Enter Redotpay Identifier')}
+                                                required
+                                            />
+                                        </div>
+                                    )}
+
+                                    {data.payment_method === 'remitly' && (
+                                        <>
+                                            <div>
+                                                <Label htmlFor="recipient_name" required>{t('Recipient Full Name')}</Label>
+                                                <Input
+                                                    id="recipient_name"
+                                                    value={data.payment_details?.recipient_name || ''}
+                                                    onChange={(e) => handleDetailChange('recipient_name', e.target.value)}
+                                                    placeholder={t('Enter Recipient Name')}
+                                                    required
+                                                />
+                                            </div>
+                                            <div>
+                                                <Label htmlFor="recipient_phone" required>{t('Recipient Phone Number')}</Label>
+                                                <Input
+                                                    id="recipient_phone"
+                                                    value={data.payment_details?.recipient_phone || ''}
+                                                    onChange={(e) => handleDetailChange('recipient_phone', e.target.value)}
+                                                    placeholder={t('+1234567890')}
+                                                    required
+                                                />
+                                            </div>
+                                            <div>
+                                                <Label htmlFor="recipient_country" required>{t('Recipient Target Country')}</Label>
+                                                <Input
+                                                    id="recipient_country"
+                                                    value={data.payment_details?.recipient_country || ''}
+                                                    onChange={(e) => handleDetailChange('recipient_country', e.target.value)}
+                                                    placeholder={t('e.g. Philippines, India')}
+                                                    required
+                                                />
+                                            </div>
+                                            <div>
+                                                <Label htmlFor="delivery_method" required>{t('Delivery Method')}</Label>
+                                                <Select
+                                                    value={data.payment_details?.delivery_method || 'Bank Deposit'}
+                                                    onValueChange={(val) => handleDetailChange('delivery_method', val)}
+                                                >
+                                                    <SelectTrigger id="delivery_method">
+                                                        <SelectValue />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="Bank Deposit">{t('Bank Deposit')}</SelectItem>
+                                                        <SelectItem value="Cash Pickup">{t('Cash Pickup')}</SelectItem>
+                                                        <SelectItem value="Mobile Money">{t('Mobile Money')}</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                            <div>
+                                                <Label htmlFor="wallet_provider">{t('Recipient Bank / Mobile Wallet Name')}</Label>
+                                                <Input
+                                                    id="wallet_provider"
+                                                    value={data.payment_details?.wallet_provider || ''}
+                                                    onChange={(e) => handleDetailChange('wallet_provider', e.target.value)}
+                                                    placeholder={t('e.g. GCash, bKash, Metrobank')}
+                                                />
+                                            </div>
+                                            <div>
+                                                <Label htmlFor="wallet_number">{t('Account / Wallet Number')}</Label>
+                                                <Input
+                                                    id="wallet_number"
+                                                    value={data.payment_details?.wallet_number || ''}
+                                                    onChange={(e) => handleDetailChange('wallet_number', e.target.value)}
+                                                    placeholder={t('Enter account or wallet number')}
+                                                />
+                                            </div>
+                                        </>
+                                    )}
+
+                                    {data.payment_method === 'western_union' && (
+                                        <>
+                                            <div>
+                                                <Label htmlFor="recipient_name" required>{t('Recipient Full Name')}</Label>
+                                                <Input
+                                                    id="recipient_name"
+                                                    value={data.payment_details?.recipient_name || ''}
+                                                    onChange={(e) => handleDetailChange('recipient_name', e.target.value)}
+                                                    placeholder={t('Must match official ID card')}
+                                                    required
+                                                />
+                                            </div>
+                                            <div>
+                                                <Label htmlFor="recipient_city" required>{t('Recipient City')}</Label>
+                                                <Input
+                                                    id="recipient_city"
+                                                    value={data.payment_details?.recipient_city || ''}
+                                                    onChange={(e) => handleDetailChange('recipient_city', e.target.value)}
+                                                    placeholder={t('Enter City')}
+                                                    required
+                                                />
+                                            </div>
+                                            <div>
+                                                <Label htmlFor="recipient_country" required>{t('Recipient Country')}</Label>
+                                                <Input
+                                                    id="recipient_country"
+                                                    value={data.payment_details?.recipient_country || ''}
+                                                    onChange={(e) => handleDetailChange('recipient_country', e.target.value)}
+                                                    placeholder={t('Enter Country')}
+                                                    required
+                                                />
+                                            </div>
+                                            <div>
+                                                <Label htmlFor="recipient_phone">{t('Recipient Phone Number')}</Label>
+                                                <Input
+                                                    id="recipient_phone"
+                                                    value={data.payment_details?.recipient_phone || ''}
+                                                    onChange={(e) => handleDetailChange('recipient_phone', e.target.value)}
+                                                    placeholder={t('Enter Phone Number')}
+                                                />
+                                            </div>
+                                        </>
+                                    )}
+
+                                    {data.payment_method === 'binance_bybit' && (
+                                        <>
+                                            <div>
+                                                <Label htmlFor="exchange" required>{t('Exchange / Platform')}</Label>
+                                                <Select
+                                                    value={data.payment_details?.exchange || 'Binance'}
+                                                    onValueChange={(val) => handleDetailChange('exchange', val)}
+                                                >
+                                                    <SelectTrigger id="exchange">
+                                                        <SelectValue />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="Binance">{t('Binance')}</SelectItem>
+                                                        <SelectItem value="Bybit">{t('Bybit')}</SelectItem>
+                                                        <SelectItem value="External Wallet">{t('External Web3 Wallet')}</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                            <div>
+                                                <Label htmlFor="network" required>{t('Network')}</Label>
+                                                <Select
+                                                    value={data.payment_details?.network || 'TRC20'}
+                                                    onValueChange={(val) => handleDetailChange('network', val)}
+                                                >
+                                                    <SelectTrigger id="network">
+                                                        <SelectValue />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="TRC20">{t('TRON (TRC20)')}</SelectItem>
+                                                        <SelectItem value="ERC20">{t('Ethereum (ERC20)')}</SelectItem>
+                                                        <SelectItem value="BEP20">{t('BNB Smart Chain (BEP20)')}</SelectItem>
+                                                        <SelectItem value="Solana">{t('Solana')}</SelectItem>
+                                                        <SelectItem value="Polygon">{t('Polygon (MATIC)')}</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                            <div className="md:col-span-2">
+                                                <Label htmlFor="wallet_address" required>{t('Wallet Address')}</Label>
+                                                <Input
+                                                    id="wallet_address"
+                                                    value={data.payment_details?.wallet_address || ''}
+                                                    onChange={(e) => handleDetailChange('wallet_address', e.target.value)}
+                                                    placeholder={t('Paste wallet address (verify network matches)')}
+                                                    required
+                                                />
+                                            </div>
+                                            <div>
+                                                <Label htmlFor="coin" required>{t('Coin')}</Label>
+                                                <Select
+                                                    value={data.payment_details?.coin || 'USDT'}
+                                                    onValueChange={(val) => handleDetailChange('coin', val)}
+                                                >
+                                                    <SelectTrigger id="coin">
+                                                        <SelectValue />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="USDT">{t('USDT')}</SelectItem>
+                                                        <SelectItem value="USDC">{t('USDC')}</SelectItem>
+                                                        <SelectItem value="BTC">{t('BTC')}</SelectItem>
+                                                        <SelectItem value="ETH">{t('ETH')}</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                        </>
+                                    )}
                                 </div>
+                            </CardContent>
+                        </Card>
 
-                                <div className="flex justify-between border-t pt-6">
-                                    <Button type="button" variant="outline" onClick={() => setActiveTab('contact')}>
-                                        {t('Previous')}
-                                    </Button>
-                                    <Button
-                                        type="button"
-                                        onClick={() => setActiveTab('hours')}
-                                        disabled={!validatePayrollTab()}
-                                    >
-                                        {t('Next')}
-                                    </Button>
-                                </div>
-                            </TabsContent>
-
-                            <TabsContent value="hours" className="space-y-6 mt-6">
+                        {/* SECTION 5: Hours & Rates */}
+                        <Card className="shadow-xs border border-slate-200 dark:border-slate-800">
+                            <div className="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-6 py-3.5 rounded-t-xl">
+                                <h3 className="text-sm font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">
+                                    5. {t('Hours & Rates')}
+                                </h3>
+                            </div>
+                            <CardContent className="pt-6 space-y-6">
                                 <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-5">
                                     <div>
                                         <Label htmlFor="salary_type" required>{t('Salary Period')}</Label>
@@ -1555,12 +1506,6 @@ export default function Create() {
                                             required
                                         />
                                         <InputError message={errors.basic_salary} />
-                                        {data.salary_type === 'yearly' && data.basic_salary && !isNaN(parseFloat(data.basic_salary)) && (
-                                            <div className="mt-2 text-xs font-semibold text-slate-500 flex justify-between">
-                                                <span>{t('Monthly Equivalent:')}</span>
-                                                <span className="text-primary font-bold">{formatCurrency(parseFloat(data.basic_salary) / 12)}</span>
-                                            </div>
-                                        )}
                                     </div>
 
                                     <div>
@@ -1622,97 +1567,99 @@ export default function Create() {
                                         <InputError message={errors.rate_per_hour} />
                                     </div>
                                 </div>
+                            </CardContent>
+                        </Card>
 
-                                <div className="flex justify-between">
-                                    <Button type="button" variant="outline" onClick={() => setActiveTab('payroll')}>
-                                        {t('Previous')}
-                                    </Button>
+                        {/* SECTION 6: Documents */}
+                        {documentTypes && documentTypes.length > 0 && (
+                            <Card className="shadow-xs border border-slate-200 dark:border-slate-800">
+                                <div className="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-6 py-3.5 rounded-t-xl flex items-center justify-between">
+                                    <h3 className="text-sm font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">
+                                        6. {t('Documents')}
+                                    </h3>
                                     <Button
                                         type="button"
-                                        onClick={() => setActiveTab('documents')}
-                                        disabled={!validateHoursTab()}
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={handleAddDocument}
+                                        className="flex items-center gap-1 text-xs"
                                     >
-                                        {t('Next')}
-                                    </Button>
-                                </div>
-                            </TabsContent>
-
-                            <TabsContent value="documents" className="space-y-6 mt-6">
-                                <div className="flex justify-between items-center">
-                                    <h3 className="text-lg font-medium">{t('Employee Documents')}</h3>
-                                    <Button type="button" onClick={addDocument} variant="outline">
+                                        <Plus className="w-3.5 h-3.5" />
                                         {t('Add Document')}
                                     </Button>
                                 </div>
-
-                                {data.documents.map((document: any, index: number) => (
-                                    <Card key={index} className="p-4">
-                                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                                            <div>
-                                                <Label required>{t('Document Type')}</Label>
+                                <CardContent className="pt-6 space-y-4">
+                                    {data.documents.map((doc, index) => (
+                                        <div key={index} className="flex items-start gap-4 p-4 border border-slate-200 dark:border-slate-800 rounded-lg bg-slate-50/50 dark:bg-slate-900/50">
+                                            <div className="flex-1 space-y-1">
+                                                <Label>{t('Document Type')}</Label>
                                                 <Select
-                                                    value={document.document_type_id?.toString() || ''}
-                                                    onValueChange={(value) => updateDocument(index, 'document_type_id', value)}
+                                                    value={doc.document_type_id}
+                                                    onValueChange={(val) => handleDocumentChange(index, 'document_type_id', val)}
                                                 >
-                                                    <SelectTrigger>
+                                                    <SelectTrigger className="w-full">
                                                         <SelectValue placeholder={t('Select Document Type')} />
                                                     </SelectTrigger>
                                                     <SelectContent>
-                                                        {documentTypes?.map((type: any) => (
+                                                        {documentTypes.map((type: any) => (
                                                             <SelectItem key={type.id} value={type.id.toString()}>
-                                                                {type.document_name} {type.is_required && '*'}
+                                                                {type.name}
                                                             </SelectItem>
                                                         ))}
                                                     </SelectContent>
                                                 </Select>
                                                 <InputError message={errors[`documents.${index}.document_type_id`]} />
                                             </div>
-                                            <div>
-                                                <MediaPicker
-                                                    label={t('Document File')}
-                                                    value={document.file}
-                                                    onChange={(value) => updateDocument(index, 'file', value)}
-                                                    placeholder={t('Select or upload document...')}
-                                                    showPreview={true}
-                                                    required
+
+                                            <div className="flex-1 space-y-1">
+                                                <Label>{t('Document File')}</Label>
+                                                <Input
+                                                    type="file"
+                                                    onChange={(e) => handleDocumentChange(index, 'file', e.target.files?.[0] || '')}
+                                                    className="cursor-pointer"
                                                 />
                                                 <InputError message={errors[`documents.${index}.file`]} />
                                             </div>
-                                        </div>
-                                        <div className="flex justify-end mt-4">
+
                                             <Button
                                                 type="button"
-                                                variant="destructive"
-                                                size="sm"
-                                                onClick={() => removeDocument(index)}
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() => handleRemoveDocument(index)}
+                                                className="mt-6 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/50"
                                             >
-                                                <Trash2 className="h-4 w-4 mr-2" />
-                                                {t('Remove')}
+                                                <Trash2 className="w-4 h-4" />
                                             </Button>
                                         </div>
-                                    </Card>
-                                ))}
+                                    ))}
 
+                                    {data.documents.length === 0 && (
+                                        <p className="text-sm text-slate-500 dark:text-slate-400 text-center py-4">
+                                            {t('No documents attached yet. Click "Add Document" to upload.')}
+                                        </p>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        )}
 
-
-                                <div className="flex justify-between">
-                                    <Button type="button" variant="outline" onClick={() => setActiveTab('hours')}>
-                                        {t('Previous')}
-                                    </Button>
-                                    <div className="flex gap-2">
-                                        <Button type="button" variant="outline" onClick={() => window.history.back()}>
-                                            {t('Cancel')}
-                                        </Button>
-                                        <Button type="submit" disabled={processing}>
-                                            {processing ? t('Creating...') : t('Create')}
-                                        </Button>
-                                    </div>
-                                </div>
-                            </TabsContent>
-                        </Tabs>
+                        {/* Submit Action */}
+                        <div className="flex justify-end gap-3 pt-4">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => window.history.back()}
+                            >
+                                {t('Cancel')}
+                            </Button>
+                            <Button
+                                type="submit"
+                                disabled={processing}
+                                className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-8 shadow-md"
+                            >
+                                {processing ? t('Creating Employee...') : t('Create Employee')}
+                            </Button>
+                        </div>
                     </form>
-                </CardContent>
-            </Card>
 
             <Dialog open={isAddUserOpen} onOpenChange={setIsAddUserOpen}>
                 <DialogContent className="sm:max-w-[500px]">
