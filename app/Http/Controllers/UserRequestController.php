@@ -10,18 +10,37 @@ use Inertia\Inertia;
 
 class UserRequestController extends Controller
 {
+    private function canManageRequests(): bool
+    {
+        $user = Auth::user();
+        if (!$user) return false;
+        return $user->type === 'company' || 
+               $user->type === 'superadmin' || 
+               $user->can('manage-users') || 
+               $user->can('manage-employees');
+    }
+
     public function index()
     {
-        if (!Auth::user()->can('manage-users')) {
-            return back()->with('error', __('Permission denied'));
+        if (!$this->canManageRequests()) {
+            return redirect()->route('dashboard')->with('error', __('Permission denied'));
         }
 
-        $requests = UserRequest::where('company_id', creatorId())
-            ->where('status', 'pending')
-            ->latest()
-            ->paginate(15);
+        try {
+            $cid = creatorId();
+            $requests = UserRequest::where(function($q) use ($cid) {
+                    $q->where('company_id', $cid)
+                      ->orWhereNull('company_id');
+                })
+                ->where('status', 'pending')
+                ->latest()
+                ->paginate(15);
 
-        $invitationCodes = \App\Models\InvitationCode::latest()->take(20)->get();
+            $invitationCodes = \App\Models\InvitationCode::latest()->take(30)->get();
+        } catch (\Throwable $e) {
+            $requests = new \Illuminate\Pagination\LengthAwarePaginator([], 0, 15);
+            $invitationCodes = collect([]);
+        }
 
         return Inertia::render('user-requests/index', [
             'requests' => $requests,
@@ -31,7 +50,7 @@ class UserRequestController extends Controller
 
     public function generateInviteCode(Request $request)
     {
-        if (!Auth::user()->can('manage-users')) {
+        if (!$this->canManageRequests()) {
             return back()->with('error', __('Permission denied'));
         }
 
@@ -46,7 +65,7 @@ class UserRequestController extends Controller
 
     public function approve(UserRequest $userRequest)
     {
-        if (!Auth::user()->can('manage-users') || $userRequest->company_id !== creatorId()) {
+        if (!$this->canManageRequests()) {
             return back()->with('error', __('Permission denied'));
         }
 
@@ -167,7 +186,7 @@ class UserRequestController extends Controller
 
     public function reject(UserRequest $userRequest)
     {
-        if (!Auth::user()->can('manage-users') || $userRequest->company_id !== creatorId()) {
+        if (!$this->canManageRequests()) {
             return back()->with('error', __('Permission denied'));
         }
 
