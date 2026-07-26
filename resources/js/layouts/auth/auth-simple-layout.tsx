@@ -12,12 +12,14 @@ interface AuthLayoutProps {
     name?: string;
     title?: string;
     description?: string;
+    maxWidthClass?: string;
 }
 
 export default function AuthSimpleLayout({
     children,
     title,
     description,
+    maxWidthClass = "max-w-md",
 }: PropsWithChildren<AuthLayoutProps>) {
     const { settings, getPrimaryColor } = useBrand();
     const { adminAllSetting } = usePage().props as any;
@@ -114,7 +116,7 @@ export default function AuthSimpleLayout({
             </div>
 
             <div className="flex items-center justify-center min-h-screen p-6 relative z-10">
-                <div className="w-full max-w-md">
+                <div className={`w-full ${maxWidthClass}`}>
                     {/* Primary Logo */}
                     <div className="text-center mb-8">
                         <div className="relative inline-block lg:px-6">

@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import AuthLayout from '@/layouts/auth-layout';
-import { Head, Link, useForm } from '@inertiajs/react';
+import { Head, Link, useForm, usePage } from '@inertiajs/react';
 import { FormEventHandler, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -12,31 +12,31 @@ import { Users, UserCheck, Building2, ShoppingBag, Key, ChevronRight, ChevronLef
 
 export default function Register() {
     const { t } = useTranslation();
+    const { branches = [], departments = [], designations = [] } = usePage<any>().props;
+
     const [currentStep, setCurrentStep] = useState(1);
+    const [filteredDepartments, setFilteredDepartments] = useState<any[]>(departments || []);
+    const [filteredDesignations, setFilteredDesignations] = useState<any[]>(designations || []);
 
     const roleOptions = [
         { 
             value: 'staff', 
             label: t('Staff / Employee'), 
-            desc: t('Access HR portal & employee self-service'),
             icon: Users 
         },
         { 
             value: 'hr', 
             label: t('HR Manager'), 
-            desc: t('Manage recruitment, onboarding & employee records'),
             icon: UserCheck 
         },
         { 
             value: 'client', 
             label: t('Client'), 
-            desc: t('Access client portal, invoices & projects'),
             icon: Building2 
         },
         { 
             value: 'vendor', 
-            label: t('Vendor / Supplier'), 
-            desc: t('Manage purchase orders & supplier portal'),
+            label: t('Vendor'), 
             icon: ShoppingBag 
         },
     ];
@@ -58,8 +58,9 @@ export default function Register() {
         emergency_contact_number: '',
 
         // Tab 2: Employment
-        department: '',
-        designation: '',
+        branch_id: '',
+        department_id: '',
+        designation_id: '',
         employment_type: 'Full Time',
         employment_status: 'probation',
         work_mode: 'Remote',
@@ -102,6 +103,34 @@ export default function Register() {
         };
     }, []);
 
+    // Filter Departments when Branch changes
+    useEffect(() => {
+        if (data.branch_id) {
+            const depts = departments.filter((d: any) => {
+                if (!d.branch_id) return true;
+                const branchIds = d.branch_id.toString().split(',');
+                return branchIds.includes(data.branch_id.toString());
+            });
+            setFilteredDepartments(depts);
+        } else {
+            setFilteredDepartments(departments || []);
+        }
+    }, [data.branch_id, departments]);
+
+    // Filter Designations when Department changes
+    useEffect(() => {
+        if (data.department_id) {
+            const desigs = designations.filter((d: any) => {
+                if (!d.department_id) return true;
+                const deptIds = d.department_id.toString().split(',');
+                return deptIds.includes(data.department_id.toString());
+            });
+            setFilteredDesignations(desigs);
+        } else {
+            setFilteredDesignations(designations || []);
+        }
+    }, [data.department_id, designations]);
+
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
         post(route('register.request'));
@@ -113,42 +142,35 @@ export default function Register() {
         <AuthLayout
             title={t('Employee & User Onboarding')}
             description={t('Enter your details and company invite code to submit an onboarding request')}
+            maxWidthClass="max-w-2xl"
         >
             <Head title={t('Register')} />
             
             <form onSubmit={submit} className="space-y-4">
-                {/* 1. Role Selection via Radio Cards */}
-                <div className="space-y-2">
+                {/* 1. Role Selection via Compact Row Pills */}
+                <div className="space-y-1.5">
                     <Label className="text-xs font-semibold uppercase tracking-wider text-gray-700 dark:text-gray-300">
                         {t('I want to register as')} *
                     </Label>
 
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-4 gap-2">
                         {roleOptions.map((item) => {
                             const Icon = item.icon;
                             const isSelected = data.role === item.value;
                             return (
-                                <div
+                                <button
                                     key={item.value}
+                                    type="button"
                                     onClick={() => setData('role', item.value)}
-                                    className={`relative flex flex-col p-2 rounded-xl border-2 cursor-pointer transition-all duration-200 ${
+                                    className={`flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-lg border text-xs font-bold transition-all ${
                                         isSelected 
-                                            ? 'bg-indigo-50/60 dark:bg-indigo-950/40 border-indigo-600 dark:border-indigo-500 shadow-sm' 
-                                            : 'bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 hover:border-gray-300 dark:hover:border-slate-600'
+                                            ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm' 
+                                            : 'bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-slate-700 hover:border-gray-300'
                                     }`}
                                 >
-                                    <div className="flex items-center justify-between mb-1">
-                                        <div className={`p-1 rounded-lg ${isSelected ? 'bg-indigo-600 text-white' : 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300'}`}>
-                                            <Icon className="w-3.5 h-3.5" />
-                                        </div>
-                                        <div className={`w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center ${isSelected ? 'border-indigo-600 bg-indigo-600' : 'border-gray-300 dark:border-slate-600'}`}>
-                                            {isSelected && <div className="w-1 h-1 rounded-full bg-white"></div>}
-                                        </div>
-                                    </div>
-                                    <span className="text-xs font-bold text-gray-900 dark:text-white leading-tight">
-                                        {item.label}
-                                    </span>
-                                </div>
+                                    <Icon className="w-3.5 h-3.5 shrink-0" />
+                                    <span className="truncate">{item.label}</span>
+                                </button>
                             );
                         })}
                     </div>
@@ -156,13 +178,13 @@ export default function Register() {
                 </div>
 
                 {/* 2. Invitation Code Field */}
-                <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 space-y-1">
+                <div className="space-y-1">
                     <div className="flex items-center justify-between">
-                        <Label htmlFor="invitation_code" className="text-xs font-bold text-amber-900 dark:text-amber-300 flex items-center gap-1.5">
-                            <Key className="w-3.5 h-3.5 text-amber-600" />
+                        <Label htmlFor="invitation_code" className="text-xs font-bold text-gray-900 dark:text-white flex items-center gap-1.5">
+                            <Key className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
                             {t('Company Invite Code')} *
                         </Label>
-                        <span className="text-[9px] font-semibold text-amber-700 dark:text-amber-400 bg-amber-500/20 px-2 py-0.5 rounded-full">
+                        <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-semibold bg-indigo-50 dark:bg-indigo-950/60 px-2 py-0.5 rounded-full border border-indigo-200 dark:border-indigo-800">
                             {t('One-Time Code')}
                         </span>
                     </div>
@@ -174,94 +196,96 @@ export default function Register() {
                         onChange={(e) => setData('invitation_code', e.target.value.toUpperCase())}
                         required
                         placeholder="e.g. STA-1001 or DYN-8492"
-                        className="w-full px-3 py-1.5 uppercase font-mono text-xs tracking-wider font-semibold border-amber-300 dark:border-amber-700 bg-white dark:bg-slate-900 text-gray-900 dark:text-white"
+                        className="w-full px-3 py-1.5 uppercase font-mono text-xs tracking-wider font-semibold border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-gray-900 dark:text-white"
                     />
                     <InputError message={errors.invitation_code} />
                 </div>
 
                 {/* 3. Multi-Step Onboarding Tabs for Staff / HR */}
                 {isStaffOrHr ? (
-                    <div className="space-y-3">
+                    <div className="space-y-3.5 pt-1">
                         {/* Steps Navigation Bar */}
-                        <div className="flex items-center justify-between border-b pb-1.5 text-[11px] font-semibold text-gray-600 dark:text-gray-400 overflow-x-auto">
+                        <div className="flex items-center justify-between border-b pb-2 text-xs font-semibold text-gray-600 dark:text-gray-400">
                             <button
                                 type="button"
                                 onClick={() => setCurrentStep(1)}
-                                className={`flex items-center gap-1 pb-1 border-b-2 whitespace-nowrap transition-colors ${currentStep === 1 ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400 font-bold' : 'border-transparent'}`}
+                                className={`flex items-center gap-1 pb-1.5 border-b-2 transition-colors ${currentStep === 1 ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400 font-bold' : 'border-transparent'}`}
                             >
-                                <User className="w-3 h-3" />
+                                <User className="w-3.5 h-3.5" />
                                 {t('1. Personal')}
                             </button>
 
                             <button
                                 type="button"
                                 onClick={() => setCurrentStep(2)}
-                                className={`flex items-center gap-1 pb-1 border-b-2 whitespace-nowrap transition-colors ${currentStep === 2 ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400 font-bold' : 'border-transparent'}`}
+                                className={`flex items-center gap-1 pb-1.5 border-b-2 transition-colors ${currentStep === 2 ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400 font-bold' : 'border-transparent'}`}
                             >
-                                <Briefcase className="w-3 h-3" />
+                                <Briefcase className="w-3.5 h-3.5" />
                                 {t('2. Employment')}
                             </button>
 
                             <button
                                 type="button"
                                 onClick={() => setCurrentStep(3)}
-                                className={`flex items-center gap-1 pb-1 border-b-2 whitespace-nowrap transition-colors ${currentStep === 3 ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400 font-bold' : 'border-transparent'}`}
+                                className={`flex items-center gap-1 pb-1.5 border-b-2 transition-colors ${currentStep === 3 ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400 font-bold' : 'border-transparent'}`}
                             >
-                                <MapPin className="w-3 h-3" />
+                                <MapPin className="w-3.5 h-3.5" />
                                 {t('3. Contact')}
                             </button>
 
                             <button
                                 type="button"
                                 onClick={() => setCurrentStep(4)}
-                                className={`flex items-center gap-1 pb-1 border-b-2 whitespace-nowrap transition-colors ${currentStep === 4 ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400 font-bold' : 'border-transparent'}`}
+                                className={`flex items-center gap-1 pb-1.5 border-b-2 transition-colors ${currentStep === 4 ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400 font-bold' : 'border-transparent'}`}
                             >
-                                <CreditCard className="w-3 h-3" />
+                                <CreditCard className="w-3.5 h-3.5" />
                                 {t('4. Payroll')}
                             </button>
 
                             <button
                                 type="button"
                                 onClick={() => setCurrentStep(5)}
-                                className={`flex items-center gap-1 pb-1 border-b-2 whitespace-nowrap transition-colors ${currentStep === 5 ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400 font-bold' : 'border-transparent'}`}
+                                className={`flex items-center gap-1 pb-1.5 border-b-2 transition-colors ${currentStep === 5 ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400 font-bold' : 'border-transparent'}`}
                             >
-                                <Clock className="w-3 h-3" />
+                                <Clock className="w-3.5 h-3.5" />
                                 {t('5. Password')}
                             </button>
                         </div>
 
                         {/* STEP 1: Personal Information */}
                         {currentStep === 1 && (
-                            <div className="space-y-2.5">
-                                <div className="space-y-1">
-                                    <Label htmlFor="name" className="text-xs font-medium text-gray-900 dark:text-white">{t('Full Name')} *</Label>
-                                    <Input
-                                        id="name"
-                                        type="text"
-                                        value={data.name}
-                                        onChange={(e) => setData('name', e.target.value)}
-                                        required
-                                        placeholder={t('Enter full name')}
-                                        className="w-full px-3 py-1.5 text-xs border-gray-300 dark:border-gray-600 rounded-md dark:bg-slate-700 dark:text-white"
-                                    />
-                                    <InputError message={errors.name} />
+                            <div className="space-y-3">
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="space-y-1">
+                                        <Label htmlFor="name" className="text-xs font-medium text-gray-900 dark:text-white">{t('Full Name')} *</Label>
+                                        <Input
+                                            id="name"
+                                            type="text"
+                                            value={data.name}
+                                            onChange={(e) => setData('name', e.target.value)}
+                                            required
+                                            placeholder={t('Enter full name')}
+                                            className="w-full px-3 py-1.5 text-xs border-gray-300 dark:border-gray-600 rounded-md dark:bg-slate-700 dark:text-white"
+                                        />
+                                        <InputError message={errors.name} />
+                                    </div>
+
+                                    <div className="space-y-1">
+                                        <Label htmlFor="email" className="text-xs font-medium text-gray-900 dark:text-white">{t('Email Address')} *</Label>
+                                        <Input
+                                            id="email"
+                                            type="email"
+                                            value={data.email}
+                                            onChange={(e) => setData('email', e.target.value)}
+                                            required
+                                            placeholder={t('name@example.com')}
+                                            className="w-full px-3 py-1.5 text-xs border-gray-300 dark:border-gray-600 rounded-md dark:bg-slate-700 dark:text-white"
+                                        />
+                                        <InputError message={errors.email} />
+                                    </div>
                                 </div>
 
-                                <div className="space-y-1">
-                                    <Label htmlFor="email" className="text-xs font-medium text-gray-900 dark:text-white">{t('Email Address')} *</Label>
-                                    <Input
-                                        id="email"
-                                        type="email"
-                                        value={data.email}
-                                        onChange={(e) => setData('email', e.target.value)}
-                                        required
-                                        placeholder={t('name@example.com')}
-                                        className="w-full px-3 py-1.5 text-xs border-gray-300 dark:border-gray-600 rounded-md dark:bg-slate-700 dark:text-white"
-                                    />
-                                    <InputError message={errors.email} />
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-2">
+                                <div className="grid grid-cols-2 gap-3">
                                     <div className="space-y-1">
                                         <Label htmlFor="phone" className="text-xs font-medium text-gray-900 dark:text-white">{t('Phone Number')} *</Label>
                                         <Input
@@ -273,6 +297,7 @@ export default function Register() {
                                             className="w-full px-3 py-1.5 text-xs border-gray-300 dark:border-gray-600 rounded-md dark:bg-slate-700 dark:text-white"
                                         />
                                     </div>
+
                                     <div className="space-y-1">
                                         <Label htmlFor="date_of_birth" className="text-xs font-medium text-gray-900 dark:text-white">{t('Date of Birth')} *</Label>
                                         <Input
@@ -285,7 +310,7 @@ export default function Register() {
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-2">
+                                <div className="grid grid-cols-3 gap-3">
                                     <div className="space-y-1">
                                         <Label htmlFor="gender" className="text-xs font-medium text-gray-900 dark:text-white">{t('Gender')}</Label>
                                         <Select value={data.gender} onValueChange={(val) => setData('gender', val)}>
@@ -311,20 +336,7 @@ export default function Register() {
                                             className="w-full px-3 py-1.5 text-xs border-gray-300 dark:border-gray-600 rounded-md dark:bg-slate-700 dark:text-white"
                                         />
                                     </div>
-                                </div>
 
-                                <div className="grid grid-cols-2 gap-2">
-                                    <div className="space-y-1">
-                                        <Label htmlFor="emergency_contact_relationship" className="text-xs font-medium text-gray-900 dark:text-white">{t('Relationship')}</Label>
-                                        <Input
-                                            id="emergency_contact_relationship"
-                                            type="text"
-                                            value={data.emergency_contact_relationship}
-                                            onChange={(e) => setData('emergency_contact_relationship', e.target.value)}
-                                            placeholder={t('Spouse, Parent, Sibling')}
-                                            className="w-full px-3 py-1.5 text-xs border-gray-300 dark:border-gray-600 rounded-md dark:bg-slate-700 dark:text-white"
-                                        />
-                                    </div>
                                     <div className="space-y-1">
                                         <Label htmlFor="emergency_contact_number" className="text-xs font-medium text-gray-900 dark:text-white">{t('Emergency Phone')}</Label>
                                         <Input
@@ -340,36 +352,78 @@ export default function Register() {
                             </div>
                         )}
 
-                        {/* STEP 2: Employment Details */}
+                        {/* STEP 2: Employment Details (Dynamic Dropdowns) */}
                         {currentStep === 2 && (
-                            <div className="space-y-2.5">
-                                <div className="grid grid-cols-2 gap-2">
+                            <div className="space-y-3">
+                                {branches && branches.length > 0 && (
                                     <div className="space-y-1">
-                                        <Label htmlFor="department" className="text-xs font-medium text-gray-900 dark:text-white">{t('Department Interest')}</Label>
-                                        <Input
-                                            id="department"
-                                            type="text"
-                                            value={data.department}
-                                            onChange={(e) => setData('department', e.target.value)}
-                                            placeholder={t('Software Engineering, Sales')}
-                                            className="w-full px-3 py-1.5 text-xs border-gray-300 dark:border-gray-600 rounded-md dark:bg-slate-700 dark:text-white"
-                                        />
+                                        <Label htmlFor="branch_id" className="text-xs font-medium text-gray-900 dark:text-white">{t('Branch')}</Label>
+                                        <Select value={data.branch_id} onValueChange={(val) => setData('branch_id', val)}>
+                                            <SelectTrigger className="w-full h-8 text-xs dark:bg-slate-700 dark:text-white">
+                                                <SelectValue placeholder={t('Select Branch')} />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {branches.map((b: any) => (
+                                                    <SelectItem key={b.id} value={b.id.toString()}>{b.name}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                )}
+
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="space-y-1">
+                                        <Label htmlFor="department_id" className="text-xs font-medium text-gray-900 dark:text-white">{t('Department')} *</Label>
+                                        {filteredDepartments && filteredDepartments.length > 0 ? (
+                                            <Select value={data.department_id} onValueChange={(val) => setData('department_id', val)}>
+                                                <SelectTrigger className="w-full h-8 text-xs dark:bg-slate-700 dark:text-white">
+                                                    <SelectValue placeholder={t('Select Department')} />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {filteredDepartments.map((d: any) => (
+                                                        <SelectItem key={d.id} value={d.id.toString()}>{d.name}</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        ) : (
+                                            <Input
+                                                id="department"
+                                                type="text"
+                                                value={data.department_id}
+                                                onChange={(e) => setData('department_id', e.target.value)}
+                                                placeholder={t('e.g. Software Engineering')}
+                                                className="w-full px-3 py-1.5 text-xs border-gray-300 dark:border-gray-600 rounded-md dark:bg-slate-700 dark:text-white"
+                                            />
+                                        )}
                                     </div>
 
                                     <div className="space-y-1">
-                                        <Label htmlFor="designation" className="text-xs font-medium text-gray-900 dark:text-white">{t('Designation / Title')}</Label>
-                                        <Input
-                                            id="designation"
-                                            type="text"
-                                            value={data.designation}
-                                            onChange={(e) => setData('designation', e.target.value)}
-                                            placeholder={t('Senior Developer, Executive')}
-                                            className="w-full px-3 py-1.5 text-xs border-gray-300 dark:border-gray-600 rounded-md dark:bg-slate-700 dark:text-white"
-                                        />
+                                        <Label htmlFor="designation_id" className="text-xs font-medium text-gray-900 dark:text-white">{t('Designation / Title')}</Label>
+                                        {filteredDesignations && filteredDesignations.length > 0 ? (
+                                            <Select value={data.designation_id} onValueChange={(val) => setData('designation_id', val)}>
+                                                <SelectTrigger className="w-full h-8 text-xs dark:bg-slate-700 dark:text-white">
+                                                    <SelectValue placeholder={t('Select Designation')} />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {filteredDesignations.map((d: any) => (
+                                                        <SelectItem key={d.id} value={d.id.toString()}>{d.name}</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        ) : (
+                                            <Input
+                                                id="designation"
+                                                type="text"
+                                                value={data.designation_id}
+                                                onChange={(e) => setData('designation_id', e.target.value)}
+                                                placeholder={t('e.g. Senior Developer')}
+                                                className="w-full px-3 py-1.5 text-xs border-gray-300 dark:border-gray-600 rounded-md dark:bg-slate-700 dark:text-white"
+                                            />
+                                        )}
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-2">
+                                <div className="grid grid-cols-3 gap-3">
                                     <div className="space-y-1">
                                         <Label htmlFor="employment_type" className="text-xs font-medium text-gray-900 dark:text-white">{t('Employment Type')}</Label>
                                         <Select value={data.employment_type} onValueChange={(val) => setData('employment_type', val)}>
@@ -398,28 +452,14 @@ export default function Register() {
                                             </SelectContent>
                                         </Select>
                                     </div>
-                                </div>
 
-                                <div className="grid grid-cols-2 gap-2">
                                     <div className="space-y-1">
-                                        <Label htmlFor="joining_date" className="text-xs font-medium text-gray-900 dark:text-white">{t('Expected Joining Date')}</Label>
+                                        <Label htmlFor="joining_date" className="text-xs font-medium text-gray-900 dark:text-white">{t('Joining Date')}</Label>
                                         <Input
                                             id="joining_date"
                                             type="date"
                                             value={data.joining_date}
                                             onChange={(e) => setData('joining_date', e.target.value)}
-                                            className="w-full px-3 py-1.5 text-xs border-gray-300 dark:border-gray-600 rounded-md dark:bg-slate-700 dark:text-white"
-                                        />
-                                    </div>
-
-                                    <div className="space-y-1">
-                                        <Label htmlFor="work_location_country" className="text-xs font-medium text-gray-900 dark:text-white">{t('Work Location Country')}</Label>
-                                        <Input
-                                            id="work_location_country"
-                                            type="text"
-                                            value={data.work_location_country}
-                                            onChange={(e) => setData('work_location_country', e.target.value)}
-                                            placeholder={t('Bangladesh')}
                                             className="w-full px-3 py-1.5 text-xs border-gray-300 dark:border-gray-600 rounded-md dark:bg-slate-700 dark:text-white"
                                         />
                                     </div>
@@ -429,32 +469,34 @@ export default function Register() {
 
                         {/* STEP 3: Contact & Address */}
                         {currentStep === 3 && (
-                            <div className="space-y-2.5">
-                                <div className="space-y-1">
-                                    <Label htmlFor="address_line_1" className="text-xs font-medium text-gray-900 dark:text-white">{t('Address Line 1')}</Label>
-                                    <Input
-                                        id="address_line_1"
-                                        type="text"
-                                        value={data.address_line_1}
-                                        onChange={(e) => setData('address_line_1', e.target.value)}
-                                        placeholder={t('House #, Road #, Area...')}
-                                        className="w-full px-3 py-1.5 text-xs border-gray-300 dark:border-gray-600 rounded-md dark:bg-slate-700 dark:text-white"
-                                    />
+                            <div className="space-y-3">
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="space-y-1">
+                                        <Label htmlFor="address_line_1" className="text-xs font-medium text-gray-900 dark:text-white">{t('Address Line 1')}</Label>
+                                        <Input
+                                            id="address_line_1"
+                                            type="text"
+                                            value={data.address_line_1}
+                                            onChange={(e) => setData('address_line_1', e.target.value)}
+                                            placeholder={t('House #, Road #, Area...')}
+                                            className="w-full px-3 py-1.5 text-xs border-gray-300 dark:border-gray-600 rounded-md dark:bg-slate-700 dark:text-white"
+                                        />
+                                    </div>
+
+                                    <div className="space-y-1">
+                                        <Label htmlFor="address_line_2" className="text-xs font-medium text-gray-900 dark:text-white">{t('Address Line 2')}</Label>
+                                        <Input
+                                            id="address_line_2"
+                                            type="text"
+                                            value={data.address_line_2}
+                                            onChange={(e) => setData('address_line_2', e.target.value)}
+                                            placeholder={t('Apartment, Suite, Unit')}
+                                            className="w-full px-3 py-1.5 text-xs border-gray-300 dark:border-gray-600 rounded-md dark:bg-slate-700 dark:text-white"
+                                        />
+                                    </div>
                                 </div>
 
-                                <div className="space-y-1">
-                                    <Label htmlFor="address_line_2" className="text-xs font-medium text-gray-900 dark:text-white">{t('Address Line 2 (Optional)')}</Label>
-                                    <Input
-                                        id="address_line_2"
-                                        type="text"
-                                        value={data.address_line_2}
-                                        onChange={(e) => setData('address_line_2', e.target.value)}
-                                        placeholder={t('Apartment, Suite, Unit')}
-                                        className="w-full px-3 py-1.5 text-xs border-gray-300 dark:border-gray-600 rounded-md dark:bg-slate-700 dark:text-white"
-                                    />
-                                </div>
-
-                                <div className="grid grid-cols-3 gap-2">
+                                <div className="grid grid-cols-3 gap-3">
                                     <div className="space-y-1">
                                         <Label htmlFor="city" className="text-xs font-medium text-gray-900 dark:text-white">{t('City')}</Label>
                                         <Input
@@ -494,7 +536,7 @@ export default function Register() {
 
                         {/* STEP 4: Financial & Payroll Details */}
                         {currentStep === 4 && (
-                            <div className="space-y-2.5">
+                            <div className="space-y-3">
                                 <div className="space-y-1">
                                     <Label htmlFor="tax_payer_id" className="text-xs font-medium text-gray-900 dark:text-white">{t('NID / Passport / Tax Payer ID')}</Label>
                                     <Input
@@ -507,9 +549,9 @@ export default function Register() {
                                     />
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-2">
+                                <div className="grid grid-cols-2 gap-3">
                                     <div className="space-y-1">
-                                        <Label htmlFor="bank_name" className="text-xs font-medium text-gray-900 dark:text-white">{t('Bank / Wallet Name')}</Label>
+                                        <Label htmlFor="bank_name" className="text-xs font-medium text-gray-900 dark:text-white">{t('Bank / Mobile Wallet Name')}</Label>
                                         <Input
                                             id="bank_name"
                                             type="text"
@@ -532,9 +574,9 @@ export default function Register() {
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-2">
+                                <div className="grid grid-cols-2 gap-3">
                                     <div className="space-y-1">
-                                        <Label htmlFor="account_number" className="text-xs font-medium text-gray-900 dark:text-white">{t('Account Number / Mobile Wallet No')}</Label>
+                                        <Label htmlFor="account_number" className="text-xs font-medium text-gray-900 dark:text-white">{t('Account / Mobile No')}</Label>
                                         <Input
                                             id="account_number"
                                             type="text"
@@ -561,8 +603,8 @@ export default function Register() {
 
                         {/* STEP 5: Password Credentials & Hours */}
                         {currentStep === 5 && (
-                            <div className="space-y-2.5">
-                                <div className="grid grid-cols-2 gap-2">
+                            <div className="space-y-3">
+                                <div className="grid grid-cols-2 gap-3">
                                     <div className="space-y-1">
                                         <Label htmlFor="hours_per_day" className="text-xs font-medium text-gray-900 dark:text-white">{t('Hours Per Day')}</Label>
                                         <Input
@@ -587,7 +629,7 @@ export default function Register() {
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-2 pt-1 border-t">
+                                <div className="grid grid-cols-2 gap-3 pt-2 border-t">
                                     <div className="space-y-1">
                                         <Label htmlFor="password" className="text-xs font-medium text-gray-900 dark:text-white">{t('Password')} *</Label>
                                         <Input
@@ -619,7 +661,7 @@ export default function Register() {
                         )}
 
                         {/* Step Navigation Controls */}
-                        <div className="flex items-center justify-between pt-2">
+                        <div className="flex items-center justify-between pt-3">
                             {currentStep > 1 ? (
                                 <Button
                                     type="button"
@@ -656,31 +698,33 @@ export default function Register() {
                     </div>
                 ) : (
                     /* Business Onboarding (Client / Vendor) */
-                    <div className="space-y-2.5">
-                        <div className="space-y-1">
-                            <Label htmlFor="name" className="text-xs font-medium text-gray-900 dark:text-white">{t('Contact Person Name')} *</Label>
-                            <Input
-                                id="name"
-                                type="text"
-                                value={data.name}
-                                onChange={(e) => setData('name', e.target.value)}
-                                required
-                                placeholder={t('Enter contact person name')}
-                                className="w-full px-3 py-1.5 text-xs border-gray-300 dark:border-gray-600 rounded-md dark:bg-slate-700 dark:text-white"
-                            />
-                        </div>
+                    <div className="space-y-3 pt-1">
+                        <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-1">
+                                <Label htmlFor="name" className="text-xs font-medium text-gray-900 dark:text-white">{t('Contact Person Name')} *</Label>
+                                <Input
+                                    id="name"
+                                    type="text"
+                                    value={data.name}
+                                    onChange={(e) => setData('name', e.target.value)}
+                                    required
+                                    placeholder={t('Enter contact person name')}
+                                    className="w-full px-3 py-1.5 text-xs border-gray-300 dark:border-gray-600 rounded-md dark:bg-slate-700 dark:text-white"
+                                />
+                            </div>
 
-                        <div className="space-y-1">
-                            <Label htmlFor="email" className="text-xs font-medium text-gray-900 dark:text-white">{t('Email Address')} *</Label>
-                            <Input
-                                id="email"
-                                type="email"
-                                value={data.email}
-                                onChange={(e) => setData('email', e.target.value)}
-                                required
-                                placeholder={t('name@company.com')}
-                                className="w-full px-3 py-1.5 text-xs border-gray-300 dark:border-gray-600 rounded-md dark:bg-slate-700 dark:text-white"
-                            />
+                            <div className="space-y-1">
+                                <Label htmlFor="email" className="text-xs font-medium text-gray-900 dark:text-white">{t('Email Address')} *</Label>
+                                <Input
+                                    id="email"
+                                    type="email"
+                                    value={data.email}
+                                    onChange={(e) => setData('email', e.target.value)}
+                                    required
+                                    placeholder={t('name@company.com')}
+                                    className="w-full px-3 py-1.5 text-xs border-gray-300 dark:border-gray-600 rounded-md dark:bg-slate-700 dark:text-white"
+                                />
+                            </div>
                         </div>
 
                         <div className="space-y-1">
@@ -695,7 +739,7 @@ export default function Register() {
                             />
                         </div>
 
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className="grid grid-cols-2 gap-3">
                             <div className="space-y-1">
                                 <Label htmlFor="password" className="text-xs font-medium text-gray-900 dark:text-white">{t('Password')} *</Label>
                                 <Input

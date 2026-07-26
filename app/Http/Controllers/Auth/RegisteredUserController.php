@@ -29,7 +29,6 @@ class RegisteredUserController extends Controller
             return redirect()->route('login');
         }
 
-        // Default role options
         $roles = [
             ['value' => 'staff', 'label' => __('Staff / Employee'), 'description' => __('Access HR self service & internal company tools')],
             ['value' => 'hr', 'label' => __('HR Manager'), 'description' => __('Manage recruitment, onboarding & employee records')],
@@ -37,8 +36,26 @@ class RegisteredUserController extends Controller
             ['value' => 'vendor', 'label' => __('Vendor / Supplier'), 'description' => __('Manage purchase orders & supplier portal')],
         ];
 
+        $companyUser = User::where('type', 'company')->first();
+        $creatorId = $companyUser ? $companyUser->id : 1;
+
+        $branches = [];
+        $departments = [];
+        $designations = [];
+
+        if (class_exists(\Workdo\Hrm\Models\Department::class)) {
+            if (class_exists(\Workdo\Hrm\Models\Branch::class)) {
+                $branches = \Workdo\Hrm\Models\Branch::where('created_by', $creatorId)->select('id', 'name')->get();
+            }
+            $departments = \Workdo\Hrm\Models\Department::where('created_by', $creatorId)->select('id', 'name', 'branch_id')->get();
+            $designations = \Workdo\Hrm\Models\Designation::where('created_by', $creatorId)->select('id', 'name', 'department_id')->get();
+        }
+
         return Inertia::render('auth/register', [
-            'roles' => $roles
+            'roles' => $roles,
+            'branches' => $branches,
+            'departments' => $departments,
+            'designations' => $designations,
         ]);
     }
 
