@@ -28,7 +28,7 @@ class EmployeeDocumentRequestController extends Controller
 
         $requests = $query->latest()->paginate(15);
 
-        return Inertia::render('Hrm::DocumentRequests/Index', [
+        return Inertia::render('Hrm/DocumentRequests/Index', [
             'documentRequests' => $requests,
             'currentEmployee'  => $employee,
             'documentTypes'    => [

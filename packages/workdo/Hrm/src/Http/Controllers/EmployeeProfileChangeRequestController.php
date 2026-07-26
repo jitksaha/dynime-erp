@@ -21,7 +21,7 @@ class EmployeeProfileChangeRequestController extends Controller
 
         $changeRequests = $query->latest()->paginate(15);
 
-        return Inertia::render('Hrm::ProfileChangeRequests/Index', [
+        return Inertia::render('Hrm/ProfileChangeRequests/Index', [
             'changeRequests' => $changeRequests,
         ]);
     }
