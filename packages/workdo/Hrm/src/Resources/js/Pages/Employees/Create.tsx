@@ -545,7 +545,7 @@ export default function Create() {
                                                 <SelectValue placeholder={t('Select User')} />
                                             </SelectTrigger>
                                             <SelectContent searchable={true}>
-                                                {localUsers.map((item: any) => (
+                                                {(localUsers || []).map((item: any) => (
                                                     <SelectItem key={item.id} value={item.id.toString()}>
                                                         {item.name}
                                                     </SelectItem>
@@ -561,7 +561,7 @@ export default function Create() {
                                         <Input
                                             id="user_phone"
                                             type="text"
-                                            value={localUsers.find((u: any) => u.id.toString() === data.user_id?.toString())?.mobile_no || ''}
+                                            value={(localUsers || []).find((u: any) => u && u.id && u.id.toString() === data.user_id?.toString())?.mobile_no || ''}
                                             disabled
                                             placeholder={t('No Phone Number')}
                                             className="bg-slate-50 cursor-not-allowed"

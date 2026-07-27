@@ -15,22 +15,27 @@ export const useFormFields = (hookName: string, data: any, setData: any, errors:
 
         const fields: FormField[] = [];
 
-        activatedPackages.forEach((packageName: string) => {
-            const fieldPath = `../../../packages/workdo/${packageName}/src/Resources/js/fields/fields.tsx`;
-            const module = allModules[fieldPath] as any;
-            
-            if (module && module[hookName]) {
-                const fieldExport = module[hookName];
-                if (typeof fieldExport === 'function') {
-                    try {
-                        const fieldComponents = fieldExport(data, setData, errors, mode, ...additionalParams);
-                        if (Array.isArray(fieldComponents)) {
-                            fields.push(...fieldComponents);
-                        } else if (fieldComponents) {
-                            fields.push(fieldComponents);
+        const activatedLower = (Array.isArray(activatedPackages) ? activatedPackages : []).map(p => String(p).toLowerCase());
+
+        Object.entries(allModules).forEach(([path, module]: [string, any]) => {
+            const match = path.match(/\/packages\/workdo\/([^/]+)\//i);
+            if (match) {
+                const pkgNameOnDisk = match[1];
+                if (activatedLower.includes(pkgNameOnDisk.toLowerCase())) {
+                    if (module && module[hookName]) {
+                        const fieldExport = module[hookName];
+                        if (typeof fieldExport === 'function') {
+                            try {
+                                const fieldComponents = fieldExport(data, setData, errors, mode, ...additionalParams);
+                                if (Array.isArray(fieldComponents)) {
+                                    fields.push(...fieldComponents);
+                                } else if (fieldComponents) {
+                                    fields.push(fieldComponents);
+                                }
+                            } catch (error) {
+                                // Silent error handling
+                            }
                         }
-                    } catch (error) {
-                        // Silent error handling
                     }
                 }
             }
