@@ -72,6 +72,18 @@ export interface Employee {
     created_at: string;
 }
 
+export interface AllowanceItem {
+    allowance_type_id: string;
+    type: 'fixed' | 'percentage';
+    amount: string;
+}
+
+export interface DeductionItem {
+    deduction_type_id: string;
+    type: 'fixed' | 'percentage';
+    amount: string;
+}
+
 export interface CreateEmployeeFormData {
     employee_id: string;
     mobile_no: string;
@@ -115,6 +127,8 @@ export interface CreateEmployeeFormData {
     payment_method: string;
     payment_details: any;
     documents: Array<{ document_type_id: string; file: any }>;
+    allowances: AllowanceItem[];
+    deductions: DeductionItem[];
     official_email?: string;
 }
 
@@ -162,6 +176,8 @@ export interface EditEmployeeFormData {
     payment_method: string;
     payment_details: any;
     documents: Array<{ document_type_id: string; file: any }>;
+    allowances: AllowanceItem[];
+    deductions: DeductionItem[];
 }
 
 export interface EmployeeFilters {

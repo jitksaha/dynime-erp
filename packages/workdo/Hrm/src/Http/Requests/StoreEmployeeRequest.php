@@ -57,6 +57,8 @@ class StoreEmployeeRequest extends FormRequest
             'designation_id' => 'required|exists:designations,id',
             'documents' => 'nullable|array',
             'documents.*.document_type_id' => 'required_with:documents.*.file|nullable|exists:employee_document_types,id',
+            'allowances' => 'nullable|array',
+            'deductions' => 'nullable|array',
         ];
 
         if ($this->has('documents')) {

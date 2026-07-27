@@ -16,6 +16,10 @@ use Workdo\Hrm\Models\Designation;
 use Workdo\Hrm\Models\EmployeeDocumentType;
 use Workdo\Hrm\Models\EmployeeDocument;
 use Workdo\Hrm\Models\Shift;
+use Workdo\Hrm\Models\AllowanceType;
+use Workdo\Hrm\Models\DeductionType;
+use Workdo\Hrm\Models\Allowance;
+use Workdo\Hrm\Models\Deduction;
 use Workdo\Hrm\Events\CreateEmployee;
 use Workdo\Hrm\Events\DestroyEmployee;
 use Workdo\Hrm\Events\UpdateEmployee;
@@ -87,6 +91,8 @@ class EmployeeController extends Controller
                 'designations' => Designation::where('created_by', creatorId())->select('id', 'designation_name', 'branch_id', 'department_id')->get(),
                 'shifts' => Shift::where('created_by', creatorId())->select('id', 'shift_name')->get(),
                 'documentTypes' => EmployeeDocumentType::where('created_by', creatorId())->select('id', 'document_name', 'is_required')->get(),
+                'allowanceTypes' => AllowanceType::where('created_by', creatorId())->select('id', 'name')->get(),
+                'deductionTypes' => DeductionType::where('created_by', creatorId())->select('id', 'name')->get(),
                 'generatedEmployeeId' => Employee::generateEmployeeId(),
             ]);
         } else {
@@ -209,6 +215,38 @@ class EmployeeController extends Controller
                 }
             }
 
+            // Store Allowances
+            if ($request->has('allowances')) {
+                foreach ($request->input('allowances', []) as $allowance) {
+                    if (!empty($allowance['allowance_type_id']) && isset($allowance['amount']) && $allowance['amount'] !== '') {
+                        Allowance::create([
+                            'employee_id' => $employee->user_id,
+                            'allowance_type_id' => $allowance['allowance_type_id'],
+                            'type' => $allowance['type'] ?? 'fixed',
+                            'amount' => $allowance['amount'],
+                            'creator_id' => Auth::id(),
+                            'created_by' => creatorId(),
+                        ]);
+                    }
+                }
+            }
+
+            // Store Deductions
+            if ($request->has('deductions')) {
+                foreach ($request->input('deductions', []) as $deduction) {
+                    if (!empty($deduction['deduction_type_id']) && isset($deduction['amount']) && $deduction['amount'] !== '') {
+                        Deduction::create([
+                            'employee_id' => $employee->user_id,
+                            'deduction_type_id' => $deduction['deduction_type_id'],
+                            'type' => $deduction['type'] ?? 'fixed',
+                            'amount' => $deduction['amount'],
+                            'creator_id' => Auth::id(),
+                            'created_by' => creatorId(),
+                        ]);
+                    }
+                }
+            }
+
             return redirect()->route('hrm.employees.index')->with('success', __('The employee has been created successfully.'));
         } else {
             return redirect()->route('hrm.employees.index')->with('error', __('Permission denied'));
@@ -243,6 +281,10 @@ class EmployeeController extends Controller
                 'shifts' => Shift::where('created_by', creatorId())->select('id', 'shift_name')->get(),
                 'documentTypes' => EmployeeDocumentType::where('created_by', creatorId())->select('id', 'document_name', 'is_required')->get(),
                 'existingDocuments' => $existingDocuments,
+                'allowanceTypes' => AllowanceType::where('created_by', creatorId())->select('id', 'name')->get(),
+                'deductionTypes' => DeductionType::where('created_by', creatorId())->select('id', 'name')->get(),
+                'existingAllowances' => Allowance::where('employee_id', $employee->user_id)->get(),
+                'existingDeductions' => Deduction::where('employee_id', $employee->user_id)->get(),
             ]);
         } else {
             return redirect()->route('hrm.employees.index')->with('error', __('Permission denied'));
@@ -362,6 +404,40 @@ class EmployeeController extends Controller
                             'user_id' => $employee->id,
                             'document_type_id' => $document['document_type_id'],
                             'file_path' => $document['file'],
+                            'creator_id' => Auth::id(),
+                            'created_by' => creatorId(),
+                        ]);
+                    }
+                }
+            }
+
+            // Sync Allowances
+            if ($request->has('allowances')) {
+                Allowance::where('employee_id', $employee->user_id)->delete();
+                foreach ($request->input('allowances', []) as $allowance) {
+                    if (!empty($allowance['allowance_type_id']) && isset($allowance['amount']) && $allowance['amount'] !== '') {
+                        Allowance::create([
+                            'employee_id' => $employee->user_id,
+                            'allowance_type_id' => $allowance['allowance_type_id'],
+                            'type' => $allowance['type'] ?? 'fixed',
+                            'amount' => $allowance['amount'],
+                            'creator_id' => Auth::id(),
+                            'created_by' => creatorId(),
+                        ]);
+                    }
+                }
+            }
+
+            // Sync Deductions
+            if ($request->has('deductions')) {
+                Deduction::where('employee_id', $employee->user_id)->delete();
+                foreach ($request->input('deductions', []) as $deduction) {
+                    if (!empty($deduction['deduction_type_id']) && isset($deduction['amount']) && $deduction['amount'] !== '') {
+                        Deduction::create([
+                            'employee_id' => $employee->user_id,
+                            'deduction_type_id' => $deduction['deduction_type_id'],
+                            'type' => $deduction['type'] ?? 'fixed',
+                            'amount' => $deduction['amount'],
                             'creator_id' => Auth::id(),
                             'created_by' => creatorId(),
                         ]);
