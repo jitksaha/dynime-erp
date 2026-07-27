@@ -15,8 +15,13 @@ export function usePersistentForm<TForm extends Record<string, any>>(
             const raw = localStorage.getItem(storageKey);
             if (raw) {
                 const parsed = JSON.parse(raw);
-                // Merge to ensure default fields exist even if structure changes
-                return { ...initialValues, ...parsed };
+                const merged = { ...initialValues, ...parsed };
+                for (const key in initialValues) {
+                    if (Array.isArray(initialValues[key]) && !Array.isArray(merged[key])) {
+                        merged[key] = initialValues[key];
+                    }
+                }
+                return merged;
             }
         } catch (e) {
             console.warn('Failed to parse saved form data from localStorage:', e);

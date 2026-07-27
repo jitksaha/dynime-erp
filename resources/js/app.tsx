@@ -111,6 +111,13 @@ createInertiaApp({
             return allPages[packagePagePath]();
         }
 
+        // Case-insensitive fallback lookup
+        const targetEnd = `/${name}.tsx`.toLowerCase();
+        const foundKey = Object.keys(allPages).find(key => key.toLowerCase().endsWith(targetEnd));
+        if (foundKey) {
+            return allPages[foundKey]();
+        }
+
         throw new Error(`Page not found: ${name}`);
     },
     setup({ el, App, props }) {

@@ -1604,7 +1604,7 @@ export default function Edit() {
                                     </div>
                                 )}
 
-                                {data.documents.map((document: any, index: number) => (
+                                {(data.documents || []).map((document: any, index: number) => (
                                     <Card key={index} className="p-4 border-dashed">
                                         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                                             <div>
@@ -1617,7 +1617,7 @@ export default function Edit() {
                                                         <SelectValue placeholder={t('Select Document Type')} />
                                                     </SelectTrigger>
                                                     <SelectContent>
-                                                        {documentTypes?.map((type: any) => (
+                                                        {(documentTypes || []).map((type: any) => (
                                                             <SelectItem key={type.id} value={type.id.toString()}>
                                                                 {type.document_name} {type.is_required && '*'}
                                                             </SelectItem>

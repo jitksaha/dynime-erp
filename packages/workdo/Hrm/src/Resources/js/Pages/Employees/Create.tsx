@@ -1614,7 +1614,7 @@ export default function Create() {
                                     </Button>
                                 </div>
                                 <CardContent className="pt-6 space-y-4">
-                                    {data.documents.map((doc, index) => (
+                                    {(data.documents || []).map((doc: any, index: number) => (
                                         <div key={index} className="flex items-start gap-4 p-4 border border-slate-200 dark:border-slate-800 rounded-lg bg-slate-50/50 dark:bg-slate-900/50">
                                             <div className="flex-1 space-y-1">
                                                 <Label>{t('Document Type')}</Label>
@@ -1628,7 +1628,7 @@ export default function Create() {
                                                     <SelectContent>
                                                         {(documentTypes || []).map((type: any) => (
                                                             <SelectItem key={type.id} value={type.id.toString()}>
-                                                                {type.name}
+                                                                {type.document_name || type.name}
                                                             </SelectItem>
                                                         ))}
                                                     </SelectContent>
