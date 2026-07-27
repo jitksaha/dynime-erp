@@ -26,6 +26,7 @@ class UpdateEmployeeRequest extends FormRequest
     public function rules(): array
     {
         $rules = [
+            'official_email' => 'nullable|email|max:255',
             'avatar' => 'nullable',
             'mobile_no' => 'nullable|string|max:30',
             'date_of_birth' => 'required|date',

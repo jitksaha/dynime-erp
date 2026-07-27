@@ -15,6 +15,7 @@ class StoreEmployeeRequest extends FormRequest
     {
         $rules = [
             'employee_id' => 'required|max:50',
+            'official_email' => 'nullable|email|max:255',
             'avatar' => 'nullable',
             'date_of_birth' => 'required|date',
             'gender' => 'required',

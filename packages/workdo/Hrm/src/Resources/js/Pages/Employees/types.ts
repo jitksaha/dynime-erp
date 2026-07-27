@@ -115,10 +115,12 @@ export interface CreateEmployeeFormData {
     payment_method: string;
     payment_details: any;
     documents: Array<{ document_type_id: string; file: any }>;
+    official_email?: string;
 }
 
 export interface EditEmployeeFormData {
     employee_id: string;
+    official_email?: string;
     mobile_no: string;
     date_of_birth: string;
     gender: string;

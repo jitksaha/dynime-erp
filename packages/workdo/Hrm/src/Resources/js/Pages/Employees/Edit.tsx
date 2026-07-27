@@ -21,11 +21,17 @@ import MediaLibraryModal from "@/components/MediaLibraryModal";
 import MediaPicker from "@/components/MediaPicker";
 
 export default function Edit() {
-    const { employee, users, branches, departments, designations, shifts, existingDocuments, documentTypes, companyAllSetting = {} } = usePage<any>().props;
+    const { employee = {}, users = [], branches = [], departments = [], designations = [], shifts = [], existingDocuments = [], documentTypes = [], companyAllSetting = {} } = usePage<any>().props;
+    const safeBranches = branches || [];
+    const safeDepartments = departments || [];
+    const safeDesignations = designations || [];
+    const safeShifts = shifts || [];
+    const safeDocumentTypes = documentTypes || [];
+
     const [activeTab, setActiveTab] = useState('personal');
-    const [filteredBranches, setFilteredBranches] = useState(branches || []);
-    const [filteredDepartments, setFilteredDepartments] = useState(departments || []);
-    const [filteredDesignations, setFilteredDesignations] = useState(designations || []);
+    const [filteredBranches, setFilteredBranches] = useState(safeBranches);
+    const [filteredDepartments, setFilteredDepartments] = useState(safeDepartments);
+    const [filteredDesignations, setFilteredDesignations] = useState(safeDesignations);
     const [avatarPreview, setAvatarPreview] = useState<string | null>(employee.user?.avatar ? getImagePath(employee.user.avatar) : null);
     const [isMediaModalOpen, setIsMediaModalOpen] = useState(false);
     const { t } = useTranslation();
@@ -143,6 +149,7 @@ export default function Edit() {
         days_per_week: employee.days_per_week?.toString() || '',
         rate_per_hour: employee.rate_per_hour?.toString() || '',
         user_id: employee.user_id?.toString() || '',
+        official_email: employee.official_email || '',
         branch_id: employee.branch_id?.toString() || '',
         department_id: employee.department_id?.toString() || '',
         designation_id: employee.designation_id?.toString() || '',
@@ -154,12 +161,13 @@ export default function Edit() {
         if (!data.user_id) {
             setData('branch_id', '');
         }
-    }, [data.user_id]);
+    }, [data.user_id, branches]);
 
     useEffect(() => {
+        const deptList = departments || [];
         if (data.branch_id) {
-            const branchDepartments = departments.filter(dept => {
-                if (!dept.branch_id) return false;
+            const branchDepartments = deptList.filter(dept => {
+                if (!dept || !dept.branch_id) return false;
                 const branchIds = dept.branch_id.toString().split(',');
                 return branchIds.includes(data.branch_id.toString());
             });
@@ -173,12 +181,13 @@ export default function Edit() {
             setData('department_id', '');
             setData('designation_id', '');
         }
-    }, [data.branch_id]);
+    }, [data.branch_id, departments]);
 
     useEffect(() => {
+        const desigList = designations || [];
         if (data.department_id) {
-            const departmentDesignations = designations.filter(desig => {
-                if (!desig.department_id) return false;
+            const departmentDesignations = desigList.filter(desig => {
+                if (!desig || !desig.department_id) return false;
                 const deptIds = desig.department_id.toString().split(',');
                 return deptIds.includes(data.department_id.toString());
             });
@@ -190,7 +199,7 @@ export default function Edit() {
             setFilteredDesignations([]);
             setData('designation_id', '');
         }
-    }, [data.department_id]);
+    }, [data.department_id, designations]);
 
     const validatePersonalTab = () => {
         return data.employee_id.trim() !== '' &&
@@ -451,6 +460,19 @@ export default function Edit() {
                                             required
                                         />
                                         <InputError message={errors.employee_id} />
+                                    </div>
+
+                                    <div>
+                                        <Label htmlFor="official_email">{t('Official Work Email')}</Label>
+                                        <Input
+                                            id="official_email"
+                                            type="email"
+                                            value={data.official_email || ''}
+                                            onChange={(e) => setData('official_email', e.target.value)}
+                                            placeholder={t('e.g. employee@company.com')}
+                                        />
+                                        <p className="text-xs text-muted-foreground mt-1">{t('Official company work email address.')}</p>
+                                        <InputError message={errors.official_email} />
                                     </div>
 
                                     <div>

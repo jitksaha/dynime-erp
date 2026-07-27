@@ -23,7 +23,14 @@ import axios from 'axios';
 import { usePersistentForm } from "@/hooks/usePersistentForm";
 
 export default function Create() {
-    const { users = [], roles = {}, branches, departments, designations, shifts, documentTypes, generatedEmployeeId, companyAllSetting = {} } = usePage<any>().props;
+    const { users = [], roles = {}, branches = [], departments = [], designations = [], shifts = [], documentTypes = [], generatedEmployeeId = '', companyAllSetting = {} } = usePage<any>().props;
+    const safeBranches = branches || [];
+    const safeDepartments = departments || [];
+    const safeDesignations = designations || [];
+    const safeShifts = shifts || [];
+    const safeDocumentTypes = documentTypes || [];
+    const safeUsers = users || [];
+
     const [activeTab, setActiveTab] = useState(() => {
         try {
             return localStorage.getItem('employee_create_active_tab') || 'personal';
@@ -37,9 +44,9 @@ export default function Create() {
             localStorage.setItem('employee_create_active_tab', activeTab);
         } catch (e) {}
     }, [activeTab]);
-    const [filteredBranches, setFilteredBranches] = useState(branches || []);
-    const [filteredDepartments, setFilteredDepartments] = useState(departments || []);
-    const [filteredDesignations, setFilteredDesignations] = useState(designations || []);
+    const [filteredBranches, setFilteredBranches] = useState(safeBranches);
+    const [filteredDepartments, setFilteredDepartments] = useState(safeDepartments);
+    const [filteredDesignations, setFilteredDesignations] = useState(safeDesignations);
     const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
     const [isMediaModalOpen, setIsMediaModalOpen] = useState(false);
     const { t } = useTranslation();
@@ -231,6 +238,7 @@ export default function Create() {
         days_per_week: '',
         rate_per_hour: '',
         user_id: '',
+        official_email: '',
         branch_id: '',
         department_id: '',
         designation_id: '',
@@ -254,12 +262,13 @@ export default function Create() {
         if (!data.user_id) {
             setData('branch_id', '');
         }
-    }, [data.user_id]);
+    }, [data.user_id, branches]);
 
     useEffect(() => {
+        const deptList = departments || [];
         if (data.branch_id) {
-            const branchDepartments = departments.filter(dept => {
-                if (!dept.branch_id) return false;
+            const branchDepartments = deptList.filter(dept => {
+                if (!dept || !dept.branch_id) return false;
                 const branchIds = dept.branch_id.toString().split(',');
                 return branchIds.includes(data.branch_id.toString());
             });
@@ -273,12 +282,13 @@ export default function Create() {
             setData('department_id', '');
             setData('designation_id', '');
         }
-    }, [data.branch_id]);
+    }, [data.branch_id, departments]);
 
     useEffect(() => {
+        const desigList = designations || [];
         if (data.department_id) {
-            const departmentDesignations = designations.filter(desig => {
-                if (!desig.department_id) return false;
+            const departmentDesignations = desigList.filter(desig => {
+                if (!desig || !desig.department_id) return false;
                 const deptIds = desig.department_id.toString().split(',');
                 return deptIds.includes(data.department_id.toString());
             });
@@ -290,10 +300,10 @@ export default function Create() {
             setFilteredDesignations([]);
             setData('designation_id', '');
         }
-    }, [data.department_id]);
+    }, [data.department_id, designations]);
 
     const validatePersonalTab = () => {
-        return data.employee_id.trim() !== '' &&
+        return (data.employee_id ? data.employee_id.trim() : '') !== '' &&
             data.date_of_birth !== '' &&
             data.gender !== '';
     };
@@ -559,16 +569,31 @@ export default function Create() {
                                     </div>
 
                                     <div>
-                                        <Label htmlFor="employee_id">{t('Employee Id')}</Label>
-                                        <Input
-                                            id="employee_id"
-                                            type="text"
-                                            value={data.employee_id}
-                                            onChange={(e) => setData('employee_id', e.target.value)}
-                                            placeholder={t('Enter Employee Id')}
-                                            required
-                                        />
-                                        <InputError message={errors.employee_id} />
+                                        <div>
+                                            <Label htmlFor="employee_id">{t('Employee Id')}</Label>
+                                            <Input
+                                                id="employee_id"
+                                                type="text"
+                                                value={data.employee_id}
+                                                onChange={(e) => setData('employee_id', e.target.value)}
+                                                placeholder={t('Enter Employee Id')}
+                                                required
+                                            />
+                                            <InputError message={errors.employee_id} />
+                                        </div>
+
+                                        <div>
+                                            <Label htmlFor="official_email">{t('Official Work Email')}</Label>
+                                            <Input
+                                                id="official_email"
+                                                type="email"
+                                                value={data.official_email || ''}
+                                                onChange={(e) => setData('official_email', e.target.value)}
+                                                placeholder={t('e.g. employee@company.com')}
+                                            />
+                                            <p className="text-xs text-muted-foreground mt-1">{t('Official company work email address.')}</p>
+                                            <InputError message={errors.official_email} />
+                                        </div>
                                     </div>
 
                                     <div>
@@ -1601,7 +1626,7 @@ export default function Create() {
                                                         <SelectValue placeholder={t('Select Document Type')} />
                                                     </SelectTrigger>
                                                     <SelectContent>
-                                                        {documentTypes.map((type: any) => (
+                                                        {(documentTypes || []).map((type: any) => (
                                                             <SelectItem key={type.id} value={type.id.toString()}>
                                                                 {type.name}
                                                             </SelectItem>
@@ -1738,7 +1763,7 @@ export default function Create() {
                                         <SelectValue placeholder={t('Select Role')} />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {Object.entries(roles).map(([id, label]) => (
+                                        {Object.entries(roles || {}).map(([id, label]) => (
                                             <SelectItem key={id} value={id}>
                                                 {label as string}
                                             </SelectItem>

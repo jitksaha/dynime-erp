@@ -100,6 +100,7 @@ class EmployeeController extends Controller
             $validated = $request->validated();
             $employee = new Employee();
             $employee->employee_id = $validated['employee_id'];
+            $employee->official_email = $validated['official_email'] ?? null;
             $employee->date_of_birth = $validated['date_of_birth'];
             $employee->gender = $validated['gender'];
             $employee->shift = $validated['shift_id'];
@@ -252,6 +253,7 @@ class EmployeeController extends Controller
     { 
         if (Auth::user()->can('edit-employees')) {
             $validated = $request->validated();
+            $employee->official_email = $validated['official_email'] ?? null;
             $employee->date_of_birth = $validated['date_of_birth'];
             $employee->gender = $validated['gender'];
             $employee->shift = $validated['shift_id'];
