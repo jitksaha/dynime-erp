@@ -1531,6 +1531,18 @@ export default function Create() {
                                             required
                                         />
                                         <InputError message={errors.basic_salary} />
+                                        {data.salary_type === 'yearly' && data.basic_salary && !isNaN(parseFloat(data.basic_salary)) && parseFloat(data.basic_salary) > 0 && (
+                                            <div className="mt-2 text-xs font-semibold text-slate-500 flex items-center justify-between bg-emerald-50 dark:bg-emerald-950/40 p-2.5 rounded-lg border border-emerald-200 dark:border-emerald-800">
+                                                <span className="text-emerald-700 dark:text-emerald-400">{t('Monthly Salary:')}</span>
+                                                <span className="text-emerald-700 dark:text-emerald-400 font-bold">{formatCurrency(parseFloat(data.basic_salary) / 12)} / {t('month')}</span>
+                                            </div>
+                                        )}
+                                        {data.salary_type === 'monthly' && data.basic_salary && !isNaN(parseFloat(data.basic_salary)) && parseFloat(data.basic_salary) > 0 && (
+                                            <div className="mt-2 text-xs font-semibold text-slate-500 flex items-center justify-between bg-blue-50 dark:bg-blue-950/40 p-2.5 rounded-lg border border-blue-200 dark:border-blue-800">
+                                                <span className="text-blue-700 dark:text-blue-400">{t('Yearly Salary:')}</span>
+                                                <span className="text-blue-700 dark:text-blue-400 font-bold">{formatCurrency(parseFloat(data.basic_salary) * 12)} / {t('year')}</span>
+                                            </div>
+                                        )}
                                     </div>
 
                                     <div>
