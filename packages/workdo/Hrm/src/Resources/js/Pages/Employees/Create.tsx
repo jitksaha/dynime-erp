@@ -1637,9 +1637,10 @@ export default function Create() {
                                         />
                                         <InputError message={errors.rate_per_hour} />
                                     </div>
+                                </div>
 
-                                    {/* Sub-sections container: 50/50 Split Grid */}
-                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 border-t border-slate-200 dark:border-slate-800 pt-6 mt-6">
+                                {/* Sub-sections container: 50/50 Split Grid */}
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 border-t border-slate-200 dark:border-slate-800 pt-6 mt-6">
                                         {/* Sub-section: Allowances */}
                                         <div className="space-y-4">
                                             <div className="flex items-center justify-between pb-1 border-b border-slate-100 dark:border-slate-800">
@@ -1818,8 +1819,7 @@ export default function Create() {
                                             )}
                                         </div>
                                     </div>
-                                </div>
-                            </CardContent>
+                                </CardContent>
                         </Card>
 
                         {/* SECTION 6: Documents */}
