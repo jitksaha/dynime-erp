@@ -273,7 +273,7 @@ export default function Create() {
                 return branchIds.includes(data.branch_id.toString());
             });
             setFilteredDepartments(branchDepartments);
-            if (data.department_id && !branchDepartments.find(dept => dept.id.toString() === data.department_id)) {
+            if (data.department_id && !branchDepartments.find(dept => dept && dept.id && dept.id.toString() === data.department_id)) {
                 setData('department_id', '');
                 setData('designation_id', '');
             }
@@ -293,7 +293,7 @@ export default function Create() {
                 return deptIds.includes(data.department_id.toString());
             });
             setFilteredDesignations(departmentDesignations);
-            if (data.designation_id && !departmentDesignations.find(desig => desig.id.toString() === data.designation_id)) {
+            if (data.designation_id && !departmentDesignations.find(desig => desig && desig.id && desig.id.toString() === data.designation_id)) {
                 setData('designation_id', '');
             }
         } else {

@@ -8,8 +8,62 @@ import { createInertiaApp, router } from "@inertiajs/react";
 import { resolvePageComponent } from "laravel-vite-plugin/inertia-helpers";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "sonner";
-import { Suspense } from "react";
+import { Suspense, Component, ErrorInfo, ReactNode } from "react";
 import axios from "axios";
+
+interface ErrorBoundaryProps {
+    children: ReactNode;
+}
+
+interface ErrorBoundaryState {
+    hasError: boolean;
+    error: Error | null;
+}
+
+class GlobalErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+    public state: ErrorBoundaryState = {
+        hasError: false,
+        error: null,
+    };
+
+    public static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+        return { hasError: true, error };
+    }
+
+    public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+        console.error("Global React Render Error:", error, errorInfo);
+    }
+
+    public render() {
+        if (this.state.hasError) {
+            return (
+                <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900 p-6">
+                    <div className="max-w-md w-full bg-white dark:bg-slate-800 rounded-xl shadow-xl p-6 border border-slate-200 dark:border-slate-700 text-center space-y-4">
+                        <div className="w-12 h-12 rounded-full bg-rose-100 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 flex items-center justify-center mx-auto text-xl font-bold">!</div>
+                        <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">Application Error</h2>
+                        <p className="text-xs text-rose-600 dark:text-rose-400 font-mono bg-slate-100 dark:bg-slate-950 p-3 rounded border border-slate-200 dark:border-slate-800 text-left overflow-auto max-h-44 break-words">
+                            {this.state.error?.toString()}
+                        </p>
+                        <button
+                            onClick={() => {
+                                try {
+                                    localStorage.clear();
+                                    sessionStorage.clear();
+                                } catch(e) {}
+                                window.location.reload();
+                            }}
+                            className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-semibold transition-colors shadow-sm"
+                        >
+                            Reset Cache & Reload
+                        </button>
+                    </div>
+                </div>
+            );
+        }
+
+        return this.props.children;
+    }
+}
 
 
 // Silent CSRF token refresh
@@ -126,17 +180,19 @@ createInertiaApp({
         const root = createRoot(el);
 
         root.render(
-            <ThemeProvider
-                attribute="class"
-                defaultTheme="light"
-                enableSystem
-                disableTransitionOnChange
-            >
-                <Suspense fallback={null}>
-                    <App {...props} />
-                </Suspense>
-                <Toaster position="top-center" richColors />
-            </ThemeProvider>
+            <GlobalErrorBoundary>
+                <ThemeProvider
+                    attribute="class"
+                    defaultTheme="light"
+                    enableSystem
+                    disableTransitionOnChange
+                >
+                    <Suspense fallback={null}>
+                        <App {...props} />
+                    </Suspense>
+                    <Toaster position="top-center" richColors />
+                </ThemeProvider>
+            </GlobalErrorBoundary>
         );
     },
     progress: {
