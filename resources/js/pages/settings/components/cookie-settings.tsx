@@ -35,7 +35,7 @@ const getInitialSettings = (userSettings?: Record<string, string>): CookieSettin
   cookieDescription: userSettings?.cookieDescription || 'We use cookies to enhance your browsing experience and provide personalized content.',
   strictlyCookieDescription: userSettings?.strictlyCookieDescription || 'These cookies are essential for the website to function properly.',
   contactUsDescription: userSettings?.contactUsDescription || 'If you have any questions about our cookie policy, please contact us.',
-  contactUsUrl: userSettings?.contactUsUrl || 'https://example.com/contact'
+  contactUsUrl: (!userSettings?.contactUsUrl || userSettings?.contactUsUrl.includes('example.com')) ? 'https://dynime.com/contact' : userSettings.contactUsUrl
 });
 
 export default function CookieSettings({ userSettings, auth }: CookieSettingsProps) {

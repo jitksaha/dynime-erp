@@ -70,7 +70,7 @@ class DefultSetting extends Seeder
             'cookieDescription' => 'We use cookies to enhance your browsing experience and provide personalized content.',
             'strictlyCookieDescription' => 'These cookies are essential for the website to function properly.',
             'contactUsDescription' => 'If you have any questions about our cookie policy, please contact us.',
-            'contactUsUrl' => 'https://example.com/contact',
+            'contactUsUrl' => 'https://dynime.com/contact',
 
             // storage Settings
             'storageType' => 'local',
