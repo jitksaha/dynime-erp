@@ -1638,180 +1638,185 @@ export default function Create() {
                                         <InputError message={errors.rate_per_hour} />
                                     </div>
 
-                                    {/* Sub-section: Allowances */}
-                                    <div className="border-t border-slate-200 dark:border-slate-800 pt-6 mt-6 space-y-4">
-                                        <div className="flex items-center justify-between">
-                                            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                                                {t('Allowances')}
-                                            </h4>
-                                            <Button
-                                                type="button"
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={addAllowance}
-                                                className="flex items-center gap-1 text-xs"
-                                            >
-                                                <Plus className="w-3.5 h-3.5" />
-                                                {t('Add Allowance')}
-                                            </Button>
+                                    {/* Sub-sections container: 50/50 Split Grid */}
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 border-t border-slate-200 dark:border-slate-800 pt-6 mt-6">
+                                        {/* Sub-section: Allowances */}
+                                        <div className="space-y-4">
+                                            <div className="flex items-center justify-between pb-1 border-b border-slate-100 dark:border-slate-800">
+                                                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                                                    {t('Allowances')}
+                                                </h4>
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={addAllowance}
+                                                    className="flex items-center gap-1 text-xs h-8"
+                                                >
+                                                    <Plus className="w-3.5 h-3.5" />
+                                                    {t('Add Allowance')}
+                                                </Button>
+                                            </div>
+
+                                            {(data.allowances || []).map((allowance: any, index: number) => (
+                                                <div key={index} className="grid grid-cols-12 gap-2 items-end p-3 border border-slate-200 dark:border-slate-800 rounded-lg bg-slate-50/50 dark:bg-slate-900/50">
+                                                    <div className="col-span-5 space-y-1">
+                                                        <Label className="text-xs">{t('Allowance Type')}</Label>
+                                                        <Select
+                                                            value={allowance.allowance_type_id}
+                                                            onValueChange={(val) => updateAllowance(index, 'allowance_type_id', val)}
+                                                        >
+                                                            <SelectTrigger className="h-9 text-xs">
+                                                                <SelectValue placeholder={t('Select Type')} />
+                                                            </SelectTrigger>
+                                                            <SelectContent>
+                                                                {(allowanceTypes || []).map((type: any) => (
+                                                                    <SelectItem key={type.id} value={type.id.toString()}>
+                                                                        {type.name}
+                                                                    </SelectItem>
+                                                                ))}
+                                                            </SelectContent>
+                                                        </Select>
+                                                    </div>
+
+                                                    <div className="col-span-3 space-y-1">
+                                                        <Label className="text-xs">{t('Type')}</Label>
+                                                        <Select
+                                                            value={allowance.type || 'fixed'}
+                                                            onValueChange={(val) => updateAllowance(index, 'type', val)}
+                                                        >
+                                                            <SelectTrigger className="h-9 text-xs">
+                                                                <SelectValue />
+                                                            </SelectTrigger>
+                                                            <SelectContent>
+                                                                <SelectItem value="fixed">{t('Fixed')}</SelectItem>
+                                                                <SelectItem value="percentage">{t('Percentage')}</SelectItem>
+                                                            </SelectContent>
+                                                        </Select>
+                                                    </div>
+
+                                                    <div className="col-span-3 space-y-1">
+                                                        <Label className="text-xs">{t('Amount')}</Label>
+                                                        <Input
+                                                            type="number"
+                                                            step="0.01"
+                                                            min="0"
+                                                            className="h-9 text-xs"
+                                                            value={allowance.amount}
+                                                            onChange={(e) => updateAllowance(index, 'amount', e.target.value)}
+                                                            placeholder={t('Amount')}
+                                                        />
+                                                    </div>
+
+                                                    <div className="col-span-1 flex justify-end pb-0.5">
+                                                        <Button
+                                                            type="button"
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            onClick={() => removeAllowance(index)}
+                                                            className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/50"
+                                                        >
+                                                            <Trash2 className="w-3.5 h-3.5" />
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            ))}
+
+                                            {(!data.allowances || data.allowances.length === 0) && (
+                                                <div className="text-xs text-slate-400 text-center py-6 border border-dashed border-slate-200 dark:border-slate-800 rounded-lg">
+                                                    {t('No allowances added yet.')}
+                                                </div>
+                                            )}
                                         </div>
 
-                                        {(data.allowances || []).map((allowance: any, index: number) => (
-                                            <div key={index} className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end p-3.5 border border-slate-200 dark:border-slate-800 rounded-lg bg-slate-50/50 dark:bg-slate-900/50">
-                                                <div className="md:col-span-5 space-y-1">
-                                                    <Label>{t('Allowance Type')}</Label>
-                                                    <Select
-                                                        value={allowance.allowance_type_id}
-                                                        onValueChange={(val) => updateAllowance(index, 'allowance_type_id', val)}
-                                                    >
-                                                        <SelectTrigger>
-                                                            <SelectValue placeholder={t('Select Type')} />
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            {(allowanceTypes || []).map((type: any) => (
-                                                                <SelectItem key={type.id} value={type.id.toString()}>
-                                                                    {type.name}
-                                                                </SelectItem>
-                                                            ))}
-                                                        </SelectContent>
-                                                    </Select>
-                                                </div>
-
-                                                <div className="md:col-span-3 space-y-1">
-                                                    <Label>{t('Type')}</Label>
-                                                    <Select
-                                                        value={allowance.type || 'fixed'}
-                                                        onValueChange={(val) => updateAllowance(index, 'type', val)}
-                                                    >
-                                                        <SelectTrigger>
-                                                            <SelectValue />
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            <SelectItem value="fixed">{t('Fixed')}</SelectItem>
-                                                            <SelectItem value="percentage">{t('Percentage')}</SelectItem>
-                                                        </SelectContent>
-                                                    </Select>
-                                                </div>
-
-                                                <div className="md:col-span-3 space-y-1">
-                                                    <Label>{t('Amount')}</Label>
-                                                    <Input
-                                                        type="number"
-                                                        step="0.01"
-                                                        min="0"
-                                                        value={allowance.amount}
-                                                        onChange={(e) => updateAllowance(index, 'amount', e.target.value)}
-                                                        placeholder={t('Enter Amount')}
-                                                    />
-                                                </div>
-
-                                                <div className="md:col-span-1 flex justify-end">
-                                                    <Button
-                                                        type="button"
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        onClick={() => removeAllowance(index)}
-                                                        className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/50"
-                                                    >
-                                                        <Trash2 className="w-4 h-4" />
-                                                    </Button>
-                                                </div>
+                                        {/* Sub-section: Deductions */}
+                                        <div className="space-y-4">
+                                            <div className="flex items-center justify-between pb-1 border-b border-slate-100 dark:border-slate-800">
+                                                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                                                    {t('Deductions')}
+                                                </h4>
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={addDeduction}
+                                                    className="flex items-center gap-1 text-xs h-8"
+                                                >
+                                                    <Plus className="w-3.5 h-3.5" />
+                                                    {t('Add Deduction')}
+                                                </Button>
                                             </div>
-                                        ))}
 
-                                        {(!data.allowances || data.allowances.length === 0) && (
-                                            <p className="text-xs text-slate-400 text-center py-2">
-                                                {t('No allowances added yet. Click "Add Allowance" to add.')}
-                                            </p>
-                                        )}
-                                    </div>
+                                            {(data.deductions || []).map((deduction: any, index: number) => (
+                                                <div key={index} className="grid grid-cols-12 gap-2 items-end p-3 border border-slate-200 dark:border-slate-800 rounded-lg bg-slate-50/50 dark:bg-slate-900/50">
+                                                    <div className="col-span-5 space-y-1">
+                                                        <Label className="text-xs">{t('Deduction Type')}</Label>
+                                                        <Select
+                                                            value={deduction.deduction_type_id}
+                                                            onValueChange={(val) => updateDeduction(index, 'deduction_type_id', val)}
+                                                        >
+                                                            <SelectTrigger className="h-9 text-xs">
+                                                                <SelectValue placeholder={t('Select Type')} />
+                                                            </SelectTrigger>
+                                                            <SelectContent>
+                                                                {(deductionTypes || []).map((type: any) => (
+                                                                    <SelectItem key={type.id} value={type.id.toString()}>
+                                                                        {type.name}
+                                                                    </SelectItem>
+                                                                ))}
+                                                            </SelectContent>
+                                                        </Select>
+                                                    </div>
 
-                                    {/* Sub-section: Deductions */}
-                                    <div className="border-t border-slate-200 dark:border-slate-800 pt-6 mt-6 space-y-4">
-                                        <div className="flex items-center justify-between">
-                                            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                                                {t('Deductions')}
-                                            </h4>
-                                            <Button
-                                                type="button"
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={addDeduction}
-                                                className="flex items-center gap-1 text-xs"
-                                            >
-                                                <Plus className="w-3.5 h-3.5" />
-                                                {t('Add Deduction')}
-                                            </Button>
+                                                    <div className="col-span-3 space-y-1">
+                                                        <Label className="text-xs">{t('Type')}</Label>
+                                                        <Select
+                                                            value={deduction.type || 'fixed'}
+                                                            onValueChange={(val) => updateDeduction(index, 'type', val)}
+                                                        >
+                                                            <SelectTrigger className="h-9 text-xs">
+                                                                <SelectValue />
+                                                            </SelectTrigger>
+                                                            <SelectContent>
+                                                                <SelectItem value="fixed">{t('Fixed')}</SelectItem>
+                                                                <SelectItem value="percentage">{t('Percentage')}</SelectItem>
+                                                            </SelectContent>
+                                                        </Select>
+                                                    </div>
+
+                                                    <div className="col-span-3 space-y-1">
+                                                        <Label className="text-xs">{t('Amount')}</Label>
+                                                        <Input
+                                                            type="number"
+                                                            step="0.01"
+                                                            min="0"
+                                                            className="h-9 text-xs"
+                                                            value={deduction.amount}
+                                                            onChange={(e) => updateDeduction(index, 'amount', e.target.value)}
+                                                            placeholder={t('Amount')}
+                                                        />
+                                                    </div>
+
+                                                    <div className="col-span-1 flex justify-end pb-0.5">
+                                                        <Button
+                                                            type="button"
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            onClick={() => removeDeduction(index)}
+                                                            className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/50"
+                                                        >
+                                                            <Trash2 className="w-3.5 h-3.5" />
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            ))}
+
+                                            {(!data.deductions || data.deductions.length === 0) && (
+                                                <div className="text-xs text-slate-400 text-center py-6 border border-dashed border-slate-200 dark:border-slate-800 rounded-lg">
+                                                    {t('No deductions added yet.')}
+                                                </div>
+                                            )}
                                         </div>
-
-                                        {(data.deductions || []).map((deduction: any, index: number) => (
-                                            <div key={index} className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end p-3.5 border border-slate-200 dark:border-slate-800 rounded-lg bg-slate-50/50 dark:bg-slate-900/50">
-                                                <div className="md:col-span-5 space-y-1">
-                                                    <Label>{t('Deduction Type')}</Label>
-                                                    <Select
-                                                        value={deduction.deduction_type_id}
-                                                        onValueChange={(val) => updateDeduction(index, 'deduction_type_id', val)}
-                                                    >
-                                                        <SelectTrigger>
-                                                            <SelectValue placeholder={t('Select Type')} />
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            {(deductionTypes || []).map((type: any) => (
-                                                                <SelectItem key={type.id} value={type.id.toString()}>
-                                                                    {type.name}
-                                                                </SelectItem>
-                                                            ))}
-                                                        </SelectContent>
-                                                    </Select>
-                                                </div>
-
-                                                <div className="md:col-span-3 space-y-1">
-                                                    <Label>{t('Type')}</Label>
-                                                    <Select
-                                                        value={deduction.type || 'fixed'}
-                                                        onValueChange={(val) => updateDeduction(index, 'type', val)}
-                                                    >
-                                                        <SelectTrigger>
-                                                            <SelectValue />
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            <SelectItem value="fixed">{t('Fixed')}</SelectItem>
-                                                            <SelectItem value="percentage">{t('Percentage')}</SelectItem>
-                                                        </SelectContent>
-                                                    </Select>
-                                                </div>
-
-                                                <div className="md:col-span-3 space-y-1">
-                                                    <Label>{t('Amount')}</Label>
-                                                    <Input
-                                                        type="number"
-                                                        step="0.01"
-                                                        min="0"
-                                                        value={deduction.amount}
-                                                        onChange={(e) => updateDeduction(index, 'amount', e.target.value)}
-                                                        placeholder={t('Enter Amount')}
-                                                    />
-                                                </div>
-
-                                                <div className="md:col-span-1 flex justify-end">
-                                                    <Button
-                                                        type="button"
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        onClick={() => removeDeduction(index)}
-                                                        className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/50"
-                                                    >
-                                                        <Trash2 className="w-4 h-4" />
-                                                    </Button>
-                                                </div>
-                                            </div>
-                                        ))}
-
-                                        {(!data.deductions || data.deductions.length === 0) && (
-                                            <p className="text-xs text-slate-400 text-center py-2">
-                                                {t('No deductions added yet. Click "Add Deduction" to add.')}
-                                            </p>
-                                        )}
                                     </div>
                                 </div>
                             </CardContent>
