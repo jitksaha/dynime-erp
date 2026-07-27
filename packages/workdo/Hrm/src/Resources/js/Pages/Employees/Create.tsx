@@ -11,7 +11,7 @@ import { PhoneInputComponent } from '@/components/ui/phone-input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Trash2 } from 'lucide-react';
+import { Trash2, Plus } from 'lucide-react';
 import { CreateEmployeeFormData } from './types';
 import { useEffect, useState } from 'react';
 import { useFormFields } from '@/hooks/useFormFields';
@@ -1606,7 +1606,7 @@ export default function Create() {
                                         type="button"
                                         variant="outline"
                                         size="sm"
-                                        onClick={handleAddDocument}
+                                        onClick={addDocument}
                                         className="flex items-center gap-1 text-xs"
                                     >
                                         <Plus className="w-3.5 h-3.5" />
@@ -1620,7 +1620,7 @@ export default function Create() {
                                                 <Label>{t('Document Type')}</Label>
                                                 <Select
                                                     value={doc.document_type_id}
-                                                    onValueChange={(val) => handleDocumentChange(index, 'document_type_id', val)}
+                                                    onValueChange={(val) => updateDocument(index, 'document_type_id', val)}
                                                 >
                                                     <SelectTrigger className="w-full">
                                                         <SelectValue placeholder={t('Select Document Type')} />
@@ -1629,7 +1629,7 @@ export default function Create() {
                                                         {(documentTypes || []).map((type: any) => (
                                                             <SelectItem key={type.id} value={type.id.toString()}>
                                                                 {type.document_name || type.name}
-                                                            </SelectItem>
+                                                             </SelectItem>
                                                         ))}
                                                     </SelectContent>
                                                 </Select>
@@ -1640,7 +1640,7 @@ export default function Create() {
                                                 <Label>{t('Document File')}</Label>
                                                 <Input
                                                     type="file"
-                                                    onChange={(e) => handleDocumentChange(index, 'file', e.target.files?.[0] || '')}
+                                                    onChange={(e) => updateDocument(index, 'file', e.target.files?.[0] || '')}
                                                     className="cursor-pointer"
                                                 />
                                                 <InputError message={errors[`documents.${index}.file`]} />
@@ -1650,7 +1650,7 @@ export default function Create() {
                                                 type="button"
                                                 variant="ghost"
                                                 size="icon"
-                                                onClick={() => handleRemoveDocument(index)}
+                                                onClick={() => removeDocument(index)}
                                                 className="mt-6 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/50"
                                             >
                                                 <Trash2 className="w-4 h-4" />
