@@ -4,7 +4,7 @@ import AuthenticatedLayout from "@/layouts/authenticated-layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Eye, Trash2, FileText, ExternalLink, Copy, Check, PenTool, Mail, Phone, MapPin, Calendar, Briefcase, User, Flag } from 'lucide-react';
+import { Eye, EyeOff, Trash2, FileText, ExternalLink, Copy, Check, PenTool, Mail, Phone, MapPin, Calendar, Briefcase, User, Flag, Globe, Key, ShieldCheck } from 'lucide-react';
 import { formatDate, getImagePath, getCurrencySymbol, formatCurrency } from '@/utils/helpers';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -73,6 +73,22 @@ export default function Show() {
     const [isChangeModalOpen, setIsChangeModalOpen] = useState(false);
     const [changeMethod, setChangeMethod] = useState(employee?.payment_method || 'bank_transfer');
     const [changeDetails, setChangeDetails] = useState<any>(employee?.payment_details || {});
+
+    const [showOfficialPassword, setShowOfficialPassword] = useState(false);
+    const [copiedEmail, setCopiedEmail] = useState(false);
+    const [copiedPassword, setCopiedPassword] = useState(false);
+
+    const handleCopyText = (text: string, type: 'email' | 'password') => {
+        if (!text) return;
+        navigator.clipboard.writeText(text);
+        if (type === 'email') {
+            setCopiedEmail(true);
+            setTimeout(() => setCopiedEmail(false), 2000);
+        } else {
+            setCopiedPassword(true);
+            setTimeout(() => setCopiedPassword(false), 2000);
+        }
+    };
 
     const paymentMethods = [
         { value: 'bank_transfer', label: t('Bank Transfer') },
@@ -478,8 +494,8 @@ export default function Show() {
                     </Card>
                 </div>
 
-                {/* Right Content - Tabs */}
-                <div className="lg:col-span-3">
+                {/* Right Content - Tabs & Work Email */}
+                <div className="lg:col-span-3 space-y-6">
                     <Card className="shadow-sm">
                         <CardContent className="p-6">
                             <Tabs defaultValue="employment" className="w-full">
@@ -987,6 +1003,177 @@ export default function Show() {
                                     </div>
                                 </TabsContent>
                             </Tabs>
+                        </CardContent>
+                    </Card>
+
+                    {/* Official Work Email & Access Credentials Card */}
+                    <Card className="shadow-sm border border-indigo-100 bg-gradient-to-br from-white via-indigo-50/20 to-slate-50 overflow-hidden">
+                        <div className="p-4 border-b border-indigo-100/60 bg-white/80 backdrop-blur-sm flex items-center justify-between">
+                            <div className="flex items-center gap-2.5">
+                                <div className="p-2 rounded-lg bg-indigo-50 text-indigo-600 border border-indigo-100">
+                                    <Mail className="w-5 h-5" />
+                                </div>
+                                <div>
+                                    <h3 className="text-base font-bold text-slate-900">{t('Official Work Email & Workspace Credentials')}</h3>
+                                    <p className="text-xs text-slate-500">{t('Issued professional email account and webmail access details')}</p>
+                                </div>
+                            </div>
+                            {employee.official_email ? (
+                                <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 font-medium px-3 py-1 flex items-center gap-1.5">
+                                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                                    {t('Active Webmail Account')}
+                                </Badge>
+                            ) : (
+                                <Badge variant="outline" className="text-slate-500 border-slate-200 font-normal">
+                                    {t('Not Issued Yet')}
+                                </Badge>
+                            )}
+                        </div>
+
+                        <CardContent className="p-6">
+                            {employee.official_email ? (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    {/* Left Side: Email & Password Credentials */}
+                                    <div className="space-y-4 bg-white p-5 rounded-xl border border-slate-200/80 shadow-xs">
+                                        <div className="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                                            <ShieldCheck className="w-4 h-4 text-indigo-500" />
+                                            {t('Account Information')}
+                                        </div>
+
+                                        {/* Official Email */}
+                                        <div className="space-y-1.5">
+                                            <Label className="text-xs font-semibold text-slate-600">{t('Official Email Address')}</Label>
+                                            <div className="font-mono text-sm font-bold text-slate-900 bg-slate-50 p-3 rounded-lg border border-slate-200 flex items-center justify-between">
+                                                <span className="truncate mr-2">{employee.official_email}</span>
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => handleCopyText(employee.official_email, 'email')}
+                                                    className="h-7 px-2 text-xs text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 shrink-0 gap-1"
+                                                >
+                                                    {copiedEmail ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                                                    {copiedEmail ? t('Copied') : t('Copy')}
+                                                </Button>
+                                            </div>
+                                        </div>
+
+                                        {/* Official Password */}
+                                        <div className="space-y-1.5">
+                                            <Label className="text-xs font-semibold text-slate-600">{t('Official Email Password')}</Label>
+                                            <div className="font-mono text-sm font-bold text-slate-900 bg-slate-50 p-3 rounded-lg border border-slate-200 flex items-center justify-between">
+                                                <span className="tracking-wider">
+                                                    {showOfficialPassword 
+                                                        ? (employee.official_email_password || '••••••••') 
+                                                        : '••••••••••••'}
+                                                </span>
+                                                <div className="flex items-center gap-1 shrink-0">
+                                                    <Button
+                                                        type="button"
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={() => setShowOfficialPassword(!showOfficialPassword)}
+                                                        className="h-7 w-7 p-0 text-slate-500 hover:text-slate-700"
+                                                        title={showOfficialPassword ? t('Hide Password') : t('Show Password')}
+                                                    >
+                                                        {showOfficialPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                                    </Button>
+                                                    <Button
+                                                        type="button"
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={() => handleCopyText(employee.official_email_password || '', 'password')}
+                                                        className="h-7 px-2 text-xs text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 gap-1"
+                                                    >
+                                                        {copiedPassword ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                                                        {copiedPassword ? t('Copied') : t('Copy')}
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Webmail Portal Button */}
+                                        <div className="pt-2">
+                                            <a
+                                                href="https://webmail.parknil.top/"
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-semibold text-sm rounded-lg shadow-sm transition-all"
+                                            >
+                                                <Globe className="w-4 h-4" />
+                                                {t('Login to Webmail Portal')}
+                                                <ExternalLink className="w-3.5 h-3.5 ml-auto opacity-80" />
+                                            </a>
+                                        </div>
+                                    </div>
+
+                                    {/* Right Side: Copyable Actions & App Connection Setup */}
+                                    <div className="space-y-4 bg-white p-5 rounded-xl border border-slate-200/80 shadow-xs flex flex-col justify-between">
+                                        <div>
+                                            <div className="flex items-center justify-between mb-3">
+                                                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                                                    <Key className="w-4 h-4 text-emerald-500" />
+                                                    {t('Mail App Setup & Configuration')}
+                                                </span>
+                                            </div>
+
+                                            <p className="text-xs text-slate-600 mb-3 leading-relaxed">
+                                                {t('Use these settings to add your official email to Apple Mail, Outlook, Gmail app, or Yahoo Mail:')}
+                                            </p>
+
+                                            {/* Configuration Specs Table / Box */}
+                                            <div className="bg-slate-50 p-3.5 rounded-lg border border-slate-200 text-xs space-y-2 font-mono">
+                                                <div className="flex justify-between items-center pb-2 border-b border-slate-200/80">
+                                                    <span className="text-slate-500 font-sans font-medium">{t('Incoming Server (IMAP)')}:</span>
+                                                    <span className="font-bold text-slate-900">mail.dynime.com (Port 993 SSL)</span>
+                                                </div>
+                                                <div className="flex justify-between items-center pb-2 border-b border-slate-200/80">
+                                                    <span className="text-slate-500 font-sans font-medium">{t('Outgoing Server (SMTP)')}:</span>
+                                                    <span className="font-bold text-slate-900">mail.dynime.com (Port 465 SSL)</span>
+                                                </div>
+                                                <div className="flex justify-between items-center pb-2 border-b border-slate-200/80">
+                                                    <span className="text-slate-500 font-sans font-medium">{t('Username')}:</span>
+                                                    <span className="font-bold text-indigo-600 truncate max-w-[180px]">{employee.official_email}</span>
+                                                </div>
+                                                <div className="flex justify-between items-center">
+                                                    <span className="text-slate-500 font-sans font-medium">{t('Authentication')}:</span>
+                                                    <span className="font-bold text-slate-900">Normal Password / SSL</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* 1-Click Copy Buttons Footer */}
+                                        <div className="grid grid-cols-2 gap-3 pt-2">
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                onClick={() => handleCopyText(employee.official_email, 'email')}
+                                                className="w-full text-xs font-medium gap-1.5 h-9 bg-slate-50 hover:bg-slate-100"
+                                            >
+                                                {copiedEmail ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-slate-500" />}
+                                                {copiedEmail ? t('Copied Email!') : t('Copy Email')}
+                                            </Button>
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                onClick={() => handleCopyText(employee.official_email_password || '', 'password')}
+                                                className="w-full text-xs font-medium gap-1.5 h-9 bg-slate-50 hover:bg-slate-100"
+                                            >
+                                                {copiedPassword ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-slate-500" />}
+                                                {copiedPassword ? t('Copied Password!') : t('Copy Password')}
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="text-center py-8 bg-white rounded-xl border border-dashed border-slate-200">
+                                    <Mail className="w-10 h-10 mx-auto text-slate-300 mb-3" />
+                                    <h4 className="text-sm font-bold text-slate-700">{t('No Official Email Issued Yet')}</h4>
+                                    <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto">
+                                        {t('An official work email has not been assigned to this employee. Use the Employee List action to issue an official email address and password.')}
+                                    </p>
+                                </div>
+                            )}
                         </CardContent>
                     </Card>
                 </div>

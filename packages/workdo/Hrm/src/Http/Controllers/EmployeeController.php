@@ -700,44 +700,44 @@ class EmployeeController extends Controller
             }
 
             $request->validate([
-                'email_prefix' => 'required|string|alpha_dash|max:50',
-                'password' => 'required|string|min:8',
+                'email_prefix' => 'required|string|max:100',
+                'password' => 'required|string|min:4',
                 'quota' => 'nullable|integer|min:0',
             ]);
 
-            $emailPrefix = $request->input('email_prefix');
+            $emailPrefix = trim($request->input('email_prefix'));
             $password = $request->input('password');
-            $quota = $request->input('quota') ?: 0;
 
-            $domain = company_setting('cpanel_domain', creatorId());
-            if (empty($domain)) {
-                return redirect()->back()->with('error', __('cPanel Domain is not configured in settings.'));
-            }
-
-            $officialEmail = $emailPrefix . '@' . $domain;
-
-            // Call cPanel API
-            $response = \App\Services\CPanelEmailService::createEmail($emailPrefix, $password, $quota, creatorId());
-
-            if ($response['success']) {
-                // Update employee record
-                $employee->official_email = $officialEmail;
-                $employee->official_email_password = $password;
-                $employee->save();
-
-                // Send Email Notification to Employee's Creation Email
-                try {
-                    \App\Services\MailConfigService::setDynamicConfig(creatorId());
-                    \Mail::to($targetEmail)->send(new \App\Mail\SendOfficialEmailCredentialsMail($employee->user, $officialEmail, $password));
-                } catch (\Exception $e) {
-                    \Log::error('Send official email credentials failed for ' . $targetEmail . ': ' . $e->getMessage());
-                    return redirect()->back()->with('success', __('Official email created successfully ('). $officialEmail .__('), but credentials notification email failed to send to ') . $targetEmail);
-                }
-
-                return redirect()->back()->with('success', __('Official cPanel email created successfully. Credentials sent to ') . $targetEmail);
+            $domain = company_setting('cpanel_domain', creatorId()) ?: 'dynime.com';
+            
+            if (str_contains($emailPrefix, '@')) {
+                $officialEmail = $emailPrefix;
             } else {
-                return redirect()->back()->with('error', $response['message']);
+                $officialEmail = $emailPrefix . '@' . $domain;
             }
+
+            // Attempt cPanel API if available, but do not block manual assignment if it fails
+            try {
+                \App\Services\CPanelEmailService::createEmail($emailPrefix, $password, $request->input('quota') ?: 0, creatorId());
+            } catch (\Exception $e) {
+                \Log::info('cPanel API creation skipped or failed: ' . $e->getMessage());
+            }
+
+            // Update employee record
+            $employee->official_email = $officialEmail;
+            $employee->official_email_password = $password;
+            $employee->save();
+
+            // Send Email Notification to Employee's Creation Email
+            try {
+                \App\Services\MailConfigService::setDynamicConfig(creatorId());
+                \Mail::to($targetEmail)->send(new \App\Mail\SendOfficialEmailCredentialsMail($employee->user, $officialEmail, $password));
+            } catch (\Exception $e) {
+                \Log::error('Send official email credentials failed for ' . $targetEmail . ': ' . $e->getMessage());
+                return redirect()->back()->with('success', __('Official email assigned successfully ('). $officialEmail .__('), but notification email failed to send: ') . $e->getMessage());
+            }
+
+            return redirect()->back()->with('success', __('Official email issued successfully. Credentials sent to ') . $targetEmail);
         } else {
             return redirect()->back()->with('error', __('Permission denied.'));
         }
