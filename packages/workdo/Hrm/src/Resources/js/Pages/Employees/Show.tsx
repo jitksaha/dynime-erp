@@ -1061,12 +1061,14 @@ export default function Show() {
                                         {/* Official Password */}
                                         <div className="space-y-1.5">
                                             <Label className="text-xs font-semibold text-slate-600">{t('Official Email Password')}</Label>
-                                            <div className="font-mono text-sm font-bold text-slate-900 bg-slate-50 p-3 rounded-lg border border-slate-200 flex items-center justify-between">
-                                                <span className="tracking-wider">
-                                                    {showOfficialPassword 
-                                                        ? (employee.official_email_password || '••••••••') 
-                                                        : '••••••••••••'}
-                                                </span>
+                                            <div className="font-mono text-sm font-bold text-slate-900 bg-slate-50 p-2.5 rounded-lg border border-slate-200 flex items-center justify-between gap-2">
+                                                <input
+                                                    type={showOfficialPassword ? "text" : "password"}
+                                                    value={employee.official_email_password || ''}
+                                                    readOnly
+                                                    placeholder={employee.official_email_password ? '' : t('Password not recorded')}
+                                                    className="bg-transparent border-none outline-none font-mono text-sm font-bold text-slate-900 w-full focus:ring-0 focus:outline-none select-all"
+                                                />
                                                 <div className="flex items-center gap-1 shrink-0">
                                                     <Button
                                                         type="button"
@@ -1124,20 +1126,20 @@ export default function Show() {
                                             {/* Configuration Specs Table / Box */}
                                             <div className="bg-slate-50 p-3.5 rounded-lg border border-slate-200 text-xs space-y-2 font-mono">
                                                 <div className="flex justify-between items-center pb-2 border-b border-slate-200/80">
-                                                    <span className="text-slate-500 font-sans font-medium">{t('Incoming Server (IMAP)')}:</span>
-                                                    <span className="font-bold text-slate-900">mail.dynime.com (Port 993 SSL)</span>
+                                                    <span className="text-slate-500 font-sans font-medium">{t('Incoming (IMAP)')}:</span>
+                                                    <span className="font-bold text-slate-900">imap.stackmail.com (Port 993 SSL)</span>
                                                 </div>
                                                 <div className="flex justify-between items-center pb-2 border-b border-slate-200/80">
-                                                    <span className="text-slate-500 font-sans font-medium">{t('Outgoing Server (SMTP)')}:</span>
-                                                    <span className="font-bold text-slate-900">mail.dynime.com (Port 465 SSL)</span>
+                                                    <span className="text-slate-500 font-sans font-medium">{t('Outgoing (SMTP)')}:</span>
+                                                    <span className="font-bold text-slate-900">smtp.stackmail.com (Port 465/587)</span>
                                                 </div>
                                                 <div className="flex justify-between items-center pb-2 border-b border-slate-200/80">
                                                     <span className="text-slate-500 font-sans font-medium">{t('Username')}:</span>
                                                     <span className="font-bold text-indigo-600 truncate max-w-[180px]">{employee.official_email}</span>
                                                 </div>
                                                 <div className="flex justify-between items-center">
-                                                    <span className="text-slate-500 font-sans font-medium">{t('Authentication')}:</span>
-                                                    <span className="font-bold text-slate-900">Normal Password / SSL</span>
+                                                    <span className="text-slate-500 font-sans font-medium">{t('Security')}:</span>
+                                                    <span className="font-bold text-slate-900">SSL/TLS / Normal Password</span>
                                                 </div>
                                             </div>
                                         </div>
