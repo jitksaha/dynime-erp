@@ -276,7 +276,7 @@ export default function PublicSubmit({ appName = 'Dynime' }: PublicSubmitProps) 
 
             {/* Footer */}
             <footer className="w-full max-w-4xl mx-auto px-6 py-6 text-center text-xs text-slate-400 dark:text-slate-600">
-                © {new Date().getFullYear()} Dynime. All rights reserved.
+                © 2020 - {new Date().getFullYear()} Dynime LLC. All rights reserved.
             </footer>
         </div>
     );

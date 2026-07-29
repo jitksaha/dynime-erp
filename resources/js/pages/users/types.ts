@@ -10,6 +10,7 @@ export interface User {
     is_enable_login: boolean;
     is_disable?: number;
     avatar?: string;
+    official_email?: string;
     created_at: string;
 }
 

@@ -91,6 +91,26 @@ export default function Show() {
         fetchSeal();
     }, []);
 
+    const handleDetailChange = (key: string, value: any) => {
+        setChangeDetails((prev: any) => ({
+            ...prev,
+            [key]: value
+        }));
+    };
+
+    const handleRequestSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        router.post(route('hrm.payroll-requests.store'), {
+            requested_payment_method: changeMethod,
+            requested_payment_details: changeDetails,
+        }, {
+            preserveScroll: true,
+            onSuccess: () => {
+                setIsChangeModalOpen(false);
+            }
+        });
+    };
+
     const handleCopySignLink = (id: number) => {
         const signUrl = window.location.origin + '/hrm/document-builder/sign/' + id;
         navigator.clipboard.writeText(signUrl).then(() => {

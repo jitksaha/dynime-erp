@@ -81,7 +81,7 @@ export default function Footer({ settings }: FooterProps) {
     const newsletterTitle = sectionData.newsletter_title || 'Join Our Community';
     const newsletterDescription = sectionData.newsletter_description || 'We build modern web tools to help you jump-start your daily business work.';
     const newsletterButtonText = sectionData.newsletter_button_text || 'Subscribe';
-    const copyrightText = sectionData.copyright_text || `© ${new Date().getFullYear()} ${companyName}. All rights reserved.`;
+    const copyrightText = sectionData.copyright_text || `© 2020 - ${new Date().getFullYear()} ${companyName}. All rights reserved.`;
     const colors = settings?.config_sections?.colors || { primary: '#10b77f', secondary: '#059669', accent: '#f59e0b' };
     
     const handleNewsletterSubmit = async (e: React.FormEvent) => {

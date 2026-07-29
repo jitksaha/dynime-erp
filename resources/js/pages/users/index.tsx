@@ -128,7 +128,17 @@ export default function Index() {
         {
             key: 'email',
             header: t('Email'),
-            sortable: true
+            sortable: true,
+            render: (value: string, user: User) => (
+                <div className="flex flex-col min-w-0">
+                    <span className="font-medium text-slate-800 dark:text-slate-200 truncate">{value || '-'}</span>
+                    {user.official_email && (
+                        <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold truncate mt-0.5" title={user.official_email}>
+                            {user.official_email}
+                        </span>
+                    )}
+                </div>
+            )
         },
         {
             key: 'mobile_no',
@@ -426,8 +436,13 @@ export default function Index() {
                                                 <div className="space-y-3 mb-3">
 
                                                     <div>
-                                                        <p className="text-xs font-medium text-gray-600 mb-2">{t('Email')}</p>
+                                                        <p className="text-xs font-medium text-gray-600 mb-1">{t('Email')}</p>
                                                         <p className="text-xs text-gray-900 truncate" title={user.email}>{user.email}</p>
+                                                        {user.official_email && (
+                                                            <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold truncate mt-0.5" title={user.official_email}>
+                                                                {user.official_email}
+                                                            </p>
+                                                        )}
                                                     </div>
 
                                                     <div className="grid grid-cols-2 gap-2">

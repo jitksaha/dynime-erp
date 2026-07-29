@@ -172,7 +172,7 @@ export default function Verify({ employee, status, error }: VerifyProps) {
 
                 {/* Footer with Dynime LLC */}
                 <div className="text-center text-xs text-slate-400">
-                    &copy; {new Date().getFullYear()} Dynime LLC. All rights reserved.
+                    &copy; 2020 - {new Date().getFullYear()} Dynime LLC. All rights reserved.
                 </div>
             </div>
         </div>

@@ -196,6 +196,11 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    public function employee()
+    {
+        return $this->hasOne(\Workdo\Hrm\Models\Employee::class, 'user_id', 'id');
+    }
+
     public static function CompanySetting($user_id)
     {
         $company_settings = [

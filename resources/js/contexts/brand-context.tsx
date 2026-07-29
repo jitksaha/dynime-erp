@@ -43,7 +43,7 @@ export function BrandProvider({ children }: { children: ReactNode }) {
     logo_light: globalSettings?.logo_light || '',
     favicon: globalSettings?.favicon || '',
     titleText: globalSettings?.titleText || 'WorkDo',
-    footerText: globalSettings?.footerText || `© ${new Date().getFullYear()} WorkDo. All rights reserved.`,
+    footerText: globalSettings?.footerText || `© 2020 - ${new Date().getFullYear()} Dynime LLC. All rights reserved.`,
     sidebarVariant: globalSettings?.sidebarVariant || 'inset',
     sidebarStyle: globalSettings?.sidebarStyle || 'plain',
     layoutDirection: globalSettings?.layoutDirection || 'ltr',

@@ -21,28 +21,32 @@ class UserController extends Controller
     {
         if(Auth::user()->can('manage-users')){
             $users = User::query()
+                ->leftJoin('employees', 'users.id', '=', 'employees.user_id')
                 ->where(function($q) {
                     if(Auth::user()->can('manage-any-users')) {
-                        $q->where('created_by', creatorId());
+                        $q->where('users.created_by', creatorId());
                     } elseif(Auth::user()->can('manage-own-users')) {
-                        $q->where('creator_id', Auth::id());
+                        $q->where('users.creator_id', Auth::id());
                     } else {
                         $q->whereRaw('1 = 0');
                     }
                 })
-                ->when(request('name'), fn($q) => $q->where('name', 'like', '%' . request('name') . '%'))
-                ->when(request('email'), fn($q) => $q->where('email', 'like', '%' . request('email') . '%'))
+                ->when(request('name'), fn($q) => $q->where('users.name', 'like', '%' . request('name') . '%'))
+                ->when(request('email'), fn($q) => $q->where(function($sub) {
+                    $sub->where('users.email', 'like', '%' . request('email') . '%')
+                        ->orWhere('employees.official_email', 'like', '%' . request('email') . '%');
+                }))
                 ->when(request('role'), fn($q) => $q->join('model_has_roles', 'users.id', '=', 'model_has_roles.model_id')
                     ->where('model_has_roles.role_id', request('role'))
                     ->where('model_has_roles.model_type', User::class))
-                ->when(request('is_enable_login') !== null, fn($q) => $q->where('is_enable_login', request('is_enable_login')))
-                ->when(request('sort'), fn($q) => $q->orderBy(request('sort'), request('direction', 'asc')), function($q) {
+                ->when(request('is_enable_login') !== null, fn($q) => $q->where('users.is_enable_login', request('is_enable_login')))
+                ->when(request('sort'), fn($q) => $q->orderBy('users.' . request('sort'), request('direction', 'asc')), function($q) {
                     if (config('app.is_demo', false) && Auth::user()->type === 'superadmin') {
-                        return $q->orderBy('id', 'asc');
+                        return $q->orderBy('users.id', 'asc');
                     }
-                    return $q->latest();
+                    return $q->orderBy('users.id', 'desc');
                 })
-                ->select('users.*')
+                ->select('users.*', 'employees.official_email')
                 ->paginate(request('per_page', 10))
                 ->withQueryString();
 

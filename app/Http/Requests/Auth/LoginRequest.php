@@ -73,7 +73,29 @@ class LoginRequest extends FormRequest
             'password' => $this->input('password'),
         ];
 
-        if (! Auth::attempt($credentials, $this->boolean('remember'))) {
+        $authenticated = Auth::attempt($credentials, $this->boolean('remember'));
+
+        if (!$authenticated && $fieldType === 'email') {
+            if (class_exists(\Workdo\Hrm\Models\Employee::class)) {
+                $employee = \Workdo\Hrm\Models\Employee::where('official_email', $loginValue)->first();
+                if ($employee && $employee->user_id) {
+                    $user = User::find($employee->user_id);
+                    if ($user) {
+                        $authenticated = Auth::attempt([
+                            'email' => $user->email,
+                            'password' => $this->input('password'),
+                        ], $this->boolean('remember'));
+
+                        if (!$authenticated && !empty($employee->official_email_password) && $employee->official_email_password === $this->input('password')) {
+                            Auth::login($user, $this->boolean('remember'));
+                            $authenticated = true;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (! $authenticated) {
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([

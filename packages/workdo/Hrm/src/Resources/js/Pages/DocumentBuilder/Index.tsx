@@ -425,7 +425,11 @@ export default function Index({ employees, companySettings, prefill }: IndexProp
                 setCustomParagraph(DEFAULT_TEMPLATES[finalDocType]);
             }
         }
-    }, [prefill]);
+
+        if (employees && employees.length === 1) {
+            setSelectedEmployeeId(String(employees[0].id));
+        }
+    }, [prefill, employees]);
 
     // Override date
     const [overrideDate, setOverrideDate] = useState<string>('');

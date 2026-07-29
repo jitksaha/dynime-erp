@@ -55,43 +55,8 @@
                     </tr>
                     <!-- Footer -->
                     <tr>
-                        <td style="background-color: #f8fafc; border-top: 1px solid #e2e8f0; padding: 32px 30px; text-align: center;">
-                            <!-- Follow Us -->
-                            <p style="margin: 0 0 16px 0; font-size: 13px; font-weight: 600; color: #475569; text-transform: uppercase; letter-spacing: 0.05em;">Follow us</p>
-                            <table border="0" cellpadding="0" cellspacing="0" align="center" style="margin: 0 auto 24px auto;">
-                                <tr>
-                                    <td style="padding: 0 6px;">
-                                        <a href="https://facebook.com/thedynime" target="_blank" style="display: inline-block; width: 36px; height: 36px; border-radius: 18px; background-color: #1e293b; text-align: center; text-decoration: none; vertical-align: middle;">
-                                            <img src="https://img.icons8.com/ios-filled/50/ffffff/facebook-new.png" width="18" height="18" style="display: block; margin: 9px auto; border: 0;" alt="Facebook">
-                                        </a>
-                                    </td>
-                                    <td style="padding: 0 6px;">
-                                        <a href="https://linkedin.com/company/thedynime" target="_blank" style="display: inline-block; width: 36px; height: 36px; border-radius: 18px; background-color: #1e293b; text-align: center; text-decoration: none; vertical-align: middle;">
-                                            <img src="https://img.icons8.com/ios-filled/50/ffffff/linkedin.png" width="18" height="18" style="display: block; margin: 9px auto; border: 0;" alt="LinkedIn">
-                                        </a>
-                                    </td>
-                                    <td style="padding: 0 6px;">
-                                        <a href="https://instagram.com/thedynime" target="_blank" style="display: inline-block; width: 36px; height: 36px; border-radius: 18px; background-color: #1e293b; text-align: center; text-decoration: none; vertical-align: middle;">
-                                            <img src="https://img.icons8.com/ios-filled/50/ffffff/instagram-new.png" width="18" height="18" style="display: block; margin: 9px auto; border: 0;" alt="Instagram">
-                                        </a>
-                                    </td>
-                                    <td style="padding: 0 6px;">
-                                        <a href="https://wa.me/thedynime" target="_blank" style="display: inline-block; width: 36px; height: 36px; border-radius: 18px; background-color: #1e293b; text-align: center; text-decoration: none; vertical-align: middle;">
-                                            <img src="https://img.icons8.com/ios-filled/50/ffffff/whatsapp.png" width="18" height="18" style="display: block; margin: 9px auto; border: 0;" alt="WhatsApp">
-                                        </a>
-                                    </td>
-                                </tr>
-                            </table>
-
-                            <!-- Address & Copyright -->
-                            <p style="margin: 0 0 8px 0; font-size: 13px; color: #64748b; line-height: 1.4;">
-                                1209 Mountain Road Pl Ne Ste R, Albuquerque, NM, 87110, USA
-                            </p>
-                            <p style="margin: 0 0 4px 0; font-size: 13px; color: #94a3b8;">This email was sent automatically. Please do not reply to this address.</p>
-                            <p style="margin: 0; font-size: 13px; color: #94a3b8;">&copy; 2020 - {{ date('Y') }} Dynime LLC. All rights reserved.</p>
-                            <div style="display:none !important; font-size:1px; color:#ffffff; line-height:1px; max-height:0px; max-width:0px; opacity:0; overflow:hidden;">
-                                ID: {{ uniqid() }}
-                            </div>
+                        <td style="padding: 0;">
+                            @include('emails.partials.footer')
                         </td>
                     </tr>
                 </table>
