@@ -358,22 +358,38 @@ export default function Index({ employees, companySettings, prefill }: IndexProp
     const { t } = useTranslation();
     const printRef = useRef<HTMLDivElement>(null);
 
-    const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('');
-    const [documentType, setDocumentType] = useState<string>('offer_letter');
+    const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>(() => {
+        return localStorage.getItem('doc_builder_last_employee_id') || '';
+    });
+    const [documentType, setDocumentType] = useState<string>(() => {
+        return localStorage.getItem('doc_builder_last_document_type') || 'offer_letter';
+    });
     const [issuedDate, setIssuedDate] = useState<string>(new Date().toISOString().split('T')[0]);
+
+    const handleEmployeeChange = (val: string) => {
+        setSelectedEmployeeId(val);
+        if (val) {
+            localStorage.setItem('doc_builder_last_employee_id', val);
+        } else {
+            localStorage.removeItem('doc_builder_last_employee_id');
+        }
+    };
 
     // Pre-fill from query parameters or controller prefill prop on load
     useEffect(() => {
-        let finalDocType = 'offer_letter';
+        let finalDocType = localStorage.getItem('doc_builder_last_document_type') || 'offer_letter';
         let hasPayloadParagraph = false;
 
         if (prefill) {
             if (prefill.employee_id) {
-                setSelectedEmployeeId(String(prefill.employee_id));
+                const empIdStr = String(prefill.employee_id);
+                setSelectedEmployeeId(empIdStr);
+                localStorage.setItem('doc_builder_last_employee_id', empIdStr);
             }
             if (prefill.document_type) {
                 setDocumentType(prefill.document_type);
                 finalDocType = prefill.document_type;
+                localStorage.setItem('doc_builder_last_document_type', prefill.document_type);
             }
             if (prefill.issued_date) {
                 setIssuedDate(prefill.issued_date);
@@ -412,10 +428,12 @@ export default function Index({ employees, companySettings, prefill }: IndexProp
             const docType = urlParams.get('document_type');
             if (empId) {
                 setSelectedEmployeeId(empId);
+                localStorage.setItem('doc_builder_last_employee_id', empId);
             }
             if (docType) {
                 setDocumentType(docType);
                 finalDocType = docType;
+                localStorage.setItem('doc_builder_last_document_type', docType);
             }
         }
 
@@ -427,7 +445,14 @@ export default function Index({ employees, companySettings, prefill }: IndexProp
         }
 
         if (employees && employees.length === 1) {
-            setSelectedEmployeeId(String(employees[0].id));
+            const singleEmpId = String(employees[0].id);
+            setSelectedEmployeeId(singleEmpId);
+            localStorage.setItem('doc_builder_last_employee_id', singleEmpId);
+        } else if (!selectedEmployeeId) {
+            const savedEmpId = localStorage.getItem('doc_builder_last_employee_id');
+            if (savedEmpId && employees.some(e => String(e.id) === savedEmpId)) {
+                setSelectedEmployeeId(savedEmpId);
+            }
         }
     }, [prefill, employees]);
 
@@ -502,6 +527,9 @@ export default function Index({ employees, companySettings, prefill }: IndexProp
 
     const handleDocumentTypeChange = (value: string) => {
         setDocumentType(value);
+        if (value) {
+            localStorage.setItem('doc_builder_last_document_type', value);
+        }
         if (DEFAULT_TEMPLATES[value] !== undefined) {
             const resolved = resolveTemplate(
                 DEFAULT_TEMPLATES[value],
@@ -783,7 +811,7 @@ export default function Index({ employees, companySettings, prefill }: IndexProp
                             {/* Employee Selector */}
                             <div className="space-y-1.5">
                                 <Label htmlFor="employee-select">{t('Select Employee')}</Label>
-                                <Select value={selectedEmployeeId} onValueChange={setSelectedEmployeeId}>
+                                <Select value={selectedEmployeeId} onValueChange={handleEmployeeChange}>
                                     <SelectTrigger id="employee-select" className="w-full">
                                         <SelectValue placeholder={t('Choose an employee...')} />
                                     </SelectTrigger>
