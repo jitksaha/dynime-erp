@@ -74,6 +74,22 @@ export default function Show() {
     const [changeMethod, setChangeMethod] = useState(employee?.payment_method || 'bank_transfer');
     const [changeDetails, setChangeDetails] = useState<any>(employee?.payment_details || {});
 
+    const paymentMethods = [
+        { value: 'bank_transfer', label: t('Bank Transfer') },
+        { value: 'cards_transfer', label: t('Cards Transfer') },
+        { value: 'paypal', label: t('PayPal') },
+        { value: 'kast', label: t('Kast') },
+        { value: 'redotpay', label: t('Redotpay') },
+        { value: 'remitly', label: t('Remitly') },
+        { value: 'western_union', label: t('Western Union') },
+        { value: 'binance_bybit', label: t('Binance / Bybit') }
+    ];
+
+    const enabledMethods = paymentMethods.filter(method => {
+        const val = companyAllSetting[`payroll_method_enabled_${method.value}`];
+        return val === undefined ? (method.value === 'bank_transfer') : (val === 'on');
+    });
+
     const [copiedDocId, setCopiedDocId] = useState<number | null>(null);
     const [isIDCardModalOpen, setIsIDCardModalOpen] = useState(false);
     const [isWizardOpen, setIsWizardOpen] = useState(false);

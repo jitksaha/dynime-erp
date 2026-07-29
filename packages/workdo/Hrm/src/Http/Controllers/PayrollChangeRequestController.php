@@ -58,6 +58,23 @@ class PayrollChangeRequestController extends Controller
         $changeRequest->created_by = creatorId();
         $changeRequest->save();
 
+        // Send email notification to company admin
+        try {
+            \App\Services\MailConfigService::setDynamicConfig(creatorId());
+            $companyUser = \App\Models\User::find(creatorId());
+            if ($companyUser && !empty($companyUser->email)) {
+                $employeeName = $employee->user ? $employee->user->name : ('Employee #' . $employee->employee_id);
+                $subject = "New Payroll Change Request - " . $employeeName;
+                $content = "Hello Admin,\n\nEmployee " . $employeeName . " has submitted a request to change their payroll/payment method to '" . str_replace('_', ' ', strtoupper($request->requested_payment_method)) . "'.\n\nPlease log in to your portal to review and approve/reject this request.\n\nThank you,\nDynime LLC";
+                
+                \Illuminate\Support\Facades\Mail::raw($content, function ($message) use ($companyUser, $subject) {
+                    $message->to($companyUser->email)->subject($subject);
+                });
+            }
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Failed sending payroll change request admin email: ' . $e->getMessage());
+        }
+
         return redirect()->back()->with('success', __('Payroll change request has been submitted successfully.'));
     }
 
@@ -89,6 +106,23 @@ class PayrollChangeRequestController extends Controller
             $payrollRequest->status = 'approved';
             $payrollRequest->save();
 
+            // Send approval email to employee
+            try {
+                \App\Services\MailConfigService::setDynamicConfig(creatorId());
+                $employeeWithUser = Employee::with('user')->find($payrollRequest->employee_id);
+                if ($employeeWithUser && $employeeWithUser->user && !empty($employeeWithUser->user->email)) {
+                    $mailable = \Illuminate\Support\Facades\Mail::raw("Hello " . $employeeWithUser->user->name . ",\n\nYour request to change your payroll payment method to '" . str_replace('_', ' ', strtoupper($payrollRequest->requested_payment_method)) . "' has been APPROVED.\n\nThank you,\nDynime LLC", function ($message) use ($employeeWithUser) {
+                        $message->to($employeeWithUser->user->email);
+                        if (!empty($employeeWithUser->official_email) && strtolower($employeeWithUser->official_email) !== strtolower($employeeWithUser->user->email)) {
+                            $message->cc($employeeWithUser->official_email);
+                        }
+                        $message->subject("Payroll Change Request Approved");
+                    });
+                }
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error('Failed sending payroll request approval email: ' . $e->getMessage());
+            }
+
             return redirect()->back()->with('success', __('Payroll request approved successfully.'));
         } else {
             return back()->with('error', __('Permission denied'));
@@ -100,6 +134,23 @@ class PayrollChangeRequestController extends Controller
         if (Auth::user()->can('manage-employees')) {
             $payrollRequest->status = 'rejected';
             $payrollRequest->save();
+
+            // Send rejection email to employee
+            try {
+                \App\Services\MailConfigService::setDynamicConfig(creatorId());
+                $employeeWithUser = Employee::with('user')->find($payrollRequest->employee_id);
+                if ($employeeWithUser && $employeeWithUser->user && !empty($employeeWithUser->user->email)) {
+                    \Illuminate\Support\Facades\Mail::raw("Hello " . $employeeWithUser->user->name . ",\n\nYour request to change your payroll payment method to '" . str_replace('_', ' ', strtoupper($payrollRequest->requested_payment_method)) . "' has been REJECTED.\n\nPlease contact HR for details.\n\nThank you,\nDynime LLC", function ($message) use ($employeeWithUser) {
+                        $message->to($employeeWithUser->user->email);
+                        if (!empty($employeeWithUser->official_email) && strtolower($employeeWithUser->official_email) !== strtolower($employeeWithUser->user->email)) {
+                            $message->cc($employeeWithUser->official_email);
+                        }
+                        $message->subject("Payroll Change Request Rejected");
+                    });
+                }
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error('Failed sending payroll request rejection email: ' . $e->getMessage());
+            }
 
             return redirect()->back()->with('success', __('Payroll request rejected successfully.'));
         } else {
