@@ -345,7 +345,7 @@ export default function Index() {
                                         </Button>
                                     </TooltipTrigger>
                                     <TooltipContent>
-                                        <p>{employee.official_email ? `${t('Manage Official Email')} (${employee.official_email})` : t('Issue Official Email')}</p>
+                                        <p>{employee.official_email ? `${t('Manage Official Email')} (${employee.official_email})` : t('Add Official Email')}</p>
                                     </TooltipContent>
                                 </Tooltip>
                             )}
@@ -681,7 +681,7 @@ export default function Index() {
                                                                     </Button>
                                                                 </TooltipTrigger>
                                                                 <TooltipContent>
-                                                                    <p>{employee.official_email ? `${t('Manage Official Email')} (${employee.official_email})` : t('Issue Official Email')}</p>
+                                                                    <p>{employee.official_email ? `${t('Manage Official Email')} (${employee.official_email})` : t('Add Official Email')}</p>
                                                                 </TooltipContent>
                                                             </Tooltip>
                                                         )}
@@ -743,7 +743,7 @@ export default function Index() {
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
                             <Globe className="h-5 w-5 text-indigo-600" />
-                            {t('Issue Official Email')}
+                            {t('Add Official Email')}
                         </DialogTitle>
                     </DialogHeader>
                     {selectedEmployee && (
@@ -788,30 +788,25 @@ export default function Index() {
                             </div>
 
                             <div className="space-y-1.5">
-                                <Label htmlFor="email_prefix" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t('Email Username Prefix')}</Label>
-                                <div className="flex items-center gap-2">
-                                    <Input
-                                        id="email_prefix"
-                                        value={emailPrefix}
-                                        onChange={(e) => setEmailPrefix(e.target.value.toLowerCase().replace(/[^a-z0-9.]/g, ''))}
-                                        placeholder="e.g. john.doe"
-                                        className="flex-1"
-                                    />
-                                    <span className="text-sm font-semibold text-muted-foreground">
-                                        @{cpanel_domain || 'yourdomain.com'}
-                                    </span>
-                                </div>
-                                <p className="text-[11px] text-muted-foreground">{t('Lowercase letters, numbers, and dots only.')}</p>
+                                <Label htmlFor="email_prefix" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t('Official Email Address')}</Label>
+                                <Input
+                                    id="email_prefix"
+                                    value={emailPrefix}
+                                    onChange={(e) => setEmailPrefix(e.target.value)}
+                                    placeholder="e.g. name@dynime.com or prefix"
+                                    className="w-full"
+                                />
+                                <p className="text-[11px] text-muted-foreground">{t('Enter full email address or username prefix.')}</p>
                             </div>
 
                             <div className="space-y-1.5">
-                                <Label htmlFor="email_password" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t('Email Password')}</Label>
+                                <Label htmlFor="email_password" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t('Official Email Password')}</Label>
                                 <div className="flex items-center gap-2">
                                     <Input
                                         id="email_password"
                                         value={emailPassword}
                                         onChange={(e) => setEmailPassword(e.target.value)}
-                                        placeholder="Min 8 characters"
+                                        placeholder="Enter or paste email password"
                                         className="flex-1 font-mono"
                                     />
                                     <Button
@@ -820,22 +815,11 @@ export default function Index() {
                                         size="sm"
                                         onClick={() => setEmailPassword(generateRandomPassword())}
                                         className="flex-shrink-0"
+                                        title={t('Generate Random Password')}
                                     >
                                         <RefreshCw className="h-4 w-4" />
                                     </Button>
                                 </div>
-                            </div>
-
-                            <div className="space-y-1.5">
-                                <Label htmlFor="email_quota" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t('Mailbox Quota (MB)')}</Label>
-                                <Input
-                                    id="email_quota"
-                                    type="number"
-                                    value={emailQuota}
-                                    onChange={(e) => setEmailQuota(e.target.value)}
-                                    placeholder="0 for unlimited"
-                                />
-                                <p className="text-[11px] text-muted-foreground">{t('Storage limit in Megabytes. 0 is unlimited.')}</p>
                             </div>
                         </div>
                     )}
@@ -852,7 +836,7 @@ export default function Index() {
                             disabled={isCreatingEmail || !emailPrefix || !emailPassword}
                             className="bg-indigo-600 hover:bg-indigo-700 text-white"
                         >
-                            {t(isCreatingEmail ? 'Creating...' : 'Create Email')}
+                            {t(isCreatingEmail ? 'Adding...' : 'Add Email')}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
