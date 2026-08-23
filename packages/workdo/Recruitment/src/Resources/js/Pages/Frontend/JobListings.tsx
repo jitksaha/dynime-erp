@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { usePage, router } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent } from '@/components/ui/card';
@@ -6,19 +6,23 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Search, MapPin, Clock, DollarSign, Briefcase, Star } from 'lucide-react';
+import { Search, MapPin, Clock, DollarSign, Briefcase, Star, Filter, ArrowUpRight, CheckCircle2, Bookmark, Sparkles, Layers } from 'lucide-react';
 import FrontendLayout from '../../Components/Frontend/FrontendLayout';
 import { formatDate, formatCurrency } from '@/utils/helpers';
 import { useFormFields } from '@/hooks/useFormFields';
 
 interface Job {
     id: number;
+    slug?: string;
     encrypted_id: string;
     title: string;
     location?: string;
+    department?: string;
+    designation?: string;
     jobType?: string;
     salaryFrom?: number;
     salaryTo?: number;
+    salaryRate?: string;
     postedDate: string;
     deadlineDate?: string;
     skills: string[];
@@ -39,12 +43,12 @@ export default function JobListings({ jobs, jobCategories, jobLocations, jobType
     const { t } = useTranslation();
     const { props } = usePage();
     const userSlug = props.userSlug as string;
-    const recruitmentSettings = props.recruitmentSettings as any;
     const [searchTerm, setSearchTerm] = useState('');
 
     const integrationFields = useFormFields('getIntegrationFields', {}, () => { }, {}, 'create', t, 'Recruitment');
     const [selectedLocation, setSelectedLocation] = useState('all');
     const [selectedJobType, setSelectedJobType] = useState('all');
+    const [selectedDepartment, setSelectedDepartment] = useState('All');
     const [selectedCategory, setSelectedCategory] = useState('All');
     const [sortBy, setSortBy] = useState('newest');
     const [activeSearchTerm, setActiveSearchTerm] = useState('');
@@ -62,15 +66,42 @@ export default function JobListings({ jobs, jobCategories, jobLocations, jobType
         }
     }, [userSlug]);
 
-    const formatSalary = (from: number, to: number) => {
-        return `${formatCurrency(from)} - ${formatCurrency(to)}`;
+    const departmentsList = useMemo(() => {
+        const set = new Set<string>();
+        jobs.forEach(j => {
+            if (j.department) set.add(j.department);
+        });
+        return Array.from(set);
+    }, [jobs]);
+
+    const formatSalary = (from?: number, to?: number, rate?: string) => {
+        const rateLabels: Record<string, string> = {
+            yearly: ' / Year',
+            monthly: ' / Month',
+            weekly: ' / Week',
+            hourly: ' / Hour',
+            project: ' / Project'
+        };
+        const rateSuffix = rateLabels[rate || 'yearly'] || ' / Year';
+
+        const formatClean = (val?: number) => {
+            if (!val && val !== 0) return '';
+            let str = formatCurrency(val);
+            if (/\$\d{1,3}(,\d{3})*,\d{2}$/.test(str)) {
+                str = str.replace(/,(\d{2})$/, '.$1');
+            }
+            return str;
+        };
+
+        if (from && to) {
+            return `${formatClean(from)} - ${formatClean(to)}${rateSuffix}`;
+        } else if (from) {
+            return `${formatClean(from)}${rateSuffix}`;
+        } else if (to) {
+            return `${formatClean(to)}${rateSuffix}`;
+        }
+        return `Competitive Salary${rateSuffix}`;
     };
-
-    const getJobTypeColor = (jobType: string) => {
-        return jobType === 'Full Time' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800';
-    };
-
-
 
     const handleSearch = () => {
         setActiveSearchTerm(searchTerm);
@@ -90,32 +121,31 @@ export default function JobListings({ jobs, jobCategories, jobLocations, jobType
         localStorage.setItem(storageKey, JSON.stringify(updatedSavedJobs));
     };
 
-    const filteredAndSortedJobs = (() => {
-        // Filter jobs
+    const filteredAndSortedJobs = useMemo(() => {
         const filtered = jobs.filter(job => {
             const searchLower = activeSearchTerm.toLowerCase();
             const matchesSearch = activeSearchTerm === '' ||
                 job.title.toLowerCase().includes(searchLower) ||
-                job.location?.toLowerCase().includes(searchLower) ||
-                job.description?.toLowerCase().includes(searchLower) ||
-                job.skills.some(skill => skill.toLowerCase().includes(searchLower));
+                (job.location && job.location.toLowerCase().includes(searchLower)) ||
+                (job.department && job.department.toLowerCase().includes(searchLower)) ||
+                (job.description && job.description.toLowerCase().includes(searchLower)) ||
+                (job.skills && job.skills.some(skill => skill.toLowerCase().includes(searchLower)));
 
-            // Find matching location by ID
             const matchesLocation = selectedLocation === 'all' ||
                 jobLocations?.find(loc => loc.id.toString() === selectedLocation)?.name.toLowerCase() === job.location?.toLowerCase();
 
-            // Find matching job type by ID
             const matchesJobType = selectedJobType === 'all' ||
                 jobTypes?.find(type => type.id.toString() === selectedJobType)?.name.toLowerCase() === job.jobType?.toLowerCase();
+
+            const matchesDepartment = selectedDepartment === 'All' || job.department === selectedDepartment;
 
             const matchesCategory = selectedCategory === 'All' ||
                 (selectedCategory === 'Featured Job' && job.featured) ||
                 (selectedCategory === 'Saved Job' && savedJobs.includes(job.id));
 
-            return matchesSearch && matchesLocation && matchesJobType && matchesCategory;
+            return matchesSearch && matchesLocation && matchesJobType && matchesDepartment && matchesCategory;
         });
 
-        // Sort jobs
         return filtered.sort((a, b) => {
             switch (sortBy) {
                 case 'salary-high':
@@ -129,89 +159,199 @@ export default function JobListings({ jobs, jobCategories, jobLocations, jobType
                     return new Date(b.postedDate).getTime() - new Date(a.postedDate).getTime();
             }
         });
-    })();
+    }, [jobs, activeSearchTerm, selectedLocation, selectedJobType, selectedDepartment, selectedCategory, savedJobs, sortBy, jobLocations, jobTypes]);
 
     return (
-        <FrontendLayout title="Jobs">
+        <FrontendLayout title="Dynime Careers — Explore Open Roles">
+            {/* Hero Banner */}
+            <div className="bg-slate-900 text-white py-14 px-4 sm:px-6 lg:px-8 border-b border-slate-800">
+                <div className="max-w-4xl mx-auto text-center relative z-10">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800 border border-slate-700 text-blue-400 text-xs font-medium uppercase tracking-wider mb-5">
+                        <span className="w-2 h-2 rounded-full bg-blue-500" />
+                        Dynime LLC Careers &bull; {jobs.length} Open Positions
+                    </div>
 
+                    <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-white mb-4 leading-tight">
+                        Build Next-Gen Technology with <span className="text-blue-400">Dynime LLC</span>
+                    </h1>
 
+                    <p className="text-base sm:text-lg text-slate-300 max-w-2xl mx-auto mb-8 font-normal leading-relaxed">
+                        Join our remote-first multidisciplinary team of engineers, marketers, creators, and business specialists. Apply in minutes.
+                    </p>
 
-            {/* Hero Section */}
-            <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-white py-16 border-b border-indigo-950">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="text-center">
-                        <h2 className="text-4xl font-bold mb-4"> {t('Join Our Amazing Team')} </h2>
-                        <p className="text-xl mb-8 text-slate-300"> {t('Discover exciting career opportunities and grow with us')} </p>
-
-                        {/* Search Bar */}
-                        <div className="max-w-2xl mx-auto bg-white rounded-lg p-2 shadow-lg">
-                            <div className="flex items-center space-x-2">
-                                <div className="flex-1 relative">
-                                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-                                    <Input
-                                        placeholder={t('Search jobs, skills, or keywords...')}
-                                        value={searchTerm}
-                                        onChange={(e) => setSearchTerm(e.target.value)}
-                                        className="pl-10 border-0 focus:ring-0 text-gray-900"
-                                    />
-                                </div>
-                                <Button
-                                    className="bg-primary hover:bg-primary/90 text-white shadow-md font-semibold transition-all"
-                                    onClick={handleSearch}
-                                    type="button"
-                                >
-                                    {t('Search Jobs')}
-                                </Button>
+                    {/* Search Input Bar */}
+                    <div className="max-w-2xl mx-auto bg-white p-2 rounded-xl shadow-lg border border-slate-200">
+                        <div className="flex flex-col sm:flex-row items-center gap-2">
+                            <div className="flex-1 relative w-full">
+                                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 h-5 w-5" />
+                                <Input
+                                    placeholder={t('Search roles, skills, or departments...')}
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                                    className="pl-10 h-11 border-0 focus-visible:ring-0 text-gray-900 placeholder:text-gray-400 font-medium text-sm w-full bg-transparent"
+                                />
                             </div>
+                            <Button
+                                className="w-full sm:w-auto h-11 bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 rounded-lg transition-all shadow-md flex items-center justify-center gap-2"
+                                onClick={handleSearch}
+                                type="button"
+                            >
+                                <Search className="h-4 w-4" />
+                                {t('Search Roles')}
+                            </Button>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            {/* Main Content Area */}
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+                
+                {/* Department Filter Pills Header */}
+                <div className="mb-8">
+                    <div className="flex items-center justify-between mb-3">
+                        <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
+                            <Filter className="h-4 w-4 text-blue-600" />
+                            {t('Filter by Department')}
+                        </h3>
+                        <span className="text-xs font-semibold text-slate-500">{filteredAndSortedJobs.length} {t('roles matching')}</span>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2 pb-2">
+                        <button
+                            type="button"
+                            onClick={() => setSelectedDepartment('All')}
+                            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all border ${
+                                selectedDepartment === 'All'
+                                    ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                                    : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50 hover:border-slate-300'
+                            }`}
+                        >
+                            All Positions ({jobs.length})
+                        </button>
+                        {departmentsList.map(dept => {
+                            const count = jobs.filter(j => j.department === dept).length;
+                            return (
+                                <button
+                                    key={dept}
+                                    type="button"
+                                    onClick={() => setSelectedDepartment(dept)}
+                                    className={`px-4 py-2 rounded-lg text-xs font-bold transition-all border ${
+                                        selectedDepartment === dept
+                                            ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                                            : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50 hover:border-slate-300'
+                                    }`}
+                                >
+                                    {dept} ({count})
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
+
                 <div className="flex flex-col lg:flex-row gap-8">
                     {/* Filters Sidebar */}
                     <div className="lg:w-1/4">
-                        <Card className="sticky top-4">
-                            <CardContent className="p-6">
-                                <h3 className="text-lg font-semibold mb-4">{t('Filter Jobs')}</h3>
+                        <Card className="sticky top-20 border-slate-200/80 shadow-sm rounded-xl overflow-hidden bg-white">
+                            <CardContent className="p-5 space-y-6">
+                                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                                    <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                                        <Filter className="h-4 w-4 text-blue-600" />
+                                        {t('Filters & Options')}
+                                    </h3>
+                                    {(selectedCategory !== 'All' || selectedLocation !== 'all' || selectedJobType !== 'all' || activeSearchTerm !== '') && (
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setSelectedCategory('All');
+                                                setSelectedLocation('all');
+                                                setSelectedJobType('all');
+                                                setSelectedDepartment('All');
+                                                setSearchTerm('');
+                                                setActiveSearchTerm('');
+                                            }}
+                                            className="text-[11px] font-semibold text-blue-600 hover:underline"
+                                        >
+                                            Reset All
+                                        </button>
+                                    )}
+                                </div>
 
-                                {/* Job Categories */}
-                                <div className="mb-6">
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">{t('Job Category')}</label>
-                                    <div className="flex flex-wrap gap-2">
-                                        <Button
-                                            variant={selectedCategory === 'All' ? "default" : "outline"}
-                                            size="sm"
+                                {/* Category Switcher */}
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 mb-3 uppercase tracking-wider flex items-center gap-1.5">
+                                        <Layers className="h-3.5 w-3.5 text-blue-600" />
+                                        {t('Job Category')}
+                                    </label>
+                                    <div className="space-y-2">
+                                        <button
+                                            type="button"
                                             onClick={() => setSelectedCategory('All')}
-                                            className="text-xs"
+                                            className={`w-full text-left px-3.5 py-2.5 rounded-lg text-xs font-semibold transition-all flex items-center justify-between border ${
+                                                selectedCategory === 'All'
+                                                    ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                                                    : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50 hover:border-slate-300'
+                                            }`}
                                         >
-                                            {t('All')}
-                                        </Button>
-                                        <Button
-                                            variant={selectedCategory === 'Featured Job' ? "default" : "outline"}
-                                            size="sm"
+                                            <span className="flex items-center gap-2.5">
+                                                <Briefcase className={`h-4 w-4 ${selectedCategory === 'All' ? 'text-white' : 'text-slate-500'}`} />
+                                                <span>All Openings</span>
+                                            </span>
+                                            <span className={`text-[11px] font-bold px-2 py-0.5 rounded-md ${
+                                                selectedCategory === 'All' ? 'bg-blue-700 text-white' : 'bg-slate-100 text-slate-700'
+                                            }`}>
+                                                {jobs.length}
+                                            </span>
+                                        </button>
+                                        
+                                        <button
+                                            type="button"
                                             onClick={() => setSelectedCategory('Featured Job')}
-                                            className="text-xs"
+                                            className={`w-full text-left px-3.5 py-2.5 rounded-lg text-xs font-semibold transition-all flex items-center justify-between border ${
+                                                selectedCategory === 'Featured Job'
+                                                    ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                                                    : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50 hover:border-slate-300'
+                                            }`}
                                         >
-                                            {t('Featured Job')}
-                                        </Button>
-                                        <Button
-                                            variant={selectedCategory === 'Saved Job' ? "default" : "outline"}
-                                            size="sm"
+                                            <span className="flex items-center gap-2.5">
+                                                <Sparkles className={`h-4 w-4 ${selectedCategory === 'Featured Job' ? 'text-white' : 'text-amber-500'}`} />
+                                                <span>Featured Roles</span>
+                                            </span>
+                                            <span className={`text-[11px] font-bold px-2 py-0.5 rounded-md ${
+                                                selectedCategory === 'Featured Job' ? 'bg-blue-700 text-white' : 'bg-amber-50 text-amber-700 border border-amber-200/60'
+                                            }`}>
+                                                {jobs.filter(j => j.featured).length}
+                                            </span>
+                                        </button>
+                                        
+                                        <button
+                                            type="button"
                                             onClick={() => setSelectedCategory('Saved Job')}
-                                            className="text-xs"
+                                            className={`w-full text-left px-3.5 py-2.5 rounded-lg text-xs font-semibold transition-all flex items-center justify-between border ${
+                                                selectedCategory === 'Saved Job'
+                                                    ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                                                    : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50 hover:border-slate-300'
+                                            }`}
                                         >
-                                            {t('Saved Job')}
-                                        </Button>
+                                            <span className="flex items-center gap-2.5">
+                                                <Bookmark className={`h-4 w-4 ${selectedCategory === 'Saved Job' ? 'text-white' : 'text-blue-600'}`} />
+                                                <span>Saved Roles</span>
+                                            </span>
+                                            <span className={`text-[11px] font-bold px-2 py-0.5 rounded-md ${
+                                                selectedCategory === 'Saved Job' ? 'bg-blue-700 text-white' : 'bg-blue-50 text-blue-700 border border-blue-200/60'
+                                            }`}>
+                                                {savedJobs.length}
+                                            </span>
+                                        </button>
                                     </div>
                                 </div>
 
                                 {/* Location Filter */}
-                                <div className="mb-6">
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">{t('Location')}</label>
+                                <div>
+                                    <label className="block text-xs font-semibold text-slate-700 mb-2 uppercase tracking-wide">{t('Location')}</label>
                                     <Select value={selectedLocation} onValueChange={setSelectedLocation}>
-                                        <SelectTrigger>
+                                        <SelectTrigger className="h-9 text-xs rounded-lg border-slate-200">
                                             <SelectValue placeholder="All Locations" />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -226,10 +366,10 @@ export default function JobListings({ jobs, jobCategories, jobLocations, jobType
                                 </div>
 
                                 {/* Job Type Filter */}
-                                <div className="mb-6">
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">{t('Job Type')}</label>
+                                <div>
+                                    <label className="block text-xs font-semibold text-slate-700 mb-2 uppercase tracking-wide">{t('Job Type')}</label>
                                     <Select value={selectedJobType} onValueChange={setSelectedJobType}>
-                                        <SelectTrigger>
+                                        <SelectTrigger className="h-9 text-xs rounded-lg border-slate-200">
                                             <SelectValue placeholder="All Types" />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -245,9 +385,9 @@ export default function JobListings({ jobs, jobCategories, jobLocations, jobType
 
                                 {/* Sort By */}
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">{t('Sort By')}</label>
+                                    <label className="block text-xs font-semibold text-slate-700 mb-2 uppercase tracking-wide">{t('Sort By')}</label>
                                     <Select value={sortBy} onValueChange={setSortBy}>
-                                        <SelectTrigger>
+                                        <SelectTrigger className="h-9 text-xs rounded-lg border-slate-200">
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -262,170 +402,171 @@ export default function JobListings({ jobs, jobCategories, jobLocations, jobType
                         </Card>
                     </div>
 
-                    {/* Job Listings */}
+                    {/* Job Cards Main List */}
                     <div className="lg:w-3/4">
-                        <div className="flex items-center justify-between mb-6">
-                            <h3 className="text-2xl font-bold text-gray-900">{t('All Positions')}</h3>
-                            <span className="text-sm text-gray-500">{filteredAndSortedJobs.length} {t('jobs found')}</span>
-                        </div>
-
-                        <div className="space-y-6">
+                        <div className="space-y-4">
                             {filteredAndSortedJobs.map((job) => (
-                                <Card key={job.id} className="border shadow-sm">
+                                <Card
+                                    key={job.id}
+                                    className="group border border-slate-200/80 hover:border-blue-300 hover:shadow-md transition-all duration-200 rounded-xl bg-white overflow-hidden"
+                                >
                                     <CardContent className="p-6">
-                                        <div className="flex justify-between items-start mb-4">
-                                            <div className="flex-1">
-                                                <div className="flex items-start justify-between mb-4">
-                                                    <div>
-                                                        <h4 className="text-xl font-bold text-gray-900 mb-2">{job.title}</h4>
-                                                        <div className="flex items-center text-gray-600 mb-3">
-                                                            <MapPin className="h-5 w-5 mr-2 text-blue-500" />
-                                                            <span className="font-medium">{job.location}</span>
-                                                        </div>
-                                                    </div>
-                                                    <div className="flex gap-2">
-                                                        {job.featured && (
-                                                            <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200 hover:bg-yellow-100">
-                                                                <Star className="h-3 w-3 mr-1" />
-                                                                {t('Featured')}
-                                                            </Badge>
-                                                        )}
-                                                    </div>
-                                                </div>
-
-                                                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-                                                    <div className="flex items-center bg-gray-50 rounded-lg p-3">
-                                                        <DollarSign className="h-5 w-5 mr-2 text-green-600" />
-                                                        <div>
-                                                            <p className="text-xs text-gray-500 uppercase tracking-wide">{t('Salary')}</p>
-                                                            <p className="font-semibold text-gray-900">{formatSalary(job.salaryFrom, job.salaryTo)}</p>
-                                                        </div>
-                                                    </div>
-                                                    <div className="flex items-center bg-gray-50 rounded-lg p-3">
-                                                        <Briefcase className="h-5 w-5 mr-2 text-blue-600" />
-                                                        <div>
-                                                            <p className="text-xs text-gray-500 uppercase tracking-wide">{t('Type')}</p>
-                                                            <p className="font-semibold text-gray-900">{job.jobType}</p>
-                                                        </div>
-                                                    </div>
-                                                    <div className="flex items-center bg-gray-50 rounded-lg p-3">
-                                                        <Clock className="h-5 w-5 mr-2 text-purple-600" />
-                                                        <div>
-                                                            <p className="text-xs text-gray-500 uppercase tracking-wide">{t('Posted')}</p>
-                                                            <p className="font-semibold text-gray-900">{formatDate(job.postedDate)}</p>
-                                                        </div>
-                                                    </div>
-                                                    {job.deadlineDate && (
-                                                        <div className="flex items-center bg-red-50 rounded-lg p-3">
-                                                            <Clock className="h-5 w-5 mr-2 text-red-600" />
-                                                            <div>
-                                                                <p className="text-xs text-gray-500 uppercase tracking-wide">{t('Deadline')}</p>
-                                                                <p className="font-semibold text-red-700">{formatDate(job.deadlineDate)}</p>
-                                                            </div>
-                                                        </div>
+                                        <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-4">
+                                            <div className="space-y-2 flex-1">
+                                                {/* Header Badges */}
+                                                <div className="flex flex-wrap items-center gap-2">
+                                                    {job.department && (
+                                                        <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-100 font-semibold px-2.5 py-0.5 rounded-md text-xs">
+                                                            {job.department}
+                                                        </Badge>
+                                                    )}
+                                                    {job.designation && job.designation !== job.title && (
+                                                        <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-100 font-semibold px-2.5 py-0.5 rounded-md text-xs">
+                                                            {job.designation}
+                                                        </Badge>
+                                                    )}
+                                                    {job.featured && (
+                                                        <Badge className="bg-amber-100 text-amber-800 border-amber-200 font-semibold text-xs">
+                                                            <Star className="h-3 w-3 mr-1 fill-amber-500 text-amber-600" />
+                                                            {t('Featured')}
+                                                        </Badge>
                                                     )}
                                                 </div>
 
-                                                {job.skills && job.skills.length > 0 && (
-                                                    <div className="mb-4">
-                                                        <p className="text-xs text-gray-500 uppercase tracking-wide mb-2">{t('Required Skills')}</p>
-                                                        <div className="flex flex-wrap gap-2">
-                                                            {job.skills.map((skill) => (
-                                                                <Badge key={skill} variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                                                                    {skill}
-                                                                </Badge>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                )}
+                                                {/* Title */}
+                                                <h4 className="text-xl font-bold text-slate-900 group-hover:text-blue-600 transition-colors leading-snug">
+                                                    {job.title}
+                                                </h4>
+                                            </div>
+
+                                            {/* Action Buttons (Desktop Top Right or Bottom) */}
+                                        </div>
+
+                                        {/* Grid Info Stats */}
+                                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+                                            <div className="bg-slate-50 border border-slate-100 rounded-lg p-3 flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 font-bold">
+                                                    <DollarSign className="h-4 w-4" />
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t('Salary')}</p>
+                                                    <p className="text-xs font-bold text-slate-800 truncate">{formatSalary(job.salaryFrom, job.salaryTo, job.salaryRate)}</p>
+                                                </div>
+                                            </div>
+
+                                            <div className="bg-slate-50 border border-slate-100 rounded-lg p-3 flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center shrink-0 font-bold">
+                                                    <Briefcase className="h-4 w-4" />
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t('Type')}</p>
+                                                    <p className="text-xs font-bold text-slate-800 truncate">{job.jobType || 'Full-time'}</p>
+                                                </div>
+                                            </div>
+
+                                            <div className="bg-slate-50 border border-slate-100 rounded-lg p-3 flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center shrink-0 font-bold">
+                                                    <MapPin className="h-4 w-4" />
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t('Location')}</p>
+                                                    <p className="text-xs font-bold text-slate-800 truncate">{job.location || 'Remote'}</p>
+                                                </div>
+                                            </div>
+
+                                            <div className="bg-slate-50 border border-slate-100 rounded-lg p-3 flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded-lg bg-slate-200/80 text-slate-700 flex items-center justify-center shrink-0 font-bold">
+                                                    <Clock className="h-4 w-4" />
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t('Posted')}</p>
+                                                    <p className="text-xs font-bold text-slate-800 truncate">{formatDate(job.postedDate)}</p>
+                                                </div>
                                             </div>
                                         </div>
 
-                                        <div className="pt-4 border-t border-gray-100">
-                                            {/* Mobile View: Buttons Stacking */}
-                                            <div className="flex flex-col md:hidden gap-3">
-                                                <div className="flex flex-row gap-3">
-                                                    <Button
-                                                        variant="outline"
-                                                        size="sm"
-                                                        onClick={() => handleSaveJob(job.id)}
-                                                        className={`flex-1 ${savedJobs.includes(job.id) ? 'bg-blue-50 text-blue-600 border-blue-200' : 'text-gray-600'}`}
-                                                    >
-                                                        <Briefcase className="h-4 w-4 mr-2" />
-                                                        {savedJobs.includes(job.id) ? t('Saved') : t('Save Job')}
-                                                    </Button>
-                                                    <Button
-                                                        variant="outline"
-                                                        size="sm"
-                                                        className="flex-1 border-slate-300 text-slate-700 hover:bg-slate-50"
-                                                        onClick={() => router.visit(route('recruitment.frontend.careers.jobs.show', { userSlug, id: job.encrypted_id }))}
-                                                    >
-                                                        {t('View Details')}
-                                                    </Button>
-                                                </div>
+                                        {/* Required Skills Badges */}
+                                        {job.skills && job.skills.length > 0 && (
+                                            <div className="mb-4 flex flex-wrap items-center gap-1.5">
+                                                <span className="text-[11px] font-bold text-slate-400 mr-1 uppercase tracking-wider">{t('Skills:')}</span>
+                                                {job.skills.map((skill) => (
+                                                    <Badge key={skill} variant="outline" className="bg-slate-50 text-slate-700 border-slate-200 text-[11px] font-semibold">
+                                                        {skill}
+                                                    </Badge>
+                                                ))}
+                                            </div>
+                                        )}
+
+                                        {/* Card Footer Actions */}
+                                        <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => handleSaveJob(job.id)}
+                                                className={`text-xs rounded-lg ${savedJobs.includes(job.id) ? 'bg-blue-50 text-blue-700 border-blue-200 font-bold' : 'text-slate-600 border-slate-200 hover:bg-slate-50'}`}
+                                            >
+                                                <Bookmark className="h-3.5 w-3.5 mr-1.5" />
+                                                {savedJobs.includes(job.id) ? t('Saved') : t('Save Job')}
+                                            </Button>
+
+                                            <div className="flex items-center gap-2.5">
                                                 <Button
-                                                    className="w-full bg-primary hover:bg-primary/90 text-white font-medium transition-all shadow-sm"
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="border-slate-200 text-slate-700 hover:bg-slate-50 rounded-lg text-xs font-semibold"
+                                                    onClick={() => {
+                                                        const targetSlug = job.slug || job.id;
+                                                        router.visit(userSlug ? `/${userSlug}/job/${targetSlug}` : `/job/${targetSlug}`);
+                                                    }}
+                                                >
+                                                    {t('View Details')}
+                                                </Button>
+
+                                                <Button
+                                                    size="sm"
+                                                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg text-xs px-4 shadow-sm transition-all flex items-center gap-1.5"
                                                     onClick={() => {
                                                         if (job.job_application === 'custom' && job.application_url) {
                                                             window.open(job.application_url, '_blank');
                                                         } else {
-                                                            router.visit(route('recruitment.frontend.careers.jobs.apply', { userSlug, id: job.encrypted_id }));
+                                                            const targetSlug = job.slug || job.id;
+                                                            router.visit(userSlug ? `/${userSlug}/job/${targetSlug}/apply` : `/job/${targetSlug}/apply`);
                                                         }
                                                     }}
                                                 >
-                                                    {t('Apply Now')}
+                                                    <span>{t('Apply Now')}</span>
+                                                    {job.job_application === 'custom' && <ArrowUpRight className="h-3.5 w-3.5" />}
                                                 </Button>
-                                            </div>
-
-                                            {/* Desktop View: Original Layout */}
-                                            <div className="hidden md:flex items-center justify-between">
-                                                <div className="flex items-center space-x-4">
-                                                    <Button
-                                                        variant="outline"
-                                                        size="sm"
-                                                        onClick={() => handleSaveJob(job.id)}
-                                                        className={savedJobs.includes(job.id) ? 'bg-blue-50 text-blue-600 border-blue-200' : 'text-gray-600'}
-                                                    >
-                                                        <Briefcase className="h-4 w-4 mr-2" />
-                                                        {savedJobs.includes(job.id) ? t('Saved') : t('Save Job')}
-                                                    </Button>
-                                                </div>
-                                                <div className="flex gap-3">
-                                                    <Button
-                                                        variant="outline"
-                                                        className="border-slate-300 text-slate-700 hover:bg-slate-50"
-                                                        onClick={() => router.visit(route('recruitment.frontend.careers.jobs.show', { userSlug, id: job.encrypted_id }))}
-                                                    >
-                                                        {t('View Details')}
-                                                    </Button>
-                                                    <Button
-                                                        className="bg-primary hover:bg-primary/90 text-white px-6 font-medium transition-all shadow-sm"
-                                                        onClick={() => {
-                                                            if (job.job_application === 'custom' && job.application_url) {
-                                                                window.open(job.application_url, '_blank');
-                                                            } else {
-                                                                router.visit(route('recruitment.frontend.careers.jobs.apply', { userSlug, id: job.encrypted_id }));
-                                                            }
-                                                        }}
-                                                    >
-                                                        {t('Apply Now')}
-                                                    </Button>
-                                                </div>
                                             </div>
                                         </div>
                                     </CardContent>
                                 </Card>
                             ))}
-                        </div>
 
-                        {/* No Results */}
-                        {filteredAndSortedJobs.length === 0 && (
-                            <div className="text-center py-12">
-                                <Briefcase className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                                <h3 className="text-lg font-semibold text-gray-900 mb-2">{t('No jobs found')}</h3>
-                                <p className="text-gray-600">{t('Try adjusting your search criteria or filters')}</p>
-                            </div>
-                        )}
+                            {/* No Results */}
+                            {filteredAndSortedJobs.length === 0 && (
+                                <div className="bg-white border border-slate-200 rounded-xl p-12 text-center shadow-sm">
+                                    <Briefcase className="h-12 w-12 text-slate-300 mx-auto mb-3" />
+                                    <h3 className="text-base font-bold text-slate-900 mb-1">{t('No matching positions found')}</h3>
+                                    <p className="text-xs text-slate-500 max-w-sm mx-auto mb-4">{t('Try resetting your search query or department filters to view all available positions.')}</p>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => {
+                                            setSelectedCategory('All');
+                                            setSelectedLocation('all');
+                                            setSelectedJobType('all');
+                                            setSelectedDepartment('All');
+                                            setSearchTerm('');
+                                            setActiveSearchTerm('');
+                                        }}
+                                        className="text-xs font-semibold"
+                                    >
+                                        View All {jobs.length} Positions
+                                    </Button>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>
