@@ -12,6 +12,7 @@ use App\Http\Controllers\SettingController;
 use App\Http\Controllers\TranslationController;
 use App\Http\Controllers\ModuleController;
 use App\Http\Controllers\BankTransferPaymentController;
+use App\Http\Controllers\AgreementBuilderController;
 
 
 use App\Http\Controllers\CouponController;
@@ -93,6 +94,7 @@ Route::middleware(['auth', 'verified', 'PlanModuleCheck'])->group(function () {
     // })->name('dashboard');
 
     Route::get('dashboard', [HomeController::class, 'Dashboard'])->name('dashboard');
+    Route::get('agreement-builder', [AgreementBuilderController::class, 'index'])->name('agreement-builder.index');
 
     // Profile management routes
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
