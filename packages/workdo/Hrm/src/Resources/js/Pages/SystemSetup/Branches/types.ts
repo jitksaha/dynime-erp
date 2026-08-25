@@ -3,12 +3,14 @@ import { PaginatedData, ModalState, AuthContext, CreateProps, EditProps } from '
 export interface Branch {
     id: number;
     branch_name: string;
+    branch_address?: string;
     priority?: number;
     created_at: string;
 }
 
 export interface BranchFormData {
     branch_name: string;
+    branch_address: string;
     priority: string;
 }
 

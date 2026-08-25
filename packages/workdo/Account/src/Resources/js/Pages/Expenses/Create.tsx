@@ -14,6 +14,7 @@ import { useFormFields } from '@/hooks/useFormFields';
 interface Category {
     id: number;
     category_name: string;
+    description?: string;
 }
 
 interface BankAccount {
@@ -97,10 +98,10 @@ export default function Create({ categories, bankAccounts, chartOfAccounts, onSu
                                     <SelectTrigger>
                                         <SelectValue placeholder={t('Select Category')} />
                                     </SelectTrigger>
-                                    <SelectContent>
+                                    <SelectContent searchable>
                                         {categories.map((category) => (
                                             <SelectItem key={category.id} value={category.id.toString()}>
-                                                {category.category_name}
+                                                {category.description ? `[${category.description}] ${category.category_name}` : category.category_name}
                                             </SelectItem>
                                         ))}
                                     </SelectContent>

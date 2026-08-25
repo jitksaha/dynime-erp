@@ -29,7 +29,7 @@ export const recruitmentCompanyMenu = (t: (key: string) => string) => [
                 permission: 'manage-custom-questions',
             },
             {
-                title: t('Job Postings'),
+                title: t('Open Jobs'),
                 href: route('recruitment.job-postings.index'),
                 permission: 'manage-job-postings',
             },

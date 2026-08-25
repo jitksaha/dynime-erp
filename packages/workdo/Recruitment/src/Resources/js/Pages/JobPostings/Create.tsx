@@ -114,7 +114,7 @@ export default function Create({ onSuccess }: CreateJobPostingProps) {
     return (
         <DialogContent className="max-w-4xl">
             <DialogHeader>
-                <DialogTitle>{t('Create Job Posting')}</DialogTitle>
+                <DialogTitle>{t('Post New Open Job')}</DialogTitle>
             </DialogHeader>
             <form onSubmit={submit} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

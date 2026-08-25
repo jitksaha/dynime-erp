@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { usePage } from '@inertiajs/react';
 import { Clock, Play, Square } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { ScreenTrackerManager } from '@/components/ScreenTrackerManager';
 
 export function HeaderAttendance() {
     const { t } = useTranslation();
@@ -16,6 +17,7 @@ export function HeaderAttendance() {
 
     const [isClockedIn, setIsClockedIn] = useState(false);
     const [clockInTime, setClockInTime] = useState('');
+    const [attendanceId, setAttendanceId] = useState<number | null>(null);
     const [elapsedTime, setElapsedTime] = useState('00:00:00');
     const [loading, setLoading] = useState(false);
 
@@ -26,6 +28,7 @@ export function HeaderAttendance() {
             .then(data => {
                 setIsClockedIn(data.is_clocked_in);
                 setClockInTime(data.clock_in_time || '');
+                setAttendanceId(data.attendance_id || null);
             })
             .catch(err => console.error(err));
     }, []);
@@ -36,11 +39,60 @@ export function HeaderAttendance() {
             const data = (e as CustomEvent).detail;
             setIsClockedIn(data.is_clocked_in);
             setClockInTime(data.clock_in_time || '');
+            setAttendanceId(data.attendance_id || null);
         };
 
         window.addEventListener('attendance-clock-changed', handleClockChange);
         return () => window.removeEventListener('attendance-clock-changed', handleClockChange);
     }, []);
+
+    const parseClockInEpoch = (timeStr: string | null | undefined): number | null => {
+        if (!timeStr) return null;
+        
+        if (timeStr.includes('T') || (timeStr.includes('-') && timeStr.includes(':'))) {
+            const normalized = timeStr.includes(' ') ? timeStr.replace(' ', 'T') : timeStr;
+            const d = new Date(normalized);
+            if (!isNaN(d.getTime())) return d.getTime();
+        }
+
+        const nativeDate = new Date(timeStr);
+        if (!isNaN(nativeDate.getTime())) return nativeDate.getTime();
+
+        if (timeStr.includes(':')) {
+            const now = new Date();
+            let timePart = timeStr.trim();
+            let isPM = false;
+            let isAM = false;
+
+            if (/pm/i.test(timePart)) {
+                isPM = true;
+                timePart = timePart.replace(/pm/i, '').trim();
+            } else if (/am/i.test(timePart)) {
+                isAM = true;
+                timePart = timePart.replace(/am/i, '').trim();
+            }
+
+            const parts = timePart.split(':');
+            let hours = parseInt(parts[0], 10);
+            const minutes = parseInt(parts[1], 10);
+            const seconds = parseInt(parts[2] || '0', 10);
+
+            if (isNaN(hours) || isNaN(minutes)) return null;
+
+            if (isPM && hours < 12) hours += 12;
+            if (isAM && hours === 12) hours = 0;
+
+            let candidate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes, seconds);
+
+            if (candidate.getTime() > now.getTime() + 120000) {
+                candidate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, hours, minutes, seconds);
+            }
+
+            return candidate.getTime();
+        }
+
+        return null;
+    };
 
     // Ticking elapsed time timer
     useEffect(() => {
@@ -51,11 +103,11 @@ export function HeaderAttendance() {
 
         const calculateElapsed = () => {
             try {
-                const normalizedStr = clockInTime.includes(' ') ? clockInTime.replace(' ', 'T') : clockInTime;
-                const start = new Date(normalizedStr);
-                const now = new Date();
-                const diffMs = now.getTime() - start.getTime();
-                if (diffMs < 0) return '00:00:00';
+                const epoch = parseClockInEpoch(clockInTime);
+                if (!epoch) return '00:00:00';
+
+                const diffMs = Date.now() - epoch;
+                if (diffMs <= 0) return '00:00:00';
 
                 const totalSecs = Math.floor(diffMs / 1000);
                 const hrs = Math.floor(totalSecs / 3600);
@@ -105,6 +157,7 @@ export function HeaderAttendance() {
 
             setIsClockedIn(data.is_clocked_in);
             setClockInTime(data.clock_in_time || '');
+            setAttendanceId(data.attendance_id || null);
 
             // Dispatch global event to update dashboard
             window.dispatchEvent(new CustomEvent('attendance-clock-changed', { detail: data }));
@@ -123,6 +176,10 @@ export function HeaderAttendance() {
                     {elapsedTime}
                 </div>
             )}
+
+            {/* Screen Tracker Manager (Disabled as requested) */}
+            {/* <ScreenTrackerManager isClockedIn={isClockedIn} attendanceId={attendanceId} /> */}
+
             <Button
                 size="sm"
                 onClick={handleClockAction}

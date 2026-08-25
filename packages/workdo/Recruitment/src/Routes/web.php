@@ -234,21 +234,12 @@ Route::group(['domain' => 'careers.dynime.com', 'middleware' => ['web', Recruitm
     Route::post('/track/verify', [FrontendController::class, 'trackingVerify'])->name('recruitment.frontend.careers.domain.track.verify');
     Route::get('/track/{trackingId}', [FrontendController::class, 'trackingDetails'])->name('recruitment.frontend.careers.domain.track.details');
 
-    // Redirect any login attempt on careers.dynime.com back to public career portal
-    Route::get('/login{any?}', function() {
-        return redirect()->route('recruitment.frontend.careers.domain.index');
-    })->where('any', '.*');
+    // On careers.dynime.com, directly render the career portal if /login is accessed (prevent redirect loops)
+    Route::get('/login{any?}', [FrontendController::class, 'jobListings'])->where('any', '.*');
 
     Route::group(['prefix' => '{userSlug}', 'where' => ['userSlug' => '^(?!login|admin|dashboard|api|recruitment).*$']], function () {
         Route::get('/', [FrontendController::class, 'jobListings']);
         Route::get('/job/{id}', [FrontendController::class, 'jobDetails']);
         Route::get('/job/{id}/apply', [FrontendController::class, 'jobApply']);
     });
-});
-
-// Public API routes for Flowmingo ATS synced jobs (for website integration)
-Route::middleware(['web'])->group(function () {
-    Route::get('/api/jobs', [FlowmingoHiringController::class, 'publicApiList']);
-    Route::get('/api/jobs/{slug}', [FlowmingoHiringController::class, 'publicApiShow']);
-    Route::post('/admin/jobs/sync', [FlowmingoHiringController::class, 'sync']);
 });

@@ -32,6 +32,7 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
             'password',
             'type',
             'avatar',
+            'is_verified',
             'lang',
             'active_plan',
             'plan_expire_date',
@@ -377,5 +378,16 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
 
             $vendorRole->givePermissionTo($permissions);
         }
+    }
+
+    /**
+     * Send the password reset notification.
+     *
+     * @param  string  $token
+     * @return void
+     */
+    public function sendPasswordResetNotification($token)
+    {
+        $this->notify(new \App\Notifications\CustomResetPassword($token));
     }
 }

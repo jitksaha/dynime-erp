@@ -65,6 +65,7 @@ use Workdo\Hrm\Http\Controllers\AwardController;
 use Workdo\Hrm\Http\Controllers\AwardTypeController;
 
 use Workdo\Hrm\Http\Controllers\EmployeeController;
+use Workdo\Hrm\Http\Controllers\OnboardingController;
 
 use Workdo\Hrm\Http\Controllers\EmployeeDocumentTypeController;
 
@@ -78,9 +79,30 @@ use Workdo\Hrm\Http\Controllers\HrmDocumentController;
 use Workdo\Hrm\Http\Controllers\WorkingDaysController;
 use Workdo\Hrm\Http\Controllers\DocumentBuilderController;
 use Workdo\Hrm\Http\Controllers\PayrollChangeRequestController;
+use Workdo\Hrm\Http\Controllers\OfficialEmailController;
 
 Route::middleware(['web', 'auth', 'verified', 'PlanModuleCheck:Hrm'])->group(function () {
     Route::get('/dashboard/hrm', [DashboardController::class, 'index'])->name('hrm.index');
+
+    Route::get('/hrm/time-tracker/downloads', function (\Illuminate\Http\Request $request) {
+        $user = $request->user();
+        $token = null;
+        try {
+            $token = $user->tokens()->where('name', 'time-tracker-app')->first()?->plainTextToken 
+                ?? $user->createToken('time-tracker-app')->plainTextToken;
+        } catch (\Exception $e) {
+            $token = null;
+        }
+
+        return \Inertia\Inertia::render('Hrm/TimeTrackerApp/Downloads', [
+            'userToken' => $token
+        ]);
+    })->name('hrm.time-tracker.downloads');
+
+    Route::prefix('hrm/official-emails')->name('hrm.official-emails.')->group(function () {
+        Route::get('/', [OfficialEmailController::class, 'index'])->name('index');
+        Route::put('/{employee}', [OfficialEmailController::class, 'update'])->name('update');
+    });
 
     Route::prefix('hrm/branches')->name('hrm.branches.')->group(function () {
         Route::get('/', [BranchController::class, 'index'])->name('index');
@@ -126,9 +148,16 @@ Route::middleware(['web', 'auth', 'verified', 'PlanModuleCheck:Hrm'])->group(fun
         Route::post('/{employee}/create-official-email', [EmployeeController::class, 'createOfficialEmail'])->name('create-official-email');
         Route::post('/{employee}/resend-official-email', [EmployeeController::class, 'resendOfficialEmailCredentials'])->name('resend-official-email');
         Route::post('/{employee}/delete-official-email', [EmployeeController::class, 'deleteOfficialEmail'])->name('delete-official-email');
+        Route::post('/{employee}/toggle-verification', [EmployeeController::class, 'toggleVerification'])->name('toggle-verification');
+        Route::post('/{employee}/save-probation-account', [EmployeeController::class, 'saveProbationPaymentAccount'])->name('save-probation-account');
+        Route::post('/{employee}/resend-invite', [OnboardingController::class, 'resendInvite'])->name('resend-invite');
         Route::get('/seal-base64', [EmployeeController::class, 'getSealBase64'])->name('seal-base64');
         Route::get('/{employee}', [EmployeeController::class, 'show'])->name('show');
     });
+
+    // Employee Self-Onboarding Routes
+    Route::get('hrm/onboarding', [OnboardingController::class, 'index'])->name('hrm.onboarding.index');
+    Route::post('hrm/onboarding/save-step', [OnboardingController::class, 'saveStep'])->name('hrm.onboarding.save-step');
 
     // Delete employee document
     Route::delete('hrm/employees/{employeeId}/documents/{document}', [EmployeeController::class, 'deleteDocument'])->name('hrm.employee-documents.destroy');
@@ -361,8 +390,12 @@ Route::middleware(['web', 'auth', 'verified', 'PlanModuleCheck:Hrm'])->group(fun
     Route::prefix('hrm/shifts')->name('hrm.shifts.')->group(function () {
         Route::get('/', [ShiftController::class, 'index'])->name('index');
         Route::post('/', [ShiftController::class, 'store'])->name('store');
+        Route::get('/{shift}', [ShiftController::class, 'show'])->name('show');
         Route::get('/{shift}/edit', [ShiftController::class, 'edit'])->name('edit');
         Route::put('/{shift}', [ShiftController::class, 'update'])->name('update');
+        Route::post('/{shift}/duplicate', [ShiftController::class, 'duplicate'])->name('duplicate');
+        Route::post('/{shift}/assign-employees', [ShiftController::class, 'assignEmployees'])->name('assign-employees');
+        Route::post('/{shift}/archive', [ShiftController::class, 'archive'])->name('archive');
         Route::delete('/{shift}', [ShiftController::class, 'destroy'])->name('destroy');
     });
 
@@ -374,6 +407,9 @@ Route::middleware(['web', 'auth', 'verified', 'PlanModuleCheck:Hrm'])->group(fun
         Route::post('/clock-in', [AttendanceController::class, 'clockIn'])->name('clock-in');
         Route::post('/clock-out', [AttendanceController::class, 'clockOut'])->name('clock-out');
         Route::get('/clock-status', [AttendanceController::class, 'getClockStatus'])->name('clock-status');
+        Route::post('/screenshots', [AttendanceController::class, 'storeScreenshot'])->name('screenshots.store');
+        Route::get('/{attendance}/screenshots', [AttendanceController::class, 'getScreenshots'])->name('screenshots.index');
+        Route::delete('/screenshots/{screenshot}', [AttendanceController::class, 'deleteScreenshot'])->name('screenshots.destroy');
     });
 
     Route::prefix('hrm/set-salary')->name('hrm.set-salary.')->group(function () {
@@ -481,6 +517,21 @@ Route::middleware(['web', 'auth', 'verified', 'PlanModuleCheck:Hrm'])->group(fun
         Route::put('/{id}/approve', [\Workdo\Hrm\Http\Controllers\EmployeeProfileChangeRequestController::class, 'approve'])->name('approve');
         Route::put('/{id}/reject', [\Workdo\Hrm\Http\Controllers\EmployeeProfileChangeRequestController::class, 'reject'])->name('reject');
     });
+
+    // Flexible Shift Routes
+    Route::prefix('hrm/flexible-shift')->name('hrm.flexible-shift.')->group(function () {
+        Route::post('/toggle', [\Workdo\Hrm\Http\Controllers\FlexibleShiftController::class, 'toggleShift'])->name('toggle');
+        Route::post('/request', [\Workdo\Hrm\Http\Controllers\FlexibleShiftController::class, 'requestAccess'])->name('request');
+        Route::get('/requests', [\Workdo\Hrm\Http\Controllers\FlexibleShiftController::class, 'indexRequests'])->name('requests.index');
+        Route::put('/requests/{id}/approve', [\Workdo\Hrm\Http\Controllers\FlexibleShiftController::class, 'approveRequest'])->name('requests.approve');
+        Route::put('/requests/{id}/reject', [\Workdo\Hrm\Http\Controllers\FlexibleShiftController::class, 'rejectRequest'])->name('requests.reject');
+        Route::post('/employee-permission/{employeeId}', [\Workdo\Hrm\Http\Controllers\FlexibleShiftController::class, 'toggleEmployeePermission'])->name('employee-permission');
+    });
+
+    // Master Country Shift & Enterprise Versioning Routes
+    Route::post('hrm/shifts/import-country', [ShiftController::class, 'importCountryShift'])->name('hrm.shifts.import-country');
+    Route::post('hrm/shifts/{shift}/update-version', [ShiftController::class, 'updateMasterVersion'])->name('hrm.shifts.update-version');
+    Route::post('hrm/shifts/{shift}/ignore-version', [ShiftController::class, 'ignoreMasterVersion'])->name('hrm.shifts.ignore-version');
 });
 
 Route::middleware(['web'])->group(function () {

@@ -52,6 +52,9 @@ export default function PayrollSettings({ userSettings = {}, auth }: PayrollSett
       initial[`payroll_method_fee_percentage_${opt.key}`] = userSettings[`payroll_method_fee_percentage_${opt.key}`] || legacyFee;
       initial[`payroll_method_fee_fixed_${opt.key}`] = userSettings[`payroll_method_fee_fixed_${opt.key}`] || '0';
     });
+    initial.probation_redotpay_link = userSettings.probation_redotpay_link || 'https://url.hk/i/en/cwqej';
+    initial.probation_kast_link = userSettings.probation_kast_link || 'https://app.kast.xyz/referral/XJLR09R1';
+    initial.probation_notice_text = userSettings.probation_notice_text || 'Every account should be created with our official partner link below and must have an active card for successful transfer.';
     return initial;
   });
 
@@ -70,6 +73,9 @@ export default function PayrollSettings({ userSettings = {}, auth }: PayrollSett
       updated[`payroll_method_fee_percentage_${opt.key}`] = userSettings[`payroll_method_fee_percentage_${opt.key}`] || legacyFee;
       updated[`payroll_method_fee_fixed_${opt.key}`] = userSettings[`payroll_method_fee_fixed_${opt.key}`] || '0';
     });
+    updated.probation_redotpay_link = userSettings.probation_redotpay_link || 'https://url.hk/i/en/cwqej';
+    updated.probation_kast_link = userSettings.probation_kast_link || 'https://app.kast.xyz/referral/XJLR09R1';
+    updated.probation_notice_text = userSettings.probation_notice_text || 'Every account should be created with our official partner link below and must have an active card for successful transfer.';
     setSettings(updated);
   }, [userSettings]);
 
@@ -128,6 +134,10 @@ export default function PayrollSettings({ userSettings = {}, auth }: PayrollSett
         settings[`payroll_method_fee_percentage_${opt.key}`] || '0'
       );
     });
+
+    formData.append('settings[probation_redotpay_link]', settings.probation_redotpay_link || 'https://url.hk/i/en/cwqej');
+    formData.append('settings[probation_kast_link]', settings.probation_kast_link || 'https://app.kast.xyz/referral/XJLR09R1');
+    formData.append('settings[probation_notice_text]', settings.probation_notice_text || 'Every account should be created with our official partner link below and must have an active card for successful transfer.');
 
     router.post(route('settings.company.update'), formData, {
       preserveScroll: true,
@@ -264,7 +274,7 @@ export default function PayrollSettings({ userSettings = {}, auth }: PayrollSett
                             <Input
                               id={`fee_fixed_${opt.key}`}
                               type="number"
-                              step="0.01;0.1;1"
+                              step="0.01"
                               min="0"
                               value={settings[`payroll_method_fee_fixed_${opt.key}`]}
                               onChange={(e) => handleFeeFixedChange(opt.key, e.target.value)}
@@ -289,6 +299,64 @@ export default function PayrollSettings({ userSettings = {}, auth }: PayrollSett
                 </div>
               );
             })}
+          </div>
+
+          {/* Section: Probation Payroll & Partner Links */}
+          <div className="mt-8 pt-6 border-t border-slate-200 dark:border-slate-800 space-y-4">
+            <div className="flex items-center gap-2 text-base font-semibold text-slate-800 dark:text-slate-200">
+              <ShieldCheck className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+              {t('Probation Preferred Payroll & Partner Links')}
+            </div>
+            <p className="text-xs text-slate-500">
+              {t('Manage company partner referral links and official account creation notice for probation employees.')}
+            </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="probation_redotpay_link" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  {t('RedotPay Partner Referral Link')}
+                </Label>
+                <Input
+                  id="probation_redotpay_link"
+                  type="text"
+                  value={settings.probation_redotpay_link || ''}
+                  onChange={(e) => setSettings(prev => ({ ...prev, probation_redotpay_link: e.target.value }))}
+                  placeholder="https://url.hk/i/en/cwqej"
+                  className="text-xs"
+                  disabled={!canEdit}
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="probation_kast_link" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  {t('Kast Partner Referral Link')}
+                </Label>
+                <Input
+                  id="probation_kast_link"
+                  type="text"
+                  value={settings.probation_kast_link || ''}
+                  onChange={(e) => setSettings(prev => ({ ...prev, probation_kast_link: e.target.value }))}
+                  placeholder="https://app.kast.xyz/referral/XJLR09R1"
+                  className="text-xs"
+                  disabled={!canEdit}
+                />
+              </div>
+
+              <div className="md:col-span-2 space-y-1.5">
+                <Label htmlFor="probation_notice_text" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  {t('Probation Account Transfer Requirement Notice')}
+                </Label>
+                <Input
+                  id="probation_notice_text"
+                  type="text"
+                  value={settings.probation_notice_text || ''}
+                  onChange={(e) => setSettings(prev => ({ ...prev, probation_notice_text: e.target.value }))}
+                  placeholder={t('Every account should be created with our official partner link below and must have an active card for successful transfer.')}
+                  className="text-xs"
+                  disabled={!canEdit}
+                />
+              </div>
+            </div>
           </div>
         </div>
       </CardContent>

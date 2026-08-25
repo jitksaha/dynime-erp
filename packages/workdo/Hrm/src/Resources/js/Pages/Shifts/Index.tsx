@@ -1,85 +1,91 @@
 import { useState } from 'react';
-import { Head, usePage, router } from '@inertiajs/react';
+import { Head, usePage, router, Link } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
 import { useDeleteHandler } from '@/hooks/useDeleteHandler';
 import AuthenticatedLayout from "@/layouts/authenticated-layout";
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { DataTable } from "@/components/ui/data-table";
+import { Card, CardContent } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
-import { Plus, Edit as EditIcon, Trash2, Eye, Clock as ClockIcon, Download, FileImage } from "lucide-react";
+import { Plus, Edit as EditIcon, Trash2, Eye, Clock, Globe, UserCheck, Copy, Archive, Moon } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { FilterButton } from '@/components/ui/filter-button';
 import { Pagination } from "@/components/ui/pagination";
 import { SearchInput } from "@/components/ui/search-input";
-import { ListGridToggle } from '@/components/ui/list-grid-toggle';
-import { PerPageSelector } from '@/components/ui/per-page-selector';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import Create from './Create';
 import EditShift from './Edit';
-import View from './View';
+import AssignModal from './AssignModal';
+import ImportCountryShiftModal from '../../Components/ImportCountryShiftModal';
 import NoRecordsFound from '@/components/no-records-found';
-import { Shift, ShiftsIndexProps, ShiftFilters, ShiftModalState } from './types';
-import { formatDate, formatTime, formatDateTime, formatCurrency, getImagePath } from '@/utils/helpers';
+import { Shift, ShiftsIndexProps, ShiftFilters } from './types';
 
 export default function Index() {
     const { t } = useTranslation();
-    const { shifts, auth, users } = usePage<ShiftsIndexProps>().props;
-    const urlParams = new URLSearchParams(window.location.search);
+    const { shifts, auth, timezones, timezone_info, employees, departments } = usePage<ShiftsIndexProps>().props;
+    const urlParams = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
 
     const [filters, setFilters] = useState<ShiftFilters>({
+        search: urlParams.get('search') || '',
         shift_name: urlParams.get('shift_name') || '',
+        shift_type: urlParams.get('shift_type') || 'all',
+        country: urlParams.get('country') || 'all',
+        is_active: urlParams.get('is_active') || 'all',
         created_by: urlParams.get('created_by') || '',
         creator_id: urlParams.get('creator_id') || '',
     });
 
     const [perPage] = useState(urlParams.get('per_page') || '10');
-    const [sortField, setSortField] = useState(urlParams.get('sort') || '');
-    const [sortDirection, setSortDirection] = useState(urlParams.get('direction') || 'asc');
-    const [viewMode, setViewMode] = useState<'list' | 'grid'>(urlParams.get('view') as 'list' | 'grid' || 'list');
-    const [modalState, setModalState] = useState<ShiftModalState>({
+    
+    const [modalState, setModalState] = useState<{ isOpen: boolean; mode: string; data: Shift | null }>({
         isOpen: false,
         mode: '',
         data: null
     });
-    const [viewingItem, setViewingItem] = useState<Shift | null>(null);
 
-    const [showFilters, setShowFilters] = useState(false);
+    const [assignModalShift, setAssignModalShift] = useState<Shift | null>(null);
+    const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+    const masterCountryShifts = (usePage().props as any).master_country_shifts || [];
 
+    const handleUpdateVersion = (shiftId: number) => {
+        router.post(route('hrm.shifts.update-version', shiftId), {}, { preserveScroll: true });
+    };
 
-
+    const handleIgnoreVersion = (shiftId: number) => {
+        router.post(route('hrm.shifts.ignore-version', shiftId), {}, { preserveScroll: true });
+    };
 
     const { deleteState, openDeleteDialog, closeDeleteDialog, confirmDelete } = useDeleteHandler({
         routeName: 'hrm.shifts.destroy',
         defaultMessage: t('Are you sure you want to delete this shift?')
     });
 
-    const handleFilter = () => {
-        router.get(route('hrm.shifts.index'), { ...filters, per_page: perPage, sort: sortField, direction: sortDirection, view: viewMode }, {
-            preserveState: true,
-            replace: true
-        });
+    const handleSearch = (query: string) => {
+        if (filters.search === query) return;
+        const updated = { ...filters, search: query };
+        setFilters(updated);
+        router.get(route('hrm.shifts.index'), { ...updated, per_page: perPage }, { preserveState: true, replace: true });
     };
 
-    const handleSort = (field: string) => {
-        const direction = sortField === field && sortDirection === 'asc' ? 'desc' : 'asc';
-        setSortField(field);
-        setSortDirection(direction);
-        router.get(route('hrm.shifts.index'), { ...filters, per_page: perPage, sort: field, direction, view: viewMode }, {
-            preserveState: true,
-            replace: true
-        });
+    const handleFilterChange = (field: keyof ShiftFilters, value: string) => {
+        if (filters[field] === value) return;
+        const updated = { ...filters, [field]: value };
+        setFilters(updated);
+        router.get(route('hrm.shifts.index'), { ...updated, per_page: perPage }, { preserveState: true, replace: true });
     };
 
     const clearFilters = () => {
-        setFilters({
+        const reset: ShiftFilters = {
+            search: '',
             shift_name: '',
+            shift_type: 'all',
+            country: 'all',
+            is_active: 'all',
             created_by: '',
             creator_id: '',
-        });
-        router.get(route('hrm.shifts.index'), { per_page: perPage, view: viewMode });
+        };
+        setFilters(reset);
+        router.get(route('hrm.shifts.index'), { per_page: perPage }, { replace: true });
     };
 
     const openModal = (mode: 'add' | 'edit', data: Shift | null = null) => {
@@ -90,343 +96,409 @@ export default function Index() {
         setModalState({ isOpen: false, mode: '', data: null });
     };
 
-    const tableColumns = [
-        {
-            key: 'shift_name',
-            header: t('Shift Name'),
-            sortable: true
-        },
-        {
-            key: 'start_time',
-            header: t('Start Time'),
-            sortable: false,
-            render: (value: string) => value ? formatTime(value) : '-'
-        },
-        {
-            key: 'end_time',
-            header: t('End Time'),
-            sortable: false,
-            render: (value: string) => value ? formatTime(value) : '-'
-        },
-        {
-            key: 'is_night_shift',
-            header: t('Night Shift'),
-            sortable: false,
-            render: (value: boolean) => (
-                <span className={`px-2 py-1 rounded-full text-sm ${value ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
-                    }`}>
-                    {value ? t('Yes') : t('No')}
-                </span>
-            )
-        },
-        {
-            key: 'creator_id',
-            header: t('Created By'),
-            sortable: false,
-            render: (value: string, row: any) => {
-                return (
-                    <span >
-                        {row.creator?.name || '-'}
-                    </span>
-                );
-            }
-        },
-        ...(auth.user?.permissions?.some((p: string) => ['view-shifts', 'edit-shifts', 'delete-shifts'].includes(p)) ? [{
-            key: 'actions',
-            header: t('Actions'),
-            render: (_: any, shift: Shift) => (
-                <div className="flex gap-1">
-                    <TooltipProvider>
-                        {auth.user?.permissions?.includes('view-shifts') && (
-                            <Tooltip delayDuration={0}>
-                                <TooltipTrigger asChild>
-                                    <Button variant="ghost" size="sm" onClick={() => setViewingItem(shift)} className="h-8 w-8 p-0 text-green-600 hover:text-green-700">
-                                        <Eye className="h-4 w-4" />
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    <p>{t('View')}</p>
-                                </TooltipContent>
-                            </Tooltip>
-                        )}
-                        {auth.user?.permissions?.includes('edit-shifts') && (
-                            <Tooltip delayDuration={0}>
-                                <TooltipTrigger asChild>
-                                    <Button variant="ghost" size="sm" onClick={() => openModal('edit', shift)} className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700">
-                                        <EditIcon className="h-4 w-4" />
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    <p>{t('Edit')}</p>
-                                </TooltipContent>
-                            </Tooltip>
-                        )}
-                        {auth.user?.permissions?.includes('delete-shifts') && (
-                            <Tooltip delayDuration={0}>
-                                <TooltipTrigger asChild>
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => openDeleteDialog(shift.id)}
-                                        className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                                    >
-                                        <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    <p>{t('Delete')}</p>
-                                </TooltipContent>
-                            </Tooltip>
-                        )}
-                    </TooltipProvider>
-                </div>
-            )
-        }] : [])
-    ];
+    const handleDuplicate = (id: number) => {
+        router.post(route('hrm.shifts.duplicate', id), {}, { preserveState: true });
+    };
+
+    const handleArchive = (id: number) => {
+        router.post(route('hrm.shifts.archive', id), {}, { preserveState: true });
+    };
+
+    const formatTime12h = (timeStr: string | null) => {
+        if (!timeStr) return '--:--';
+        try {
+            const parts = timeStr.split(':');
+            let hrs = parseInt(parts[0], 10);
+            const mins = parts[1] || '00';
+            const ampm = hrs >= 12 ? 'PM' : 'AM';
+            hrs = hrs % 12 || 12;
+            return `${hrs.toString().padStart(2, '0')}:${mins} ${ampm}`;
+        } catch (e) {
+            return timeStr;
+        }
+    };
+
+    const getShiftTypeBadge = (type: string) => {
+        switch (type) {
+            case 'flexible':
+                return <Badge variant="secondary" className="bg-purple-50 text-purple-700 border-purple-200 font-medium text-xs">{t('Flexible')}</Badge>;
+            case 'rotational':
+                return <Badge variant="secondary" className="bg-blue-50 text-blue-700 border-blue-200 font-medium text-xs">{t('Rotational')}</Badge>;
+            case 'split':
+                return <Badge variant="secondary" className="bg-amber-50 text-amber-700 border-amber-200 font-medium text-xs">{t('Split')}</Badge>;
+            case 'on_call':
+                return <Badge variant="secondary" className="bg-rose-50 text-rose-700 border-rose-200 font-medium text-xs">{t('On-Call')}</Badge>;
+            case 'night':
+                return <Badge variant="secondary" className="bg-slate-700 text-white font-medium text-xs">{t('Night')}</Badge>;
+            default:
+                return <Badge variant="secondary" className="bg-emerald-50 text-emerald-700 border-emerald-200 font-medium text-xs">{t('Fixed')}</Badge>;
+        }
+    };
+
+    const hasPermission = (permission: string) => {
+        if (!auth?.user) return false;
+        if (auth.user.type === 'company' || auth.user.type === 'super admin') return true;
+        return auth.user.permissions?.includes(permission) ?? true;
+    };
+
+    const shiftsList = shifts?.data || [];
 
     return (
         <AuthenticatedLayout
             breadcrumbs={[
-                { label: t('HRM'), url: route('hrm.index') },   
+                { label: t('HRM'), url: route('hrm.index') },
                 { label: t('Shifts') }
             ]}
-            pageTitle={t('Manage Shifts')}
+            pageTitle={t('Global Shift Management')}
             pageActions={
-                <TooltipProvider>
-                    {auth.user?.permissions?.includes('create-shifts') && (
-                        <Tooltip delayDuration={0}>
-                            <TooltipTrigger asChild>
-                                <Button size="sm" onClick={() => openModal('add')}>
-                                    <Plus className="h-4 w-4" />
-                                </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                                <p>{t('Create')}</p>
-                            </TooltipContent>
-                        </Tooltip>
-                    )}
-                </TooltipProvider>
+                hasPermission('create-shifts') ? (
+                    <div className="flex items-center gap-2">
+                        <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setIsImportModalOpen(true)}
+                            className="gap-1.5 font-bold text-xs border-indigo-200 text-indigo-700 bg-indigo-50/50 hover:bg-indigo-100"
+                        >
+                            <Globe className="h-4 w-4 text-indigo-600" />
+                            {t('Import Country Standard')}
+                        </Button>
+                        <Button 
+                            size="sm"
+                            onClick={() => openModal('add')}
+                            className="gap-1.5 font-medium"
+                        >
+                            <Plus className="h-4 w-4" />
+                            {t('Create Custom Shift')}
+                        </Button>
+                    </div>
+                ) : undefined
             }
         >
-            <Head title={t('Shifts')} />
+            <Head title={t('Global Shift Management')} />
+            <TooltipProvider>
+                <div className="space-y-4">
+                    {/* Filter & Action Bar */}
+                    <Card className="shadow-sm border-gray-200 p-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
+                            <div className="sm:col-span-5">
+                                <SearchInput
+                                    value={filters.search}
+                                    onChange={(e) => handleSearch(e.target.value)}
+                                    placeholder={t('Search by shift name, code, country, or timezone...')}
+                                    className="w-full text-xs font-normal"
+                                />
+                            </div>
 
-            {/* Main Content Card */}
-            <Card className="shadow-sm">
-                {/* Search & Controls Header */}
-                <CardContent className="p-6 border-b bg-gray-50/50">
-                    <div className="flex items-center justify-between gap-4">
-                        <div className="flex-1 max-w-md">
-                            <SearchInput
-                                value={filters.shift_name}
-                                onChange={(value) => setFilters({ ...filters, shift_name: value })}
-                                onSearch={handleFilter}
-                                placeholder={t('Search Shifts...')}
-                            />
+                            <div className="sm:col-span-3">
+                                <Select value={filters.shift_type} onValueChange={(val) => handleFilterChange('shift_type', val)}>
+                                    <SelectTrigger className="text-xs font-normal h-9">
+                                        <SelectValue placeholder={t('All Shift Types')} />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">{t('All Shift Types')}</SelectItem>
+                                        <SelectItem value="fixed">{t('Fixed Shift')}</SelectItem>
+                                        <SelectItem value="flexible">{t('Flexible Shift')}</SelectItem>
+                                        <SelectItem value="rotational">{t('Rotational Shift')}</SelectItem>
+                                        <SelectItem value="split">{t('Split Shift')}</SelectItem>
+                                        <SelectItem value="on_call">{t('On-Call Duty')}</SelectItem>
+                                        <SelectItem value="night">{t('Night Shift')}</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <div className="sm:col-span-2">
+                                <Select value={filters.is_active} onValueChange={(val) => handleFilterChange('is_active', val)}>
+                                    <SelectTrigger className="text-xs font-normal h-9">
+                                        <SelectValue placeholder={t('All Statuses')} />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">{t('All Statuses')}</SelectItem>
+                                        <SelectItem value="true">{t('Active Only')}</SelectItem>
+                                        <SelectItem value="false">{t('Archived Only')}</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <div className="sm:col-span-2 flex justify-end">
+                                <Button variant="outline" size="sm" onClick={clearFilters} className="text-xs font-medium text-gray-600 w-full h-9">
+                                    {t('Reset Filters')}
+                                </Button>
+                            </div>
                         </div>
-                        <div className="flex items-center gap-3">
-                            <ListGridToggle
-                                currentView={viewMode}
+                    </Card>
+
+                    {/* Table List Card */}
+                    <Card className="shadow-sm border-gray-200 overflow-hidden">
+                        <CardContent className="p-0">
+                            {shiftsList.length === 0 ? (
+                                <NoRecordsFound
+                                    title={t('No Shifts Found')}
+                                    description={t('Get started by creating your first timezone-aware shift schedule.')}
+                                />
+                            ) : (
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-left text-xs border-collapse">
+                                        <thead>
+                                            <tr className="bg-gray-50/80 text-gray-600 font-medium border-b border-gray-200">
+                                                <th className="py-3 px-4">{t('Shift Name & Code')}</th>
+                                                <th className="py-3 px-4">{t('Type')}</th>
+                                                <th className="py-3 px-4">{t('Country & Timezone')}</th>
+                                                <th className="py-3 px-4">{t('Working Schedule')}</th>
+                                                <th className="py-3 px-4">{t('Net Hours')}</th>
+                                                <th className="py-3 px-4">{t('Assigned')}</th>
+                                                <th className="py-3 px-4">{t('Status')}</th>
+                                                <th className="py-3 px-4 text-right">{t('Actions')}</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-gray-100 font-normal text-gray-700">
+                                            {shiftsList.map((shift) => (
+                                                <tr key={shift.id} className="hover:bg-gray-50/60 transition-colors">
+                                                    {/* Shift Name & Code */}
+                                                    <td className="py-3 px-4">
+                                                        <div className="flex flex-col gap-1">
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="font-medium text-gray-900">{shift.shift_name}</span>
+                                                                <Badge variant="outline" className="font-mono text-[11px] font-normal bg-gray-50 text-gray-600 border-gray-200">
+                                                                    {shift.shift_code || ('SFT-' + shift.id)}
+                                                                </Badge>
+                                                                {shift.source_type === 'country_standard' && (
+                                                                    <Badge className="bg-indigo-50 text-indigo-700 border border-indigo-200 text-[10px] font-bold px-1.5 py-0.2">
+                                                                        <Globe className="w-3 h-3 mr-1 text-indigo-600" />
+                                                                        {t('Country Standard')}
+                                                                    </Badge>
+                                                                )}
+                                                                <Badge variant="secondary" className="bg-slate-100 text-slate-700 text-[10px] font-bold font-mono">
+                                                                    v{shift.version || 1}
+                                                                </Badge>
+                                                            </div>
+                                                            {shift.has_update_available && (
+                                                                <div className="mt-1 p-2 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-between text-xs">
+                                                                    <span className="text-amber-900 font-bold">
+                                                                        ⚠️ Version {shift.latest_master_version} Available for {shift.country} Standard
+                                                                    </span>
+                                                                    <div className="flex items-center gap-1.5">
+                                                                        <Button
+                                                                            size="sm"
+                                                                            onClick={() => handleUpdateVersion(shift.id)}
+                                                                            className="h-6 text-[10px] font-bold bg-amber-600 hover:bg-amber-700 text-white px-2 py-0"
+                                                                        >
+                                                                            {t('Update Shift')}
+                                                                        </Button>
+                                                                        <Button
+                                                                            size="sm"
+                                                                            variant="ghost"
+                                                                            onClick={() => handleIgnoreVersion(shift.id)}
+                                                                            className="h-6 text-[10px] font-semibold text-slate-600 hover:bg-amber-100 px-1.5 py-0"
+                                                                        >
+                                                                            {t('Ignore')}
+                                                                        </Button>
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </td>
+
+                                                    {/* Shift Type */}
+                                                    <td className="py-3 px-4">
+                                                        {getShiftTypeBadge(shift.shift_type)}
+                                                    </td>
+
+                                                    {/* Country & Timezone */}
+                                                    <td className="py-3 px-4">
+                                                        <div className="flex items-center gap-1.5">
+                                                            <Globe className="w-3.5 h-3.5 text-primary shrink-0" />
+                                                            <div>
+                                                                <div className="font-normal text-gray-800">
+                                                                    {timezone_info?.[shift.timezone]?.abbreviation || shift.timezone}
+                                                                    <span className="ml-1 text-muted-foreground">({timezone_info?.[shift.timezone]?.utc_offset || shift.timezone})</span>
+                                                                </div>
+                                                                <div className="text-[11px] text-muted-foreground">
+                                                                    {shift.country || 'Global'} · {timezone_info?.[shift.timezone]?.local_time || '--:--'}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+
+                                                    {/* Working Schedule */}
+                                                    <td className="py-3 px-4">
+                                                        {shift.shift_type === 'flexible' ? (
+                                                            <span className="font-normal text-purple-700">
+                                                                {t('Flexi')} ({shift.required_working_hours || 8}h)
+                                                            </span>
+                                                        ) : (
+                                                            <div className="flex items-center gap-1.5">
+                                                                <span className="font-normal font-mono text-gray-900">
+                                                                    {formatTime12h(shift.start_time)} – {formatTime12h(shift.end_time)}
+                                                                </span>
+                                                                {shift.is_cross_midnight && (
+                                                                    <Tooltip>
+                                                                        <TooltipTrigger>
+                                                                            <Moon className="w-3.5 h-3.5 text-gray-500" />
+                                                                        </TooltipTrigger>
+                                                                        <TooltipContent>{t('Crosses Midnight')}</TooltipContent>
+                                                                    </Tooltip>
+                                                                )}
+                                                            </div>
+                                                        )}
+                                                    </td>
+
+                                                    {/* Net Hours */}
+                                                    <td className="py-3 px-4">
+                                                        <span className="font-medium text-primary font-mono">
+                                                            {shift.net_working_hours || 8} hrs
+                                                        </span>
+                                                    </td>
+
+                                                    {/* Assigned */}
+                                                    <td className="py-3 px-4">
+                                                        <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 font-medium text-xs">
+                                                            {shift.assigned_employees_count || 0} {t('Employees')}
+                                                        </Badge>
+                                                    </td>
+
+                                                    {/* Status */}
+                                                    <td className="py-3 px-4">
+                                                        <Badge className={shift.is_active ? "bg-emerald-50 text-emerald-700 border-emerald-200 font-medium text-xs" : "bg-gray-100 text-gray-600 font-medium text-xs"}>
+                                                            {shift.is_active ? t('Active') : t('Archived')}
+                                                        </Badge>
+                                                    </td>
+
+                                                    {/* Actions */}
+                                                    <td className="py-3 px-4 text-right">
+                                                        <div className="flex items-center justify-end gap-1">
+                                                            <Tooltip>
+                                                                <TooltipTrigger asChild>
+                                                                    <Link href={route('hrm.shifts.show', shift.id)}>
+                                                                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-600 hover:text-primary hover:bg-gray-100 rounded-md">
+                                                                            <Eye className="w-4 h-4" />
+                                                                        </Button>
+                                                                    </Link>
+                                                                </TooltipTrigger>
+                                                                <TooltipContent>{t('View Shift Summary')}</TooltipContent>
+                                                            </Tooltip>
+
+                                                            {hasPermission('edit-shifts') && (
+                                                                <>
+                                                                    <Tooltip>
+                                                                        <TooltipTrigger asChild>
+                                                                            <Button variant="ghost" size="sm" onClick={() => setAssignModalShift(shift)} className="h-8 w-8 p-0 text-gray-600 hover:text-primary hover:bg-gray-100 rounded-md">
+                                                                                <UserCheck className="w-4 h-4" />
+                                                                            </Button>
+                                                                        </TooltipTrigger>
+                                                                        <TooltipContent>{t('Assign Employees')}</TooltipContent>
+                                                                    </Tooltip>
+
+                                                                    <Tooltip>
+                                                                        <TooltipTrigger asChild>
+                                                                            <Button variant="ghost" size="sm" onClick={() => openModal('edit', shift)} className="h-8 w-8 p-0 text-gray-600 hover:text-primary hover:bg-gray-100 rounded-md">
+                                                                                <EditIcon className="w-4 h-4" />
+                                                                            </Button>
+                                                                        </TooltipTrigger>
+                                                                        <TooltipContent>{t('Edit Shift')}</TooltipContent>
+                                                                    </Tooltip>
+
+                                                                    <Tooltip>
+                                                                        <TooltipTrigger asChild>
+                                                                            <Button variant="ghost" size="sm" onClick={() => handleDuplicate(shift.id)} className="h-8 w-8 p-0 text-gray-600 hover:text-emerald-600 hover:bg-gray-100 rounded-md">
+                                                                                <Copy className="w-4 h-4" />
+                                                                            </Button>
+                                                                        </TooltipTrigger>
+                                                                        <TooltipContent>{t('Duplicate Shift')}</TooltipContent>
+                                                                    </Tooltip>
+
+                                                                    <Tooltip>
+                                                                        <TooltipTrigger asChild>
+                                                                            <Button variant="ghost" size="sm" onClick={() => handleArchive(shift.id)} className="h-8 w-8 p-0 text-gray-600 hover:text-amber-600 hover:bg-gray-100 rounded-md">
+                                                                                <Archive className="w-4 h-4" />
+                                                                            </Button>
+                                                                        </TooltipTrigger>
+                                                                        <TooltipContent>{shift.is_active ? t('Archive Shift') : t('Activate Shift')}</TooltipContent>
+                                                                    </Tooltip>
+                                                                </>
+                                                            )}
+
+                                                            {hasPermission('delete-shifts') && (
+                                                                <Tooltip>
+                                                                    <TooltipTrigger asChild>
+                                                                        <Button variant="ghost" size="sm" onClick={() => openDeleteDialog(shift.id)} className="h-8 w-8 p-0 text-destructive hover:bg-destructive/10 rounded-md">
+                                                                            <Trash2 className="w-4 h-4" />
+                                                                        </Button>
+                                                                    </TooltipTrigger>
+                                                                    <TooltipContent>{t('Delete Shift')}</TooltipContent>
+                                                                </Tooltip>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+
+                    {/* Pagination */}
+                    {shifts?.data && shifts.data.length > 0 && (
+                        <div className="pt-2">
+                            <Pagination
+                                data={shifts}
                                 routeName="hrm.shifts.index"
                                 filters={{ ...filters, per_page: perPage }}
                             />
-                            <PerPageSelector
-                                routeName="hrm.shifts.index"
-                                filters={{ ...filters, view: viewMode }}
-                            />
-                            <div className="relative">
-                                <FilterButton
-                                    showFilters={showFilters}
-                                    onToggle={() => setShowFilters(!showFilters)}
-                                />
-                            </div>
-                        </div>
-                    </div>
-                </CardContent>
-
-                {/* Advanced Filters */}
-                {showFilters && (
-                    <CardContent className="p-6 bg-blue-50/30 border-b">
-                        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                            <div className="flex items-end gap-2">
-                                <Button variant="outline" onClick={clearFilters} size="sm">{t('Clear')}</Button>
-                            </div>
-                        </div>
-                    </CardContent>
-                )}
-
-                {/* Table Content */}
-                <CardContent className="p-0">
-                    {viewMode === 'list' ? (
-                        <div className="overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100 max-h-[70vh] rounded-none w-full">
-                            <div className="min-w-[800px]">
-                                <DataTable
-                                    data={shifts?.data || []}
-                                    columns={tableColumns}
-                                    onSort={handleSort}
-                                    sortKey={sortField}
-                                    sortDirection={sortDirection as 'asc' | 'desc'}
-                                    className="rounded-none"
-                                    emptyState={
-                                        <NoRecordsFound
-                                            icon={ClockIcon}
-                                            title={t('No Shifts found')}
-                                            description={t('Get started by creating your first Shift.')}
-                                            hasFilters={!!(filters.shift_name || filters.created_by || filters.creator_id)}
-                                            onClearFilters={clearFilters}
-                                            createPermission="create-shifts"
-                                            onCreateClick={() => openModal('add')}
-                                            createButtonText={t('Create Shift')}
-                                            className="h-auto"
-                                        />
-                                    }
-                                />
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="overflow-auto max-h-[70vh] p-6">
-                            {shifts?.data?.length > 0 ? (
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
-                                    {shifts?.data?.map((shift) => (
-                                        <Card key={shift.id} className="p-0 hover:shadow-lg transition-all duration-200 relative overflow-hidden flex flex-col h-full min-w-0">
-                                            {/* Header */}
-                                            <div className="p-4 bg-gradient-to-r from-primary/5 to-transparent border-b flex-shrink-0">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
-                                                        <ClockIcon className="h-6 w-6 text-primary" />
-                                                    </div>
-                                                    <h3 className="font-semibold text-lg">{shift.shift_name}</h3>
-                                                </div>
-                                            </div>
-
-                                            {/* Body */}
-                                            <div className="p-4 flex-1 min-h-0">
-                                                <div className="grid grid-cols-2 gap-4 mb-4">
-                                                    <div className="text-xs min-w-0">
-                                                        <p className="text-muted-foreground mb-1 text-xs uppercase tracking-wide">{t('Start Time')}</p>
-                                                        <p className="font-medium text-xs">{shift.start_time ? formatTime(shift.start_time) : '-'}</p>
-                                                    </div>
-                                                    <div className="text-xs min-w-0">
-                                                        <p className="text-muted-foreground mb-1 text-xs uppercase tracking-wide">{t('End Time')}</p>
-                                                        <p className="font-medium text-xs">{shift.end_time ? formatTime(shift.end_time) : '-'}</p>
-                                                    </div>
-                                                </div>
-
-                                                <div className="grid grid-cols-2 gap-4 mb-4">
-                                                    <div className="text-xs min-w-0">
-                                                        <p className="text-muted-foreground mb-1 text-xs uppercase tracking-wide">{t('Night Shift')}</p>
-                                                        <span className={`px-2 py-1 rounded-full text-xs font-medium inline-block ${
-                                                            shift.is_night_shift ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
-                                                        }`}>
-                                                            {shift.is_night_shift ? t('Yes') : t('No')}
-                                                        </span>
-                                                    </div>
-                                                    <div className="text-xs min-w-0">
-                                                        <p className="text-muted-foreground mb-1 text-xs uppercase tracking-wide">{t('Created By')}</p>
-                                                        <p className="font-medium text-xs">{shift.creator?.name || '-'}</p>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            {/* Actions Footer */}
-                                            <div className="flex justify-end gap-2 p-3 border-t bg-gray-50/50 flex-shrink-0 mt-auto">
-                                                <TooltipProvider>
-                                                    {auth.user?.permissions?.includes('view-shifts') && (
-                                                        <Tooltip delayDuration={300}>
-                                                            <TooltipTrigger asChild>
-                                                                <Button variant="ghost" size="sm" onClick={() => setViewingItem(shift)} className="h-9 w-9 p-0 text-green-600 hover:text-green-700">
-                                                                    <Eye className="h-4 w-4" />
-                                                                </Button>
-                                                            </TooltipTrigger>
-                                                            <TooltipContent>
-                                                                <p>{t('View')}</p>
-                                                            </TooltipContent>
-                                                        </Tooltip>
-                                                    )}
-                                                    {auth.user?.permissions?.includes('edit-shifts') && (
-                                                        <Tooltip delayDuration={300}>
-                                                            <TooltipTrigger asChild>
-                                                                <Button variant="ghost" size="sm" onClick={() => openModal('edit', shift)} className="h-9 w-9 p-0 text-blue-600 hover:text-blue-700">
-                                                                    <EditIcon className="h-4 w-4" />
-                                                                </Button>
-                                                            </TooltipTrigger>
-                                                            <TooltipContent>
-                                                                <p>{t('Edit')}</p>
-                                                            </TooltipContent>
-                                                        </Tooltip>
-                                                    )}
-                                                    {auth.user?.permissions?.includes('delete-shifts') && (
-                                                        <Tooltip delayDuration={300}>
-                                                            <TooltipTrigger asChild>
-                                                                <Button
-                                                                    variant="ghost"
-                                                                    size="sm"
-                                                                    onClick={() => openDeleteDialog(shift.id)}
-                                                                    className="h-9 w-9 p-0 text-red-600 hover:text-red-700"
-                                                                >
-                                                                    <Trash2 className="h-4 w-4" />
-                                                                </Button>
-                                                            </TooltipTrigger>
-                                                            <TooltipContent>
-                                                                <p>{t('Delete')}</p>
-                                                            </TooltipContent>
-                                                        </Tooltip>
-                                                    )}
-                                                </TooltipProvider>
-                                            </div>
-                                        </Card>
-                                    ))}
-                                </div>
-                            ) : (
-                                <NoRecordsFound
-                                    icon={ClockIcon}
-                                    title={t('No Shifts found')}
-                                    description={t('Get started by creating your first Shift.')}
-                                    hasFilters={!!(filters.shift_name || filters.created_by || filters.creator_id)}
-                                    onClearFilters={clearFilters}
-                                    createPermission="create-shifts"
-                                    onCreateClick={() => openModal('add')}
-                                    createButtonText={t('Create Shift')}
-                                />
-                            )}
                         </div>
                     )}
-                </CardContent>
+                </div>
 
-                {/* Pagination Footer */}
-                <CardContent className="px-4 py-2 border-t bg-gray-50/30">
-                    <Pagination
-                        data={shifts || { data: [], links: [], meta: {} }}
-                        routeName="hrm.shifts.index"
-                        filters={{ ...filters, per_page: perPage, view: viewMode }}
-                    />
-                </CardContent>
-            </Card>
+                {/* Create & Edit Modals */}
+                <Dialog open={modalState.isOpen} onOpenChange={(open) => !open && closeModal()}>
+                    {modalState.mode === 'add' && (
+                        <Create
+                            timezones={timezones || []}
+                            employees={employees || []}
+                            departments={departments || []}
+                            onClose={closeModal}
+                        />
+                    )}
+                    {modalState.mode === 'edit' && modalState.data && (
+                        <EditShift
+                            shift={modalState.data}
+                            timezones={timezones || []}
+                            employees={employees || []}
+                            departments={departments || []}
+                            onClose={closeModal}
+                        />
+                    )}
+                </Dialog>
 
-            <Dialog open={modalState.isOpen} onOpenChange={closeModal}>
-                {modalState.mode === 'add' && (
-                    <Create onSuccess={closeModal} />
-                )}
-                {modalState.mode === 'edit' && modalState.data && (
-                    <EditShift
-                        shift={modalState.data}
-                        onSuccess={closeModal}
-                    />
-                )}
-            </Dialog>
+                {/* Assign Employees Modal */}
+                <Dialog open={Boolean(assignModalShift)} onOpenChange={(open) => !open && setAssignModalShift(null)}>
+                    {assignModalShift && (
+                        <AssignModal
+                            shift={assignModalShift}
+                            employees={employees || []}
+                            departments={departments || []}
+                            onClose={() => setAssignModalShift(null)}
+                        />
+                    )}
+                </Dialog>
 
-            <Dialog open={!!viewingItem} onOpenChange={() => setViewingItem(null)}>
-                {viewingItem && <View shift={viewingItem} />}
-            </Dialog>
+                {/* Import Country Standard Shift Modal */}
+                <ImportCountryShiftModal
+                    open={isImportModalOpen}
+                    onOpenChange={setIsImportModalOpen}
+                    masterCountryShifts={masterCountryShifts}
+                />
 
-            <ConfirmationDialog
-                open={deleteState.isOpen}
-                onOpenChange={closeDeleteDialog}
-                title={t('Delete Shift')}
-                message={deleteState.message}
-                confirmText={t('Delete')}
-                onConfirm={confirmDelete}
-                variant="destructive"
-            />
+                {/* Delete Confirmation */}
+                <ConfirmationDialog
+                    open={deleteState.isOpen}
+                    onOpenChange={closeDeleteDialog}
+                    onConfirm={confirmDelete}
+                    title={t('Delete Shift')}
+                    description={deleteState.message}
+                />
+            </TooltipProvider>
         </AuthenticatedLayout>
     );
 }

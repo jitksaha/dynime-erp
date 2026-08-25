@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Cookie;
+use Illuminate\Support\Str;
 
 class SettingController extends Controller
 {
@@ -310,22 +311,19 @@ class SettingController extends Controller
 
     public function clearCache(Request $request)
     {
-        if(Auth::user()->can('clear-cache'))
-        {
-            try {
-                Artisan::call('cache:clear');
-                Artisan::call('config:clear');
-                Artisan::call('route:clear');
-                Artisan::call('view:clear');
+        try {
+            Artisan::call('cache:clear');
+            Artisan::call('config:clear');
+            Artisan::call('route:clear');
+            Artisan::call('view:clear');
 
-                return redirect()->back()->with('success', __('Cache cleared successfully.'));
-            } catch (\Exception $e) {
-                return redirect()->back()->with('error', __('Failed to clear cache: ') . $e->getMessage());
+            if ($request->wantsJson() || $request->header('X-Inertia')) {
+                return back()->with('success', __('System & Site Cache cleared successfully.'));
             }
-        }
-        else
-        {
-            return back()->with('error', __('Permission denied'));
+
+            return redirect()->back()->with('success', __('System & Site Cache cleared successfully.'));
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', __('Failed to clear cache: ') . $e->getMessage());
         }
     }
 
@@ -798,24 +796,25 @@ class SettingController extends Controller
 
     public function updateBankTransferSettings(Request $request)
     {
-        if(Auth::user()->can('edit-bank-transfer-settings'))
+        if (Auth::user()->can('manage-company-settings') || Auth::user()->can('edit-company-settings') || Auth::user()->can('manage-system-settings') || Auth::user()->can('edit-bank-transfer-settings') || Auth::user()->hasRole('company') || Auth::user()->hasRole('superadmin'))
         {
-            $request->validate([
-                'settings.bankTransferEnabled' => 'required|string|in:on,off',
-                'settings.instructions' => 'nullable|string|max:2000',
-            ], [
-                'settings.bankTransferEnabled.required' => __('Bank transfer setting is required.'),
-                'settings.bankTransferEnabled.string' => __('Bank transfer setting must be a valid string.'),
-                'settings.bankTransferEnabled.in' => __('Bank transfer setting must be on or off.'),
-                'settings.instructions.string' => __('Instructions must be a valid string.'),
-                'settings.instructions.max' => __('Instructions must not exceed 2000 characters.'),
-            ]);
+            $settings = $request->input('settings', []);
+            $creatorId = creatorId();
 
-            $settings = $request->input('settings');
+            if (isset($settings['bank_accounts'])) {
+                $accountsJson = is_array($settings['bank_accounts']) ? json_encode($settings['bank_accounts']) : $settings['bank_accounts'];
+                setSetting('bank_transfer_accounts', $accountsJson, $creatorId, true);
+                setSetting('bank_accounts', $accountsJson, $creatorId, true);
+                unset($settings['bank_accounts']);
+            }
 
             foreach ($settings as $key => $value) {
-                setSetting($key, $value, null, false);
+                setSetting($key, is_array($value) ? json_encode($value) : $value, $creatorId, true);
             }
+
+            Cache::forget('company_settings_' . $creatorId);
+            Cache::forget('company_settings_' . $creatorId . '_public');
+            Cache::forget('admin_settings');
 
             return redirect()->back()->with('success', __('Bank transfer settings updated successfully'));
         }
@@ -895,5 +894,53 @@ class SettingController extends Controller
         } else {
             return back()->with('error', __('Permission denied'));
         }
+    }
+
+    public function updateMaintenanceSettings(Request $request)
+    {
+        if (Auth::user()->can('manage-settings') || Auth::user()->hasRole('superadmin') || Auth::user()->type === 'company') {
+            $request->validate([
+                'settings.maintenance_mode' => 'required|string|in:on,off',
+                'settings.maintenance_title' => 'nullable|string|max:255',
+                'settings.maintenance_message' => 'nullable|string|max:1000',
+                'settings.maintenance_secret_token' => 'nullable|string|max:100',
+            ]);
+
+            $settings = $request->input('settings', []);
+            if (empty($settings['maintenance_secret_token'])) {
+                $settings['maintenance_secret_token'] = Str::random(32);
+            }
+
+            foreach ($settings as $key => $value) {
+                setSetting($key, $value);
+            }
+
+            return redirect()->back()->with('success', __('Maintenance mode settings updated successfully.'));
+        }
+
+        return back()->with('error', __('Permission denied'));
+    }
+
+    public function generateMaintenanceToken(Request $request)
+    {
+        if (Auth::user()->can('manage-settings') || Auth::user()->hasRole('superadmin') || Auth::user()->type === 'company') {
+            $newToken = Str::random(32);
+            setSetting('maintenance_secret_token', $newToken);
+
+            return redirect()->back()->with('success', __('New secret bypass link generated successfully.'));
+        }
+
+        return back()->with('error', __('Permission denied'));
+    }
+
+    public function bypassMaintenance($token)
+    {
+        $storedToken = getCompanyAllSetting()['maintenance_secret_token'] ?? '';
+        if ($storedToken && $token === $storedToken) {
+            $cookie = cookie('maintenance_bypass_token', $token, 60 * 24 * 30, '/', null, false, false);
+            return redirect()->route('dashboard')->withCookie($cookie)->with('success', __('Maintenance bypass granted! You now have special access.'));
+        }
+
+        return redirect()->route('login')->with('error', __('Invalid maintenance bypass secret token.'));
     }
 }

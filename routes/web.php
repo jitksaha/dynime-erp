@@ -37,6 +37,56 @@ use App\Http\Controllers\ReviewController;
 use Inertia\Inertia;
 
 
+
+// Public Root & Dedicated Domain Routing for careers.dynime.com (NO login required!)
+Route::middleware(["web", \Workdo\Recruitment\Http\Middleware\RecruitmentSharedDataMiddleware::class])->group(function () {
+    Route::get("/", function (\Illuminate\Http\Request $request) {
+        $host = $request->getHost();
+        $httpHost = $_SERVER["HTTP_HOST"] ?? "";
+        $forwardedHost = $_SERVER["HTTP_X_FORWARDED_HOST"] ?? "";
+        if ($host === "careers.dynime.com" || str_contains($host, "careers") || str_contains($httpHost, "careers") || str_contains($forwardedHost, "careers")) {
+            return app(\Workdo\Recruitment\Http\Controllers\FrontendController::class)->jobListings($request);
+        }
+        if (\Illuminate\Support\Facades\Auth::check()) {
+            return redirect()->route("dashboard");
+        }
+        return redirect()->route("login");
+    })->name("home");
+
+    Route::get("/job/{id}", function (\Illuminate\Http\Request $request, $id) {
+        return app(\Workdo\Recruitment\Http\Controllers\FrontendController::class)->jobDetails($request, null, $id);
+    })->name("recruitment.frontend.careers.domain.show");
+
+    Route::get("/job/{id}/apply", function (\Illuminate\Http\Request $request, $id) {
+        return app(\Workdo\Recruitment\Http\Controllers\FrontendController::class)->jobApply($request, null, $id);
+    })->name("recruitment.frontend.careers.domain.apply");
+
+    Route::post("/job/{id}/apply", function (\Illuminate\Http\Request $request, $id) {
+        return app(\Workdo\Recruitment\Http\Controllers\FrontendController::class)->submitApplication($request, null, $id);
+    })->name("recruitment.frontend.careers.domain.apply.submit");
+
+    Route::get("/job/{id}/terms", function (\Illuminate\Http\Request $request, $id) {
+        return app(\Workdo\Recruitment\Http\Controllers\FrontendController::class)->jobTerms($request, null, $id);
+    })->name("recruitment.frontend.careers.domain.terms");
+
+    Route::get("/application-success/{trackingId?}", function (\Illuminate\Http\Request $request, $trackingId = null) {
+        return app(\Workdo\Recruitment\Http\Controllers\FrontendController::class)->applicationSuccess($request, null, $trackingId);
+    })->name("recruitment.frontend.careers.domain.application.success");
+
+    Route::get("/track", function (\Illuminate\Http\Request $request) {
+        return app(\Workdo\Recruitment\Http\Controllers\FrontendController::class)->trackingForm($request);
+    })->name("recruitment.frontend.careers.domain.track.form");
+
+    Route::post("/track/verify", function (\Illuminate\Http\Request $request) {
+        return app(\Workdo\Recruitment\Http\Controllers\FrontendController::class)->trackingVerify($request);
+    })->name("recruitment.frontend.careers.domain.track.verify");
+
+    Route::get("/track/{trackingId}", function (\Illuminate\Http\Request $request, $trackingId) {
+        return app(\Workdo\Recruitment\Http\Controllers\FrontendController::class)->trackingDetails($request, null, $trackingId);
+    })->name("recruitment.frontend.careers.domain.track.details");
+});
+
+
 Route::middleware(['auth', 'verified', 'PlanModuleCheck'])->group(function () {
     // Route::get('/dashboard', function () {
     //     return Inertia::render('dashboard');

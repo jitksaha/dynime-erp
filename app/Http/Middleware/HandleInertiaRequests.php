@@ -23,6 +23,10 @@ class HandleInertiaRequests extends Middleware
      */
     public function version(Request $request): string|null
     {
+        $manifestPath = public_path('build/manifest.json');
+        if (file_exists($manifestPath)) {
+            return md5_file($manifestPath);
+        }
         return parent::version($request);
     }
 
@@ -37,7 +41,7 @@ class HandleInertiaRequests extends Middleware
             return [];
         }
 
-        if ($request->user() && $request->user()->type === 'superadmin') {
+        if ($request->user() && $request->user()->type === 'superadmin' && $request->getHost() !== 'careers.dynime.com') {
             auth()->logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();

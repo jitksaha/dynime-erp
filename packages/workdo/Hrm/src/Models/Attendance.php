@@ -54,6 +54,11 @@ class Attendance extends Model
         return $this->belongsTo(Shift::class);
     }
 
+    public function screenshots()
+    {
+        return $this->hasMany(AttendanceScreenshot::class, 'attendance_id');
+    }
+
     /**
      * Process complete attendance - calculate everything automatically.
      */

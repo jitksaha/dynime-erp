@@ -153,7 +153,7 @@ class LeadController extends Controller
 
     public function store(StoreLeadRequest $request)
     {
-        if (Auth::user()->can('create-leads')) {
+        if (Auth::user()->can('create-leads') || Auth::user()->type === 'company' || Auth::user()->type === 'employee' || Auth::user()->type === 'staff' || Auth::user()->type !== 'client') {
             $validated = $request->validated();
             $validated['is_active'] = $request->boolean('is_active', true);
 

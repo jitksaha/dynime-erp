@@ -23,22 +23,31 @@ use Workdo\Hrm\Models\Holiday;
 use Workdo\Hrm\Models\Shift;
 use Workdo\Hrm\Models\Warning;
 use Workdo\Hrm\Models\IssuedDocument;
+use Workdo\Hrm\Services\OnboardingService;
 
 class DashboardController extends Controller
 {
     public function index(Request $request)
     {
-        if (Auth::user()->can('manage-hrm-dashboard')) {
+        if (Auth::user()->can('manage-hrm-dashboard') || Auth::user()->can('manage-dashboard')) {
             $user = Auth::user();
 
-            switch ($user->type) {
-                case 'company':
-                    return $this->companyDashboard($request);
-                case 'hr':
-                    return $this->companyDashboard($request);
-                default:
-                    return $this->employeeDashboard($request);
+            if (
+                $user->type === 'company' ||
+                $user->type === 'hr' ||
+                $user->type === 'superadmin' ||
+                $user->hasRole('company') ||
+                $user->hasRole('hr') ||
+                $user->hasRole('HR') ||
+                $user->hasRole('super admin') ||
+                $user->hasRole('Super Admin') ||
+                $user->hasRole('Admin') ||
+                $user->can('manage-any-employees')
+            ) {
+                return $this->companyDashboard($request);
             }
+
+            return $this->employeeDashboard($request);
         }
         return back()->with('error', __('Permission denied'));
     }
@@ -246,8 +255,8 @@ class DashboardController extends Controller
             ->map(function ($leave) {
                 return [
                     'id' => $leave->id,
-                    'employee_name' => $leave->employee->name ?? 'Unknown',
-                    'leave_type' => $leave->leave_type->name ?? 'Unknown',
+                    'employee_name' => $leave->employee?->name ?? 'Unknown',
+                    'leave_type' => $leave->leave_type?->name ?? 'Unknown',
                     'start_date' => $leave->start_date,
                     'end_date' => $leave->end_date,
                     'total_days' => $leave->total_days,
@@ -272,6 +281,137 @@ class DashboardController extends Controller
                 ];
             });
 
+        // Calculate Timezone and Duty Info for HR / Admin / Company
+        $userId = Auth::id();
+        $employee = Employee::where('user_id', $userId)->first();
+
+        $companyTimezone = 'America/Denver';
+        $nowCompany = Carbon::now($companyTimezone);
+        $companyTimezoneInfo = [
+            'timezone' => $companyTimezone,
+            'label' => 'Mountain Time (MT - New Mexico, USA)',
+            'current_time' => $nowCompany->format('h:i:s A'),
+            'current_date' => $nowCompany->format('l, M d, Y'),
+            'utc_offset' => 'UTC' . $nowCompany->format('P'),
+            'abbreviation' => $nowCompany->format('T'),
+        ];
+
+        $empTimezone = $employee ? $employee->effective_timezone : 'America/Denver';
+        try {
+            $nowEmp = Carbon::now($empTimezone);
+        } catch (\Exception $e) {
+            $empTimezone = 'America/Denver';
+            $nowEmp = Carbon::now($empTimezone);
+        }
+
+        $empTimezoneInfo = [
+            'timezone' => $empTimezone,
+            'country' => $employee->country ?? $employee->work_location_country ?? 'USA',
+            'current_time' => $nowEmp->format('h:i:s A'),
+            'current_date' => $nowEmp->format('l, M d, Y'),
+            'utc_offset' => 'UTC' . $nowEmp->format('P'),
+            'abbreviation' => $nowEmp->format('T'),
+        ];
+
+        $nowUtc = Carbon::now('UTC');
+        $utcTimezoneInfo = [
+            'timezone' => 'UTC',
+            'label' => 'Universal Time Coordinated (UTC)',
+            'current_time' => $nowUtc->format('h:i:s A'),
+            'current_date' => $nowUtc->format('l, M d, Y'),
+            'utc_offset' => 'UTC+0',
+            'abbreviation' => 'UTC',
+        ];
+
+        $weekendDays = $employee ? $employee->country_weekend_days : [0, 6];
+        $currentDayOfWeek = $nowEmp->dayOfWeek;
+        $isWeekendToday = in_array($currentDayOfWeek, $weekendDays);
+
+        $shiftStart = $nowEmp->copy()->setTime(9, 0, 0);
+        $breakStart = $nowEmp->copy()->setTime(13, 0, 0);
+        $breakEnd   = $nowEmp->copy()->setTime(14, 0, 0);
+        $shiftEnd   = $nowEmp->copy()->setTime(18, 0, 0);
+
+        $dutyStatus = 'OFF_DUTY';
+        $shiftProgress = 0;
+        if ($isWeekendToday) {
+            $dutyStatus = 'WEEKEND';
+        } elseif ($nowEmp->gte($breakStart) && $nowEmp->lt($breakEnd)) {
+            $dutyStatus = 'LUNCH_BREAK';
+            $shiftProgress = 44;
+        } elseif ($nowEmp->gte($shiftStart) && $nowEmp->lte($shiftEnd)) {
+            $dutyStatus = 'ACTIVE_DUTY';
+            $totalShiftSeconds = $shiftEnd->timestamp - $shiftStart->timestamp;
+            $elapsedSeconds = $nowEmp->timestamp - $shiftStart->timestamp;
+            $shiftProgress = min(100, max(0, round(($elapsedSeconds / $totalShiftSeconds) * 100)));
+        } elseif ($nowEmp->gt($shiftEnd)) {
+            $shiftProgress = 100;
+        }
+
+        $weekendNames = [];
+        $dayMap = [0 => 'Sun', 1 => 'Mon', 2 => 'Tue', 3 => 'Wed', 4 => 'Thu', 5 => 'Fri', 6 => 'Sat'];
+        foreach ($weekendDays as $dayIndex) {
+            if (isset($dayMap[$dayIndex])) {
+                $weekendNames[] = $dayMap[$dayIndex];
+            }
+        }
+        $offDaysText = count($weekendNames) > 0 ? implode(' & ', $weekendNames) : 'Sun';
+
+        $dutyScheduleInfo = [
+            'shift_start' => '09:00 AM',
+            'shift_end' => '06:00 PM',
+            'shift_utc' => $shiftStart->copy()->setTimezone('UTC')->format('h:i A') . ' – ' . $shiftEnd->copy()->setTimezone('UTC')->format('h:i A'),
+            'break_start' => '01:00 PM',
+            'break_end' => '02:00 PM',
+            'total_shift_hours' => 9,
+            'paid_duty_hours' => 8,
+            'break_hours' => 1,
+            'weekly_days' => 5,
+            'weekly_paid_hours' => 40,
+            'duty_status' => $dutyStatus,
+            'shift_progress' => $shiftProgress,
+            'is_weekend' => $isWeekendToday,
+            'weekend_days' => $weekendDays,
+            'off_days_text' => $offDaysText,
+        ];
+
+        // Attendance data for HR / Logged-in user
+        $userId = Auth::id();
+        $employee = Employee::where('user_id', $userId)->orWhere('official_email', Auth::user()->email)->first();
+        $empIds = array_unique(array_filter([$userId, $employee->id ?? null]));
+
+        $todayAttendance = Attendance::whereIn('employee_id', $empIds)
+            ->where('date', $today)
+            ->first();
+        $isCurrentlyClockedIn = $todayAttendance && $todayAttendance->clock_in && !$todayAttendance->clock_out;
+
+        $sessions = [];
+        if ($todayAttendance && !empty($todayAttendance->notes)) {
+            $trimmed = trim($todayAttendance->notes);
+            if (str_starts_with($trimmed, '{')) {
+                $decoded = json_decode($trimmed, true);
+                if (isset($decoded['sessions']) && is_array($decoded['sessions'])) {
+                    $sessions = $decoded['sessions'];
+                }
+            }
+        }
+        if (empty($sessions) && $todayAttendance && !empty($todayAttendance->clock_in)) {
+            $sessions = [[
+                'in' => $todayAttendance->clock_in,
+                'out' => $todayAttendance->clock_out,
+                'platform' => 'Web'
+            ]];
+        }
+
+        $attendanceData = [
+            'is_clocked_in' => $isCurrentlyClockedIn,
+            'clock_in_time' => $todayAttendance ? $todayAttendance->clock_in : null,
+            'clock_out_time' => $todayAttendance ? $todayAttendance->clock_out : null,
+            'total_working_hours' => $todayAttendance ? ($todayAttendance->total_hour . ' hrs') : '0 hrs 0 mins',
+            'today_sessions' => $sessions,
+            'can_clock' => true,
+        ];
+
         return Inertia::render('Hrm/Dashboard/company-dashboard', [
             'stats' => [
                 'total_employees' => $totalEmployees,
@@ -290,6 +430,11 @@ class DashboardController extends Controller
                 'recent_announcements' => $recentAnnouncements,
                 'employees_on_leave_today' => $employeesOnLeaveToday,
                 'employees_without_attendance' => $employeesWithoutAttendance,
+                'company_timezone_info' => $companyTimezoneInfo,
+                'emp_timezone_info' => $empTimezoneInfo,
+                'utc_timezone_info' => $utcTimezoneInfo,
+                'duty_schedule_info' => $dutyScheduleInfo,
+                'attendance_data' => $attendanceData,
             ],
             'message' => __('HRM Dashboard - Complete overview of your workforce.')
         ]);
@@ -443,7 +588,7 @@ class DashboardController extends Controller
             ->map(function ($leave) {
                 return [
                     'id' => $leave->id,
-                    'leave_type' => $leave->leave_type->name ?? 'Unknown',
+                    'leave_type' => $leave->leave_type?->name ?? 'Unknown',
                     'start_date' => $leave->start_date,
                     'end_date' => $leave->end_date,
                     'total_days' => $leave->total_days,
@@ -540,39 +685,67 @@ class DashboardController extends Controller
 
         // Determine if user is currently clocked in (including night shifts)
         $isCurrentlyClockedIn = false;
-
         $activeAttendance = $todayAttendance;
 
-        if ($pendingAttendance && $shift) {
-            // Get shift duration in hours
+        if ($todayAttendance && $todayAttendance->clock_in && !$todayAttendance->clock_out) {
+            $isCurrentlyClockedIn = true;
+        } elseif ($pendingAttendance && $shift) {
             $shiftStart = Carbon::parse($shift->start_time);
             $shiftEnd = Carbon::parse($shift->end_time);
-            
-            // Handle night shift duration
             if ($shiftEnd->lt($shiftStart)) {
                 $shiftEnd->addDay();
             }
             $shiftDurationHours = $shiftStart->diffInHours($shiftEnd);
-            
-            // Calculate shift end datetime from clock in time
             $clockInDateTime = Carbon::parse($pendingAttendance->clock_in);
             $shiftEndDateTime = $clockInDateTime->copy()->addHours($shiftDurationHours);
-            // Check if current date is within shift duration dates
             $now = Carbon::now();
             $clockInDate = $clockInDateTime->format('Y-m-d');
             $shiftEndDate = $shiftEndDateTime->format('Y-m-d');
             $nowDate = $now->format('Y-m-d');
-            // Allow clock out on clock in date or shift end date
             if ($nowDate >= $clockInDate && $nowDate <= $shiftEndDate) {
                 $isCurrentlyClockedIn = true;
                 $activeAttendance = $pendingAttendance;
             }
         }
+
+        $formattedWorkTime = '0 hrs 0 mins';
+        if ($todayAttendance) {
+            $totalHoursVal = (float)($todayAttendance->total_hour ?? 0);
+            if ($isCurrentlyClockedIn && $todayAttendance->clock_in) {
+                $clockInCarbon = \Carbon\Carbon::parse($todayAttendance->clock_in);
+                $sessionSecs = max(0, now()->diffInSeconds($clockInCarbon));
+                $totalHoursVal += ($sessionSecs / 3600);
+            }
+            $totalHoursVal = min(24.0, $totalHoursVal);
+            $hrs = floor($totalHoursVal);
+            $mins = round(($totalHoursVal - $hrs) * 60);
+            $formattedWorkTime = "{$hrs} hrs {$mins} mins";
+        }
+
+        $sessions = [];
+        if ($activeAttendance && !empty($activeAttendance->notes)) {
+            $trimmed = trim($activeAttendance->notes);
+            if (str_starts_with($trimmed, '{')) {
+                $decoded = json_decode($trimmed, true);
+                if (isset($decoded['sessions']) && is_array($decoded['sessions'])) {
+                    $sessions = $decoded['sessions'];
+                }
+            }
+        }
+        if (empty($sessions) && $activeAttendance && !empty($activeAttendance->clock_in)) {
+            $sessions = [[
+                'in' => $activeAttendance->clock_in,
+                'out' => $activeAttendance->clock_out,
+                'platform' => 'Web'
+            ]];
+        }
+
         $attendanceData = [
             'is_clocked_in' => $isCurrentlyClockedIn,
             'clock_in_time' => $activeAttendance ? $activeAttendance->clock_in : null,
             'clock_out_time' => $activeAttendance ? $activeAttendance->clock_out : null,
-            'total_working_hours' => $activeAttendance && $activeAttendance->total_hour ? $activeAttendance->total_hour . ' hours' : null,
+            'total_working_hours' => $formattedWorkTime,
+            'today_sessions' => $sessions,
             'can_clock' => $isWorkingDay && !$isOnLeave && !$isHoliday,
             'shift_start_time' => $shift ? $shift->start_time : null,
             'shift_end_time' => $shift ? $shift->end_time : null,
@@ -597,6 +770,121 @@ class DashboardController extends Controller
                 ];
             });
 
+        // Calculate Company Standard Time (America/Denver - New Mexico, USA)
+        $companyTimezone = 'America/Denver';
+        $nowCompany = Carbon::now($companyTimezone);
+        $companyTimezoneInfo = [
+            'timezone' => $companyTimezone,
+            'label' => 'Mountain Time (MT - New Mexico, USA)',
+            'current_time' => $nowCompany->format('h:i:s A'),
+            'current_date' => $nowCompany->format('l, M d, Y'),
+            'utc_offset' => 'UTC' . $nowCompany->format('P'),
+            'abbreviation' => $nowCompany->format('T'),
+        ];
+
+        // Calculate Employee Local Timezone
+        $empTimezone = $employee ? $employee->effective_timezone : 'America/Denver';
+        try {
+            $nowEmp = Carbon::now($empTimezone);
+        } catch (\Exception $e) {
+            $empTimezone = 'America/Denver';
+            $nowEmp = Carbon::now($empTimezone);
+        }
+
+        $empTimezoneInfo = [
+            'timezone' => $empTimezone,
+            'country' => $employee->country ?? $employee->work_location_country ?? 'USA',
+            'current_time' => $nowEmp->format('h:i:s A'),
+            'current_date' => $nowEmp->format('l, M d, Y'),
+            'utc_offset' => 'UTC' . $nowEmp->format('P'),
+            'abbreviation' => $nowEmp->format('T'),
+        ];
+
+        // Calculate Duty & Shift Status
+        $weekendDays = $employee ? $employee->country_weekend_days : [0, 6]; // 0: Sun, 5: Fri, 6: Sat
+        $currentDayOfWeek = $nowEmp->dayOfWeek; // 0=Sunday, 5=Friday, 6=Saturday
+        $isWeekendToday = in_array($currentDayOfWeek, $weekendDays);
+
+        $shiftStart = $nowEmp->copy()->setTime(9, 0, 0);   // 09:00 AM
+        $breakStart = $nowEmp->copy()->setTime(13, 0, 0);  // 01:00 PM
+        $breakEnd   = $nowEmp->copy()->setTime(14, 0, 0);  // 02:00 PM
+        $shiftEnd   = $nowEmp->copy()->setTime(18, 0, 0);  // 06:00 PM
+
+        $dutyStatus = 'OFF_DUTY';
+        $shiftProgress = 0;
+
+        if ($isOnLeave) {
+            $dutyStatus = 'ON_LEAVE';
+        } elseif ($isHoliday) {
+            $dutyStatus = 'PUBLIC_HOLIDAY';
+        } elseif ($isWeekendToday) {
+            $dutyStatus = 'WEEKEND';
+        } elseif ($nowEmp->gte($breakStart) && $nowEmp->lt($breakEnd)) {
+            $dutyStatus = 'LUNCH_BREAK';
+            $shiftProgress = 44; // Approx lunch break %
+        } elseif ($nowEmp->gte($shiftStart) && $nowEmp->lte($shiftEnd)) {
+            $dutyStatus = 'ACTIVE_DUTY';
+            $totalShiftSeconds = $shiftEnd->timestamp - $shiftStart->timestamp;
+            $elapsedSeconds = $nowEmp->timestamp - $shiftStart->timestamp;
+            $shiftProgress = min(100, max(0, round(($elapsedSeconds / $totalShiftSeconds) * 100)));
+        } elseif ($nowEmp->gt($shiftEnd)) {
+            $shiftProgress = 100;
+        }
+
+        // Calculate UTC Timezone Info
+        $nowUtc = Carbon::now('UTC');
+        $utcTimezoneInfo = [
+            'timezone' => 'UTC',
+            'label' => 'Universal Time Coordinated (UTC)',
+            'current_time' => $nowUtc->format('h:i:s A'),
+            'current_date' => $nowUtc->format('l, M d, Y'),
+            'utc_offset' => 'UTC+0',
+            'abbreviation' => 'UTC',
+        ];
+
+        // Shift timing in UTC & Local
+        $shiftStartUtc = $shiftStart->copy()->setTimezone('UTC')->format('h:i A');
+        $shiftEndUtc = $shiftEnd->copy()->setTimezone('UTC')->format('h:i A');
+        $shiftUtcStr = $shiftStartUtc . ' – ' . $shiftEndUtc;
+
+        $shiftStartLocal = $shiftStart->copy()->setTimezone($empTimezone)->format('h:i A');
+        $shiftEndLocal = $shiftEnd->copy()->setTimezone($empTimezone)->format('h:i A');
+        $shiftLocalStr = $shiftStartLocal . ' – ' . $shiftEndLocal;
+
+        $workingDaysCount = $employee && $employee->days_per_week ? (int)$employee->days_per_week : (count($weekendDays) == 1 ? 6 : 5);
+        $weeklyPaidHours = $workingDaysCount * 8;
+
+        $weekendNames = [];
+        $dayMap = [0 => 'Sun', 1 => 'Mon', 2 => 'Tue', 3 => 'Wed', 4 => 'Thu', 5 => 'Fri', 6 => 'Sat'];
+        foreach ($weekendDays as $dayIndex) {
+            if (isset($dayMap[$dayIndex])) {
+                $weekendNames[] = $dayMap[$dayIndex];
+            }
+        }
+        $offDaysText = count($weekendNames) > 0 ? implode(' & ', $weekendNames) : 'Sun';
+
+        $dutyScheduleInfo = [
+            'shift_start' => '09:00 AM',
+            'shift_end' => '06:00 PM',
+            'shift_utc' => $shiftUtcStr,
+            'shift_local' => $shiftLocalStr,
+            'break_start' => '01:00 PM',
+            'break_end' => '02:00 PM',
+            'total_shift_hours' => 9,
+            'paid_duty_hours' => 8,
+            'break_hours' => 1,
+            'weekly_days' => $workingDaysCount,
+            'weekly_paid_hours' => $weeklyPaidHours,
+            'duty_status' => $dutyStatus,
+            'shift_progress' => $shiftProgress,
+            'is_weekend' => $isWeekendToday,
+            'weekend_days' => $weekendDays,
+            'off_days_text' => $offDaysText,
+            'current_shift_type' => $employee ? ($employee->current_shift_type ?? 'fixed') : 'fixed',
+            'is_flexible_shift_allowed' => $employee ? (bool)$employee->is_flexible_shift_allowed : false,
+            'flexible_shift_status' => $employee ? ($employee->flexible_shift_status ?? 'none') : 'none',
+        ];
+
         return Inertia::render('Hrm/Dashboard/employee-dashboard', [
             'stats' => [
                 'my_attendance' => $isDemo ? rand(15, 22) : $myAttendance,
@@ -616,6 +904,11 @@ class DashboardController extends Controller
                 'recent_attendance' => $recentAttendance,
                 'pending_signatures' => $pendingSignatures,
                 'signed_documents' => $signedDocuments,
+                'onboarding_info' => $employee ? OnboardingService::recalculatePercentage($employee) : null,
+                'company_timezone_info' => $companyTimezoneInfo,
+                'emp_timezone_info' => $empTimezoneInfo,
+                'utc_timezone_info' => $utcTimezoneInfo,
+                'duty_schedule_info' => $dutyScheduleInfo,
             ],
             'message' => __('Employee Dashboard - Your personal workspace.')
         ]);

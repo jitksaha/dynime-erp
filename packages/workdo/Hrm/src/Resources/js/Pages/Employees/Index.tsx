@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/data-table";
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
-import { Plus, Edit as EditIcon, Trash2, Eye, Users as UsersIcon, Lock, Download, FileImage, FileText, Mail, Globe, RefreshCw } from "lucide-react";
+import { Plus, Edit as EditIcon, Trash2, Eye, Users as UsersIcon, Lock, Download, FileImage, FileText, Mail, Globe, RefreshCw, ShieldCheck } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { FilterButton } from '@/components/ui/filter-button';
 import { Pagination } from "@/components/ui/pagination";
@@ -16,6 +16,7 @@ import { ListGridToggle } from '@/components/ui/list-grid-toggle';
 import { PerPageSelector } from '@/components/ui/per-page-selector';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import NoRecordsFound from '@/components/no-records-found';
+import { VerifiedBadge } from '@/components/ui/verified-badge';
 import { Employee, EmployeesIndexProps, EmployeeFilters } from './types';
 import { formatDate, getImagePath } from '@/utils/helpers';
 import { usePageButtons } from '@/hooks/usePageButtons';
@@ -241,7 +242,10 @@ export default function Index() {
                         />
                     )}
                     <div className="flex flex-col min-w-0">
-                        <span className="font-medium truncate">{row.user?.name || '-'}</span>
+                        <div className="flex items-center gap-1.5">
+                            <span className="font-semibold text-slate-900 truncate">{row.user?.name || '-'}</span>
+                            {Boolean(row.is_verified || row.user?.is_verified) && <VerifiedBadge size="xs" />}
+                        </div>
                         {row.user?.email && (
                             <span className="text-xs text-gray-500 truncate">{row.user.email}</span>
                         )}
@@ -269,6 +273,31 @@ export default function Index() {
             header: t('Designation'),
             sortable: false,
             render: (value: any, row: any) => row.designation?.designation_name || '-'
+        },
+        {
+            key: 'roles_hierarchy',
+            header: t('Roles & Manager'),
+            sortable: false,
+            render: (value: any, row: any) => (
+                <div className="flex flex-col gap-1">
+                    <div className="flex flex-wrap gap-1">
+                        {row.user?.roles && row.user.roles.length > 0 ? (
+                            row.user.roles.map((r: any) => (
+                                <span key={r.id} className="text-[10px] px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300 font-semibold border border-indigo-200/60 dark:border-indigo-800">
+                                    {r.label || r.name}
+                                </span>
+                            ))
+                        ) : (
+                            <span className="text-xs text-slate-400">Employee</span>
+                        )}
+                    </div>
+                    {row.manager?.user?.name && (
+                        <span className="text-[10px] text-slate-500 flex items-center gap-1">
+                            👤 {t('Mgr:')} <strong>{row.manager.user.name}</strong>
+                        </span>
+                    )}
+                </div>
+            )
         },
         {
             key: 'employment_type',
@@ -312,6 +341,42 @@ export default function Index() {
                                         <p>{t('View')}</p>
                                     </TooltipContent>
                                 </Tooltip>
+                            )}
+                            {(auth.user?.type === 'company' || auth.user?.type === 'hr' || auth.user?.permissions?.includes('edit-employees')) && (
+                                Boolean(employee.is_verified) ? (
+                                    <Tooltip delayDuration={0}>
+                                        <TooltipTrigger asChild>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => router.post(route('hrm.employees.toggle-verification', employee.id))}
+                                                className="h-8 w-8 p-0 text-indigo-600 hover:bg-indigo-50 hover:text-indigo-700"
+                                            >
+                                                <VerifiedBadge size="xs" />
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p>{t('Official Verified (Click to unverify)')}</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                ) : (
+                                    <Tooltip delayDuration={0}>
+                                        <TooltipTrigger asChild>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => router.post(route('hrm.employees.toggle-verification', employee.id))}
+                                                className="h-8 px-2 text-[11px] font-semibold text-slate-500 hover:text-indigo-700 bg-slate-100/80 hover:bg-indigo-50 border border-slate-200/80 hover:border-indigo-300 rounded-lg flex items-center gap-1 transition-all"
+                                            >
+                                                <ShieldCheck className="h-3.5 w-3.5 text-slate-400" />
+                                                <span>{t('Verify')}</span>
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p>{t('Mark as Verified Employee')}</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                )
                             )}
                             {auth.user?.permissions?.includes('manage-employees') && (
                                 <Tooltip delayDuration={0}>

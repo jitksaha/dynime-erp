@@ -27,6 +27,10 @@ class KeealSettingsController extends Controller
                 'keeal_api_key' => $apiKey,
                 'keeal_secret_key' => $apiKey,
                 'keeal_currency' => $request->keeal_currency ?? 'USD',
+                'keeal_display_name' => $request->keeal_display_name ?? 'PayPal & Cards (Keeal)',
+                'keeal_description' => $request->keeal_description ?? 'Hosted PayPal & Global Card Checkout',
+                'keeal_badge' => $request->keeal_badge ?? 'Keeal',
+                'keeal_icon_url' => $request->keeal_icon_url ?? '',
             ];
 
             foreach ($post as $key => $data) {

@@ -77,15 +77,14 @@ const SelectContent = React.forwardRef<
   const [search, setSearch] = React.useState("")
   const inputRef = React.useRef<HTMLInputElement>(null)
 
-  // KEY FIX: After every search state change, Radix re-renders and tries to focus
-  // the active SelectItem. We immediately re-claim focus for the input.
+  // Ensure search input remains focused when user types rapidly
   React.useEffect(() => {
     if (!searchable) return
-    // Use requestAnimationFrame so we run AFTER Radix's own focus management tick
-    const raf = requestAnimationFrame(() => {
+    inputRef.current?.focus()
+    const timer = setTimeout(() => {
       inputRef.current?.focus()
-    })
-    return () => cancelAnimationFrame(raf)
+    }, 10)
+    return () => clearTimeout(timer)
   }, [search, searchable])
 
   React.useEffect(() => {
@@ -106,7 +105,7 @@ const SelectContent = React.forwardRef<
     input.addEventListener('click', handlePropagation, { capture: true })
     input.addEventListener('touchstart', handlePropagation, { capture: true })
 
-    // Stop keyboard events from triggering typeahead
+    // Stop keyboard events from triggering typeahead or selection
     input.addEventListener('keydown', handlePropagation, { capture: true })
     input.addEventListener('keyup', handlePropagation, { capture: true })
     input.addEventListener('keypress', handlePropagation, { capture: true })
@@ -123,14 +122,22 @@ const SelectContent = React.forwardRef<
     }
   }, [searchable])
 
+  const getChildText = (node: any): string => {
+    if (node === null || node === undefined) return ''
+    if (typeof node === 'string' || typeof node === 'number') return String(node)
+    if (Array.isArray(node)) return node.map(getChildText).join(' ')
+    if (React.isValidElement(node) && node.props && node.props.children) {
+      return getChildText(node.props.children)
+    }
+    return ''
+  }
+
   const filteredChildren = React.useMemo(() => {
     if (!searchable || !search) return children
 
     return React.Children.toArray(children).filter((child) => {
-      if (React.isValidElement(child) && child.props.children) {
-        const text = typeof child.props.children === 'string'
-          ? child.props.children
-          : child.props.children.toString()
+      if (React.isValidElement(child)) {
+        const text = getChildText(child.props.children)
         return text.toLowerCase().includes(search.toLowerCase())
       }
       return true
@@ -164,6 +171,7 @@ const SelectContent = React.forwardRef<
               placeholder="Search..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
+              onKeyDown={(e) => e.stopPropagation()}
               className="h-8 border-0 p-0 focus-visible:ring-0 focus-visible:ring-offset-0"
             />
           </div>

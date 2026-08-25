@@ -29,6 +29,11 @@ export default function BkashSettings() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
+  const [displayName, setDisplayName] = useState(globalSettings?.bkash_display_name || 'bKash Tokenized Checkout');
+  const [description, setDescription] = useState(globalSettings?.bkash_description || 'Pay directly in BDT with instant OTP & PIN');
+  const [badge, setBadge] = useState(globalSettings?.bkash_badge || 'BDT ৳');
+  const [iconUrl, setIconUrl] = useState(globalSettings?.bkash_icon_url || '');
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!canEdit) return;
@@ -37,6 +42,10 @@ export default function BkashSettings() {
     router.post(route('settings.bkash.update'), {
       bkash_enabled: enabled ? 'on' : 'off',
       bkash_sandbox: sandbox ? 'on' : 'off',
+      bkash_display_name: displayName,
+      bkash_description: description,
+      bkash_badge: badge,
+      bkash_icon_url: iconUrl,
       bkash_app_key: appKey,
       bkash_app_secret: appSecret,
       bkash_username: username,
@@ -87,15 +96,42 @@ export default function BkashSettings() {
 
           <div className="flex items-center justify-between p-4 border rounded-xl bg-slate-50 dark:bg-slate-900">
             <div>
-              <Label htmlFor="bkash_sandbox" className="font-semibold">{t('Enable Sandbox Mode')}</Label>
-              <p className="text-xs text-muted-foreground">{t('Use bKash sandbox credentials for testing')}</p>
+              <Label htmlFor="bkash_sandbox" className="font-semibold">{t('Environment Mode')}</Label>
+              <p className="text-xs text-muted-foreground">{sandbox ? t('Sandbox Mode Active (Testing)') : t('Live Mode Active (Production)')}</p>
             </div>
-            <Switch
-              id="bkash_sandbox"
-              checked={sandbox}
-              onCheckedChange={setSandbox}
-              disabled={!canEdit}
-            />
+            <div className="flex items-center gap-2">
+              <span className={`text-xs font-bold ${!sandbox ? 'text-emerald-600' : 'text-slate-400'}`}>Live</span>
+              <Switch
+                id="bkash_sandbox"
+                checked={sandbox}
+                onCheckedChange={setSandbox}
+                disabled={!canEdit}
+              />
+              <span className={`text-xs font-bold ${sandbox ? 'text-amber-600' : 'text-slate-400'}`}>Sandbox</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Custom Branding Options */}
+        <div className="space-y-4 pt-2 border-t">
+          <h4 className="font-semibold text-sm text-slate-800 dark:text-slate-200">{t('Checkout Display Branding & Icon')}</h4>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="bkash_display_name">{t('Checkout Display Name')}</Label>
+              <Input id="bkash_display_name" value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="bKash Tokenized Checkout" disabled={!canEdit} />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="bkash_description">{t('Short Description')}</Label>
+              <Input id="bkash_description" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Pay directly in BDT with instant OTP & PIN" disabled={!canEdit} />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="bkash_badge">{t('Category Badge')}</Label>
+              <Input id="bkash_badge" value={badge} onChange={(e) => setBadge(e.target.value)} placeholder="BDT ৳" disabled={!canEdit} />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="bkash_icon_url">{t('Custom Icon / Logo URL')}</Label>
+              <Input id="bkash_icon_url" value={iconUrl} onChange={(e) => setIconUrl(e.target.value)} placeholder="https://cdn.dynime.com/media/bkash.png" disabled={!canEdit} />
+            </div>
           </div>
         </div>
 

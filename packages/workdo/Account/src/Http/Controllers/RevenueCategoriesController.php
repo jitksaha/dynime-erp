@@ -18,18 +18,16 @@ class RevenueCategoriesController extends Controller
     public function index()
     {
         if (Auth::user()->can('manage-revenue-categories')) {
+            $creatorId = creatorId();
+            if (RevenueCategories::where('created_by', $creatorId)->count() < 5) {
+                \App\Console\Commands\SeedFinancialCategories::seedForCreator($creatorId);
+            }
+
             $revenuecategories = RevenueCategories::with('gl_account:id,account_name')
                 ->select('id', 'category_name', 'category_code', 'gl_account_id', 'description', 'is_active', 'created_at')
-                ->where(function ($q) {
-                    if (Auth::user()->can('manage-any-account-types')) {
-                        $q->where('created_by', creatorId());
-                    } elseif (Auth::user()->can('manage-own-account-types')) {
-                        $q->where('creator_id', Auth::id());
-                    } else {
-                        $q->whereRaw('1 = 0');
-                    }
-                })
-                ->latest()
+                ->where('created_by', $creatorId)
+                ->orderBy('description', 'asc')
+                ->orderBy('category_name', 'asc')
                 ->get();
 
             return Inertia::render('Account/SystemSetup/RevenueCategories/Index', [

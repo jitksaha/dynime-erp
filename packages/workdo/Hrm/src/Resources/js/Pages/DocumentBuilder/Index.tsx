@@ -12,252 +12,13 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Save, Printer, FileText, Mail, Globe, Phone, PenTool } from 'lucide-react';
 import { formatCurrency } from '@/utils/helpers';
 import { toast } from 'sonner';
+import { 
+    DOCUMENT_CATEGORIES, 
+    getDocumentName, 
+    DEFAULT_TEMPLATES, 
+    resolveTemplate 
+} from './documentUtils';
 
-export const DOCUMENT_CATEGORIES = [
-  {
-    name: "Recruitment",
-    types: [
-      { id: "offer_letter", label: "Offer Letter" },
-      { id: "conditional_offer_letter", label: "Conditional Offer Letter" },
-      { id: "internship_offer_letter", label: "Internship Offer Letter" },
-      { id: "appointment_letter", label: "Appointment Letter" },
-      { id: "joining_letter", label: "Joining Letter / Joining Confirmation" },
-      { id: "candidate_rejection_letter", label: "Candidate Rejection Letter" },
-      { id: "interview_invitation", label: "Interview Invitation" },
-      { id: "interview_result_letter", label: "Interview Result Letter" }
-    ]
-  },
-  {
-    name: "Employment",
-    types: [
-      { id: "employment_agreement", label: "Employment Agreement" },
-      { id: "nda", label: "NDA (Non-Disclosure Agreement)" },
-      { id: "non_compete_agreement", label: "Non-Compete Agreement" },
-      { id: "code_of_conduct_acknowledgement", label: "Code of Conduct Acknowledgement" },
-      { id: "it_asset_agreement", label: "IT & Asset Agreement" },
-      { id: "remote_work_agreement", label: "Remote Work Agreement" },
-      { id: "probation_agreement", label: "Probation Agreement" },
-      { id: "employee_handbook_acknowledgement", label: "Employee Handbook Acknowledgement" },
-      { id: "bank_account_request_letter", label: "Bank Account Request Letter" },
-      { id: "id_card_request_letter", label: "ID Card Request Letter" }
-    ]
-  },
-  {
-    name: "Salary & Payroll",
-    types: [
-      { id: "payslip", label: "Payslip" },
-      { id: "salary_certificate", label: "Salary Certificate" },
-      { id: "salary_increment_letter", label: "Salary Increment Letter" },
-      { id: "bonus_letter", label: "Bonus Letter" },
-      { id: "commission_letter", label: "Commission Letter" },
-      { id: "incentive_letter", label: "Incentive Letter" },
-      { id: "payroll_summary", label: "Payroll Summary" },
-      { id: "income_certificate", label: "Income Certificate" },
-      { id: "tax_certificate", label: "Tax Certificate" }
-    ]
-  },
-  {
-    name: "Attendance & Leave",
-    types: [
-      { id: "leave_approval_letter", label: "Leave Approval Letter" },
-      { id: "leave_rejection_letter", label: "Leave Rejection Letter" },
-      { id: "maternity_leave_letter", label: "Maternity Leave Letter" },
-      { id: "paternity_leave_letter", label: "Paternity Leave Letter" },
-      { id: "unpaid_leave_letter", label: "Unpaid Leave Letter" },
-      { id: "work_from_home_approval", label: "Work From Home Approval" },
-      { id: "attendance_certificate", label: "Attendance Certificate" }
-    ]
-  },
-  {
-    name: "Performance",
-    types: [
-      { id: "probation_evaluation", label: "Probation Evaluation" },
-      { id: "probation_confirmation_letter", label: "Probation Confirmation Letter" },
-      { id: "warning_letter", label: "Warning Letter" },
-      { id: "show_cause_notice", label: "Show Cause Notice" },
-      { id: "pip", label: "Performance Improvement Plan (PIP)" },
-      { id: "appreciation_letter", label: "Appreciation Letter" },
-      { id: "employee_recognition_certificate", label: "Employee Recognition Certificate" },
-      { id: "promotion_letter", label: "Promotion Letter" },
-      { id: "department_transfer_letter", label: "Department Transfer Letter" },
-      { id: "role_change_letter", label: "Role Change Letter" },
-      { id: "salary_revision_letter", label: "Salary Revision Letter" }
-    ]
-  },
-  {
-    name: "HR Requests",
-    types: [
-      { id: "noc", label: "No Objection Certificate (NOC)" },
-      { id: "employment_verification_letter", label: "Employment Verification Letter" },
-      { id: "visa_employment_letter", label: "Visa Employment Letter" },
-      { id: "embassy_employment_letter", label: "Embassy Employment Letter" },
-      { id: "bank_verification_letter", label: "Bank Verification Letter" },
-      { id: "address_verification_letter", label: "Address Verification Letter" }
-    ]
-  },
-  {
-    name: "Separation",
-    types: [
-      { id: "resignation_acceptance_letter", label: "Resignation Acceptance Letter" },
-      { id: "experience_letter", label: "Experience Letter" },
-      { id: "service_certificate", label: "Service Certificate" },
-      { id: "relieving_letter", label: "Relieving Letter" },
-      { id: "full_final_settlement_letter", label: "Full & Final Settlement Letter" },
-      { id: "exit_clearance_letter", label: "Exit Clearance Letter" },
-      { id: "exit_interview_form", label: "Exit Interview Form" },
-      { id: "termination_letter", label: "Termination Letter" },
-      { id: "contract_completion_letter", label: "Contract Completion Letter" }
-    ]
-  },
-  {
-    name: "Legal & Compliance",
-    types: [
-      { id: "disciplinary_notice", label: "Disciplinary Notice" },
-      { id: "suspension_letter", label: "Suspension Letter" },
-      { id: "warning_notice", label: "Warning Notice" },
-      { id: "final_warning_letter", label: "Final Warning Letter" },
-      { id: "policy_violation_notice", label: "Policy Violation Notice" },
-      { id: "confidentiality_reminder", label: "Confidentiality Reminder" },
-      { id: "legal_notice", label: "Legal Notice" }
-    ]
-  },
-  {
-    name: "Assets",
-    types: [
-      { id: "asset_issue_form", label: "Asset Issue Form" },
-      { id: "asset_return_form", label: "Asset Return Form" },
-      { id: "laptop_handover", label: "Laptop Handover" },
-      { id: "sim_card_handover", label: "SIM Card Handover" },
-      { id: "access_card_handover", label: "Access Card Handover" },
-      { id: "asset_damage_report", label: "Asset Damage Report" }
-    ]
-  },
-  {
-    name: "Training",
-    types: [
-      { id: "training_invitation", label: "Training Invitation" },
-      { id: "training_completion_certificate", label: "Training Completion Certificate" },
-      { id: "training_attendance_certificate", label: "Training Attendance Certificate" },
-      { id: "skill_assessment_report", label: "Skill Assessment Report" }
-    ]
-  },
-  {
-    name: "Internal Documents",
-    types: [
-      { id: "internal_memo", label: "Internal Memo" },
-      { id: "circular", label: "Circular" },
-      { id: "company_announcement", label: "Company Announcement" },
-      { id: "policy_update_notice", label: "Policy Update Notice" },
-      { id: "holiday_notice", label: "Holiday Notice" }
-    ]
-  }
-];
-
-export const DEFAULT_TEMPLATES: Record<string, string> = {
-  // Recruitment
-  offer_letter: "Please review the terms of this offer. To accept this offer, please sign and return a copy of this letter on or before the offer validity date. We look forward to welcoming you to our team.",
-  conditional_offer_letter: "We are pleased to offer you employment on a conditional basis. This offer is contingent upon the successful completion of background checks, reference checks, and verification of your academic and professional credentials.\n\nPlease review the terms and return a signed copy of this letter to confirm your acceptance of these conditions.",
-  internship_offer_letter: "We are delighted to offer you an internship opportunity. This program is designed to provide you with valuable hands-on experience, professional mentorship, and practical training in your field of study.\n\nYour internship will be for a duration of 3 (three) months. We look forward to your contributions and wish you a highly productive learning experience with us.",
-  appointment_letter: "With reference to your application and subsequent interview, we are pleased to appoint you to the position. This appointment is effective from your date of joining, subject to the terms and conditions outlined in the official employment agreement.\n\nPlease sign and return the duplicate copy of this letter as token of your acceptance of the terms.",
-  joining_letter: "This letter officially confirms that you have successfully joined the company and completed all onboarding, IT configuration, and HR registration formalities on your scheduled joining date. We warmly welcome you to the team and look forward to achieving great milestones together.",
-  candidate_rejection_letter: "Thank you very much for taking the time to interview with us. We were highly impressed by your qualifications and professional background.\n\nHowever, after careful consideration of all applicants, we have decided to proceed with another candidate whose experience matches our current requirements more closely. We will keep your profile on record for future openings.",
-  interview_invitation: "We are pleased to invite you for an interview to discuss your application. This round will focus on your technical expertise, past experience, and cultural alignment with our team.\n\nPlease confirm your availability for the scheduled time, and let us know if you require any specific arrangements.",
-  interview_result_letter: "We are pleased to inform you that you have successfully cleared the recent round of interviews. The selection panel found your profile and performance highly satisfactory.\n\nOur HR team will contact you shortly to discuss the next steps in the recruitment process.",
-
-  // Employment
-  employment_agreement: "1. Probation\nThe Employee shall serve a probation period of {probation_period} months from the date of joining. Either party may terminate employment during this period with 7 (seven) days' written notice.\n\n2. Working Hours\nStandard working hours are 9:00 AM to 6:00 PM, Sunday through Thursday, with a 1-hour lunch break. The Employee may be required to work additional hours as business needs demand.\n\n3. Confidentiality\nThe Employee shall maintain strict confidentiality regarding all proprietary information, client data, business strategies and any non-public information of the Company, both during and after the term of employment.\n\n4. Intellectual Property\nAll work product, inventions, software and creative works produced by the Employee during the course of employment shall be the exclusive property of the Company.",
-  nda: "During the course of your employment, you will have access to confidential, proprietary, and trade secret information belonging to the Company. By signing this agreement, you agree to keep all such information strictly confidential and not disclose it to any third party during or after your employment.\n\nAny unauthorized disclosure will result in immediate disciplinary action up to termination, and legal action if necessary.",
-  non_compete_agreement: "To protect the Company's legitimate business interests, the Employee agrees that during their employment and for a period of 12 (twelve) months following separation, they will not directly or indirectly engage in, perform services for, or establish a competing business in the same industry.\n\nThis restriction is limited to the geographic regions where the Company actively operates.",
-  code_of_conduct_acknowledgement: "I hereby acknowledge that I have received, read, and fully understood the Company's Code of Conduct policy. I agree to abide by all the guidelines, values, and ethical standards described therein.\n\nI understand that compliance with these policies is a condition of my continued employment.",
-  it_asset_agreement: "The Employee acknowledges receipt of company IT assets (including laptop, accessories, and security hardware). The Employee agrees to keep these assets secure, use them solely for official business purposes, and return them immediately upon separation in good working condition.",
-  remote_work_agreement: "This agreement outlines the terms of your remote working arrangement. The Employee agrees to maintain a dedicated work area, adhere to standard working hours, remain accessible during office hours, and meet all productivity benchmarks as set by the supervisor.",
-  probation_agreement: "The Employee's performance will be monitored and evaluated during a probation period of 3 (three) months. The Company reserves the right to extend the probation period or terminate employment at any time during this period if performance or conduct is found unsatisfactory.",
-  employee_handbook_acknowledgement: "I acknowledge that I have received a copy of the Employee Handbook. I understand it is my responsibility to read, understand, and comply with all policies and procedures outlined in the handbook.",
-  bank_account_request_letter: "This is to request the bank to open a salary account for our employee. The Company confirms their active employment and requests the bank to provide standard corporate salary account benefits to the holder.",
-  id_card_request_letter: "This is to request the Admin department to issue an official company ID card and access badge for the employee. Please ensure all access permissions corresponding to their designation and department are enabled.",
-
-  // Salary & Payroll
-  payslip: "This payslip provides the breakdown of your salary earnings and deductions for the current pay period.",
-  salary_certificate: "This is to certify that {employee_name} is actively employed with our company. Their designation is as specified and their gross monthly salary is credited directly to their bank account on record.\n\nThis certificate is issued upon the employee's request for verification purposes.",
-  salary_increment_letter: "In recognition of your exceptional performance, dedication, and valuable contributions to the Company over the past year, we are pleased to revise your salary package upwards.\n\nYour updated gross compensation will be effective from the next payroll cycle. Thank you for your hard work and commitment.",
-  bonus_letter: "We are pleased to inform you that you have been awarded a performance bonus in recognition of your outstanding work and successful completion of recent business goals.\n\nThis one-time bonus will be credited with your upcoming salary. We appreciate your dedication to the Company's success.",
-  commission_letter: "This letter outlines your commission structure and payouts based on sales targets achieved. Payouts will be processed monthly in accordance with target completion reports verified by your department head.",
-  incentive_letter: "We are pleased to inform you that you have qualified for the quarterly performance incentive program due to your excellent achievements. This incentive is a token of appreciation for exceeding your team targets.",
-  payroll_summary: "This document provides the official payroll summary, breakdown of hours, earnings, deductions, and net payouts processed for the employee for the specified pay period.",
-  income_certificate: "This is to certify that the employee's total taxable income for the current financial year has been processed. The gross earnings, tax deductions, and net salary credit details are as per our payroll records.",
-  tax_certificate: "This tax certificate verifies the total income earned and tax deducted at source (TDS) for the employee during the assessment period, fully filed with the tax authorities.",
-
-  // Attendance & Leave
-  leave_approval_letter: "We are pleased to inform you that your request for leave has been officially approved. Please ensure a proper handover of your active tasks is completed before your leave starts.",
-  leave_rejection_letter: "We regret to inform you that your leave request has been declined at this time due to operational requirements and critical project deadlines. We appreciate your understanding and encourage rescheduling for a later date.",
-  maternity_leave_letter: "This letter confirms the approval of your maternity leave request. The company wishes you the best and looks forward to your safe return to work at the completion of your leave period.",
-  paternity_leave_letter: "This letter confirms the approval of your paternity leave request. The company congratulates you on the new addition to your family.",
-  unpaid_leave_letter: "Your request for unpaid leave of absence has been approved under the terms discussed with HR. Please note that no salary credits will accrue during this specific period.",
-  work_from_home_approval: "We are pleased to approve your request to work from home. Please ensure you remain reachable via communication channels and maintain standard daily deliverables.",
-  attendance_certificate: "This certificate verifies the official attendance logs, shift timings, and total active working days recorded for the employee during their tenure.",
-
-  // Performance
-  probation_evaluation: "This document outlines the performance evaluation and feedback completed during the employee's probation period. Specific goals, strengths, and areas requiring improvement have been noted.",
-  probation_confirmation_letter: "We are pleased to inform you that you have successfully completed your probation period. Your performance and conduct have met our standards, and we are happy to confirm your employment as a permanent member of our team.",
-  warning_letter: "This is an official warning letter regarding performance or conduct issues. You are advised to take immediate corrective actions to align with company expectations. Failure to do so will result in further disciplinary action.",
-  show_cause_notice: "You are hereby requested to explain in writing within 48 hours of receipt of this notice why disciplinary action should not be initiated against you for the reported policy violation.",
-  pip: "This Performance Improvement Plan (PIP) is designed to help you meet the performance expectations of your role. Over the next 30 days, your progress will be closely monitored and reviewed weekly.",
-  appreciation_letter: "We would like to express our sincere appreciation for your outstanding efforts, dedication, and recent contributions to the project. Your hard work has played a vital role in our success.",
-  employee_recognition_certificate: "This certificate is awarded in recognition of outstanding performance, professionalism, and exemplary dedication shown towards achieving company goals.",
-  promotion_letter: "All other terms and conditions of your employment contract remain unchanged. We would like to take this opportunity to thank you for your excellent work and wish you continued success in your new role.",
-  department_transfer_letter: "This is to notify you that you are being officially transferred to the new department. Your designation, reporting manager, and key responsibilities will be updated in accordance with the new role.",
-  role_change_letter: "This letter confirms your transition to a new role within the company. We are confident that your skills and experience will bring great value to this new set of responsibilities.",
-  salary_revision_letter: "This letter serves as notification of a revision in your salary package. The updated breakdown of allowances and gross salary will take effect from the specified date.",
-
-  // HR Requests
-  noc: "This is to certify that the Company has no objection to {employee_name} pursuing higher education, professional training, or personal travel as requested, without affecting their active duties.",
-  employment_verification_letter: "This is to verify that {employee_name} (Employee Code: {employee_code}) is currently employed with us as {designation} in the {department} department.\n\nThis letter is issued upon the request of the employee for verification purposes.",
-  visa_employment_letter: "This letter is issued to support the employee's visa application. We confirm that {employee_name} is actively employed with us as {designation} in the {department} department. Their current gross salary is {new_salary} and their travel leave has been approved.",
-  embassy_employment_letter: "This official letter is addressed to the Embassy to confirm that {employee_name} is actively employed with us as {designation}. We confirm that they will return to their duties upon completion of their approved travel.",
-  bank_verification_letter: "This letter confirms the employment details, date of joining, and monthly salary credit of {employee_name} for bank account or credit facility verification.",
-  address_verification_letter: "This is to confirm that the residential address of {employee_name} as per our official HR records is correct.",
-
-  // Separation
-  resignation_acceptance_letter: "We hereby accept your resignation from the position of {designation}. We thank you for your contributions during your tenure and wish you the very best in your future endeavors. Your last working day is confirmed as {relieving_date}.",
-  experience_letter: "This is to certify that {employee_name} (Employee Code: {employee_code}) was employed with {company_name} as {designation} in the {department} department from {joining_date} to {relieving_date}.\n\nDuring their tenure, we found them to be sincere, hardworking and professional. Their conduct and performance throughout the period of service were satisfactory.\n\nWe wish them the very best in their future endeavours.",
-  service_certificate: "This service certificate confirms that {employee_name} was employed with us. They carried out their responsibilities with professionalism and dedication throughout their service period.",
-  relieving_letter: "This is to certify that {employee_name} (Employee Code: {employee_code}) was employed with {company_name} as {designation} in the {department} department from {joining_date} to {relieving_date}.\n\nThey have been duly relieved of all their duties and responsibilities with effect from {relieving_date}. All company dues have been settled.\n\nWe wish them the very best in their future endeavours.",
-  full_final_settlement_letter: "This document provides the final settlement of accounts, outstanding dues, encashments, and deductions processed for {employee_name} upon their separation from the company.",
-  exit_clearance_letter: "This letter confirms that {employee_name} has completed all departmental handovers, returned all company properties (IT assets, access cards, files), and cleared all dues.",
-  exit_interview_form: "This form captures feedback and inputs from {employee_name} during their exit interview to help us improve our workplace culture and processes.",
-  termination_letter: "Please return all company properties, including your employee ID, laptop, and office keys, on or before your last working day. Any accrued vacation time and final wages will be calculated and paid out in accordance with state laws.\n\nWe thank you for the service you have provided during your tenure and wish you the best in your future endeavors.",
-  contract_completion_letter: "This letter marks the successful completion of your contract period with our company. We thank you for your valuable services and dedication during the contract term.",
-
-  // Legal & Compliance
-  disciplinary_notice: "This formal notice is issued regarding a policy breach. You are required to submit an explanation to the HR department regarding the incident.",
-  suspension_letter: "You are placed under suspension pending an inquiry into the allegations of misconduct. During this period, you are requested not to enter the office premises without prior permission.",
-  warning_notice: "This is a formal warning notice regarding violation of company policy. Please ensure immediate compliance with all guidelines to avoid disciplinary procedures.",
-  final_warning_letter: "This is a final warning notice. Any further violation of company policies or failure to meet performance standards will result in immediate termination of employment.",
-  policy_violation_notice: "This notice details the specific policy violation observed. You are requested to review the company handbook and sign the corrective action plan.",
-  confidentiality_reminder: "As a reminder of your employment terms, you are bound by confidentiality guidelines. Please ensure no proprietary data or project details are shared outside the organization.",
-  legal_notice: "This official legal notice is served regarding the breach of contract terms. You are required to respond to our legal representative within the specified timeline.",
-
-  // Assets
-  asset_issue_form: "This form records the details, serial numbers, and condition of company assets issued to the employee for official business use.",
-  asset_return_form: "This form records the return and physical condition inspection of company assets handed back by the employee upon separation or upgrade.",
-  laptop_handover: "This handover document confirms receipt and configuration of the company laptop, including operating software and security access tools.",
-  sim_card_handover: "This document records the assignment of the corporate SIM card and mobile number to the employee for business communications.",
-  access_card_handover: "This document records the issuance of the office entry access card. The employee agrees to report any loss of the card immediately.",
-  asset_damage_report: "This report documents the damage to company property, the assessment of repair costs, and whether the damage was accidental or due to negligence.",
-
-  // Training
-  training_invitation: "You are invited to attend the upcoming professional training session. This program is aimed at enhancing your technical skills and performance in your role.",
-  training_completion_certificate: "This certificate is awarded to the employee for successful completion and active participation in the training program.",
-  training_attendance_certificate: "This certificate verifies attendance and participation in the specialized training workshop conducted by the company.",
-  skill_assessment_report: "This report summarizes the feedback and results of your recent skill assessment. It highlights key strengths and areas identified for professional development.",
-
-  // Internal Documents
-  internal_memo: "This internal memo is to communicate important guidelines regarding office decorum, security practices, and daily operations to all team members.",
-  circular: "This circular is distributed to notify all staff members of the upcoming changes in shift timings, holiday list, or policy guidelines.",
-  company_announcement: "We are pleased to announce the successful achievement of our business goals, new client sign-ups, or organizational updates to the entire team.",
-  policy_update_notice: "This notice outlines the updates made to our company policies. All employees are requested to review the updated guidelines in the employee portal.",
-  holiday_notice: "Please be informed that the office will remain closed on the upcoming public holiday. We wish everyone a safe and happy holiday."
-};
 
 interface Employee {
     id: number;
@@ -281,6 +42,7 @@ interface Employee {
     bank_country?: string;
     bank_notes?: string;
     tax_payer_id?: string;
+    salary_type?: string;
 }
 
 interface IndexProps {
@@ -294,70 +56,29 @@ interface IndexProps {
     };
 }
 
-export const resolveTemplate = (
-    templateText: string,
-    employee: any,
-    activeDesignation: string,
-    activeDepartment: string,
-    companyName: string,
-    joiningDate: string,
-    relievingDate: string,
-    probationPeriod: string,
-    newDesignation: string,
-    newSalary: string
-) => {
-    if (!templateText) return '';
-    if (!employee) return templateText;
 
-    return templateText
-        .replace(/{employee_name}/g, employee.name)
-        .replace(/{employee_code}/g, employee.employee_id_code)
-        .replace(/{designation}/g, activeDesignation)
-        .replace(/{department}/g, activeDepartment)
-        .replace(/{company_name}/g, companyName)
-        .replace(/{joining_date}/g, joiningDate)
-        .replace(/{relieving_date}/g, relievingDate)
-        .replace(/{probation_period}/g, probationPeriod)
-        .replace(/{new_designation}/g, newDesignation || '[New Designation]')
-        .replace(/{new_salary}/g, newSalary || '[New Salary]');
-};
-
-export const getDocumentName = (type: string): string => {
-    if (!type) return '';
-    for (const cat of DOCUMENT_CATEGORIES) {
-        const match = cat.types.find(t => t.id === type);
-        if (match) {
-            return match.label;
-        }
+// Format date specifically as "DD MMM YYYY" (e.g. 01 Jan 2024)
+const formatDocumentDate = (dateStr: string) => {
+    try {
+        if (!dateStr) return '';
+        const date = new Date(dateStr);
+        if (isNaN(date.getTime())) return dateStr;
+        const day = String(date.getDate()).padStart(2, '0');
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const month = months[date.getMonth()];
+        const year = date.getFullYear();
+        return `${day} ${month} ${year}`;
+    } catch (e) {
+        return dateStr;
     }
-    switch (type) {
-        case 'offer_letter':
-            return 'Letter Of Offer';
-        case 'employment_agreement':
-            return 'Employment Agreement';
-        case 'payslip':
-            return 'Payslip';
-        case 'experience_letter':
-            return 'Experience Letter';
-        case 'relieving_letter':
-            return 'Relieving Letter';
-        case 'promotion_letter':
-            return 'Letter Of Promotion';
-        case 'termination_letter':
-            return 'Letter Of Termination';
-        default:
-            return type.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-    }
-};
-
-export const getDocumentTitle = (type: string): string => {
-    return getDocumentName(type).toUpperCase();
 };
 
 export default function Index({ employees, companySettings, prefill }: IndexProps) {
     const { t } = useTranslation();
     const printRef = useRef<HTMLDivElement>(null);
+    const signatureInputRef = useRef<HTMLInputElement>(null);
 
+    // 1. ALL State Hooks (Declared at top before any useEffect)
     const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>(() => {
         return localStorage.getItem('doc_builder_last_employee_id') || '';
     });
@@ -365,7 +86,47 @@ export default function Index({ employees, companySettings, prefill }: IndexProp
         return localStorage.getItem('doc_builder_last_document_type') || 'offer_letter';
     });
     const [issuedDate, setIssuedDate] = useState<string>(new Date().toISOString().split('T')[0]);
+    const [overrideDate, setOverrideDate] = useState<string>('');
 
+    // Dynamic fields (Quick-fill overrides)
+    const [customCompanyName, setCustomCompanyName] = useState<string>('');
+    const [customParagraph, setCustomParagraph] = useState<string>('');
+    const [expiryDate, setExpiryDate] = useState<string>('');
+    const [noticePeriod, setNoticePeriod] = useState<string>('30');
+    const [probationPeriod, setProbationPeriod] = useState<string>('3');
+    const [severanceAmount, setSeveranceAmount] = useState<string>('');
+    const [workLocation, setWorkLocation] = useState<string>('');
+    const [reportingTo, setReportingTo] = useState<string>('');
+    const [newDesignation, setNewDesignation] = useState<string>('');
+    const [newSalary, setNewSalary] = useState<string>('');
+    const [promotionEffectiveDate, setPromotionEffectiveDate] = useState<string>('');
+    const [terminationReason, setTerminationReason] = useState<string>('Performance Issues');
+    const [terminationEffectiveDate, setTerminationEffectiveDate] = useState<string>('');
+    const [workingDays, setWorkingDays] = useState<string>('Sunday through Thursday');
+    const [workingHours, setWorkingHours] = useState<string>('9:00 AM to 6:00 PM (1-hour lunch break)');
+    const [annualLeave, setAnnualLeave] = useState<string>('20 Days Paid Annual Leave + Public Holidays');
+    
+    // Quick-fill override fields
+    const [overrideDesignation, setOverrideDesignation] = useState<string>('');
+    const [overrideDepartment, setOverrideDepartment] = useState<string>('');
+    const [overrideEmploymentType, setOverrideEmploymentType] = useState<string>('Full-Time');
+    const [overrideJobType, setOverrideJobType] = useState<string>('-');
+
+    // Authorised signatory options
+    const [typedSignatoryName, setTypedSignatoryName] = useState<string>('');
+    const [signatureImage, setSignatureImage] = useState<string | null>(null);
+
+    const [payPeriod, setPayPeriod] = useState<string>(new Date().toISOString().substring(0, 7)); // YYYY-MM
+    const [hasSignature, setHasSignature] = useState<boolean>(true);
+
+    // 2. Derived Computations
+    const currentEmployee = employees?.find((e: any) => String(e.id) === String(selectedEmployeeId)) || null;
+    const isYearlySalary = currentEmployee?.salary_type === 'yearly' || currentEmployee?.salary_type === 'year' || currentEmployee?.salary_type === 'annual';
+    const rawBasicSalary = parseFloat(currentEmployee?.basic_salary || 0);
+    const displayMonthlySalary = isYearlySalary ? (rawBasicSalary / 12) : rawBasicSalary;
+    const displayYearlySalary = isYearlySalary ? rawBasicSalary : (rawBasicSalary * 12);
+
+    // 3. Handlers
     const handleEmployeeChange = (val: string) => {
         setSelectedEmployeeId(val);
         if (val) {
@@ -375,7 +136,7 @@ export default function Index({ employees, companySettings, prefill }: IndexProp
         }
     };
 
-    // Pre-fill from query parameters or controller prefill prop on load
+    // 4. Effects (Placed AFTER all state declarations)
     useEffect(() => {
         let finalDocType = localStorage.getItem('doc_builder_last_document_type') || 'offer_letter';
         let hasPayloadParagraph = false;
@@ -456,41 +217,6 @@ export default function Index({ employees, companySettings, prefill }: IndexProp
         }
     }, [prefill, employees]);
 
-    // Override date
-    const [overrideDate, setOverrideDate] = useState<string>('');
-
-    // Dynamic fields (Quick-fill overrides)
-    const [customCompanyName, setCustomCompanyName] = useState<string>('');
-    const [customParagraph, setCustomParagraph] = useState<string>('');
-    const [expiryDate, setExpiryDate] = useState<string>('');
-    const [noticePeriod, setNoticePeriod] = useState<string>('30');
-    const [probationPeriod, setProbationPeriod] = useState<string>('3');
-    const [severanceAmount, setSeveranceAmount] = useState<string>('');
-    const [workLocation, setWorkLocation] = useState<string>('');
-    const [reportingTo, setReportingTo] = useState<string>('');
-    const [newDesignation, setNewDesignation] = useState<string>('');
-    const [newSalary, setNewSalary] = useState<string>('');
-    const [promotionEffectiveDate, setPromotionEffectiveDate] = useState<string>('');
-    const [terminationReason, setTerminationReason] = useState<string>('Performance Issues');
-    const [terminationEffectiveDate, setTerminationEffectiveDate] = useState<string>('');
-    
-    // Quick-fill override fields
-    const [overrideDesignation, setOverrideDesignation] = useState<string>('');
-    const [overrideDepartment, setOverrideDepartment] = useState<string>('');
-    const [overrideEmploymentType, setOverrideEmploymentType] = useState<string>('Full-Time');
-    const [overrideJobType, setOverrideJobType] = useState<string>('-');
-
-    // Authorised signatory options
-    const [typedSignatoryName, setTypedSignatoryName] = useState<string>('');
-    const [signatureImage, setSignatureImage] = useState<string | null>(null);
-    const signatureInputRef = useRef<HTMLInputElement>(null);
-
-    const [payPeriod, setPayPeriod] = useState<string>(new Date().toISOString().substring(0, 7)); // YYYY-MM
-    const [hasSignature, setHasSignature] = useState<boolean>(true);
-
-    const currentEmployee = employees.find(emp => String(emp.id) === selectedEmployeeId);
-    const isYearlySalary = currentEmployee?.salary_type === 'yearly';
-
     // Auto fill fields when employee changes
     useEffect(() => {
         if (currentEmployee) {
@@ -518,12 +244,17 @@ export default function Index({ employees, companySettings, prefill }: IndexProp
                     formatDocumentDate(issuedDate),
                     probationPeriod,
                     newDesignation,
-                    newSalary
+                    newSalary,
+                    workingDays,
+                    workingHours,
+                    annualLeave,
+                    noticePeriod,
+                    workLocation
                 );
                 setCustomParagraph(resolved);
             }
         }
-    }, [selectedEmployeeId, currentEmployee]);
+    }, [selectedEmployeeId, currentEmployee, workingDays, workingHours, annualLeave, noticePeriod, workLocation]);
 
     const handleDocumentTypeChange = (value: string) => {
         setDocumentType(value);
@@ -541,7 +272,12 @@ export default function Index({ employees, companySettings, prefill }: IndexProp
                 formatDocumentDate(issuedDate),
                 probationPeriod,
                 newDesignation,
-                newSalary
+                newSalary,
+                workingDays,
+                workingHours,
+                annualLeave,
+                noticePeriod,
+                workLocation
             );
             setCustomParagraph(resolved);
         } else {
@@ -736,19 +472,24 @@ export default function Index({ employees, companySettings, prefill }: IndexProp
     const activeDesignation = overrideDesignation || (currentEmployee ? currentEmployee.designation : '');
     const activeDepartment = overrideDepartment || (currentEmployee ? currentEmployee.department : '');
 
-    // Format date specifically as "DD MMM YYYY" (e.g. 01 Jan 2024)
-    const formatDocumentDate = (dateStr: string) => {
-        try {
-            const date = new Date(dateStr);
-            const day = String(date.getDate()).padStart(2, '0');
-            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-            const month = months[date.getMonth()];
-            const year = date.getFullYear();
-            return `${day} ${month} ${year}`;
-        } catch (e) {
-            return dateStr;
-        }
-    };
+    const resolvedCustomParagraph = resolveTemplate(
+        customParagraph,
+        currentEmployee,
+        activeDesignation,
+        activeDepartment,
+        customCompanyName || companySettings.company_name || 'Dynime LLC.',
+        formatDocumentDate(activeDate),
+        formatDocumentDate(issuedDate),
+        probationPeriod,
+        newDesignation,
+        newSalary,
+        workingDays,
+        workingHours,
+        annualLeave,
+        noticePeriod,
+        workLocation
+    );
+
 
     return (
         <AuthenticatedLayout
@@ -1028,26 +769,93 @@ export default function Index({ employees, companySettings, prefill }: IndexProp
                                             onChange={(e) => setReportingTo(e.target.value)}
                                         />
                                     </div>
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="working-days">{t('Working Days')}</Label>
+                                        <Input
+                                            id="working-days"
+                                            value={workingDays}
+                                            placeholder="e.g. Sunday through Thursday"
+                                            onChange={(e) => setWorkingDays(e.target.value)}
+                                        />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="working-hours">{t('Working Hours')}</Label>
+                                        <Input
+                                            id="working-hours"
+                                            value={workingHours}
+                                            placeholder="e.g. 9:00 AM to 6:00 PM"
+                                            onChange={(e) => setWorkingHours(e.target.value)}
+                                        />
+                                    </div>
+                                    <div className="col-span-2 space-y-1.5">
+                                        <Label htmlFor="annual-leave">{t('Paid Annual Leave & Holidays')}</Label>
+                                        <Input
+                                            id="annual-leave"
+                                            value={annualLeave}
+                                            placeholder="e.g. 20 Days Paid Annual Leave + Public Holidays"
+                                            onChange={(e) => setAnnualLeave(e.target.value)}
+                                        />
+                                    </div>
                                 </div>
                             </div>
 
-                            {/* Custom Paragraph */}
-                            <div className="space-y-1.5">
-                                <Label htmlFor="custom-notes">
-                                    {!['offer_letter', 'employment_agreement', 'payslip', 'experience_letter', 'relieving_letter', 'promotion_letter', 'termination_letter'].includes(documentType) 
-                                        ? t('Document Body Content') 
-                                        : t('Custom paragraph (optional, appended to the body)')
-                                    }
-                                </Label>
+                            {/* Custom Paragraph & Dynamic Variables */}
+                            <div className="space-y-2">
+                                <div className="flex items-center justify-between">
+                                    <Label htmlFor="custom-notes" className="text-xs font-semibold text-slate-800">
+                                        {!['offer_letter', 'employment_agreement', 'payslip', 'experience_letter', 'relieving_letter', 'promotion_letter', 'termination_letter'].includes(documentType) 
+                                            ? t('Document Body Content') 
+                                            : t('Custom paragraph / Clauses (Appended to body)')
+                                        }
+                                    </Label>
+                                    <span className="text-[10px] text-indigo-600 font-medium">{t('Supports dynamic tags')}</span>
+                                </div>
+
+                                {/* Quick Insert Dynamic Variables Pill Bar */}
+                                <div className="bg-slate-50 border border-slate-200/80 rounded-lg p-2 space-y-1.5">
+                                    <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                                        ⚡ {t('Quick Insert Dynamic Variables')}
+                                    </div>
+                                    <div className="flex flex-wrap gap-1">
+                                        {[
+                                            { tag: '{employee_name}', label: t('Employee Name') },
+                                            { tag: '{employee_code}', label: t('Employee ID') },
+                                            { tag: '{joining_date}', label: t('Joining Date') },
+                                            { tag: '{working_days}', label: t('Working Days') },
+                                            { tag: '{working_hours}', label: t('Working Hours') },
+                                            { tag: '{holidays_count}', label: t('Holidays / Leave') },
+                                            { tag: '{basic_salary}', label: t('Salary') },
+                                            { tag: '{designation}', label: t('Designation') },
+                                            { tag: '{department}', label: t('Department') },
+                                            { tag: '{company_name}', label: t('Company Name') },
+                                            { tag: '{probation_period}', label: t('Probation') },
+                                            { tag: '{notice_period}', label: t('Notice Period') },
+                                            { tag: '{work_location}', label: t('Work Location') },
+                                            { tag: '{branch_address}', label: t('Branch Address') },
+                                        ].map(({ tag, label }) => (
+                                            <button
+                                                key={tag}
+                                                type="button"
+                                                onClick={() => setCustomParagraph(prev => (prev ? prev + ' ' + tag : tag))}
+                                                className="text-[10px] bg-white border border-slate-200 hover:border-indigo-400 hover:bg-indigo-50 text-slate-700 hover:text-indigo-700 font-mono px-1.5 py-0.5 rounded transition shadow-2xs"
+                                                title={label}
+                                            >
+                                                + {tag}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
                                 <Textarea
                                     id="custom-notes"
                                     placeholder={!['offer_letter', 'employment_agreement', 'payslip', 'experience_letter', 'relieving_letter', 'promotion_letter', 'termination_letter'].includes(documentType)
-                                        ? t('Type the official content/body of the document here...')
-                                        : t('Add any extra context, benefits, or notes...')
+                                        ? t('Type the official content/body of the document here with dynamic tags like {employee_name}, {joining_date}, {working_days}, {working_hours}, {holidays_count}...')
+                                        : t('Add any extra context, clauses, or notes with dynamic tags...')
                                     }
-                                    rows={!['offer_letter', 'employment_agreement', 'payslip', 'experience_letter', 'relieving_letter', 'promotion_letter', 'termination_letter'].includes(documentType) ? 8 : 4}
+                                    rows={!['offer_letter', 'employment_agreement', 'payslip', 'experience_letter', 'relieving_letter', 'promotion_letter', 'termination_letter'].includes(documentType) ? 10 : 6}
                                     value={customParagraph}
                                     onChange={(e) => setCustomParagraph(e.target.value)}
+                                    className="font-mono text-xs"
                                 />
                             </div>
 
@@ -1203,7 +1011,7 @@ export default function Index({ employees, companySettings, prefill }: IndexProp
                                                     <div><span className="text-[#8e8e93]">{t('Reporting to')}:</span> <strong className="text-[#1c1c1e]">{reportingTo || '—'}</strong></div>
                                                 </div>
                                                 <div className="mt-3 border-t border-[#e5e5ea] pt-3">
-                                                    <span className="text-[#8e8e93]">{t('Gross compensation')}:</span> <strong className="text-[#1c1c1e]">{formatCurrency(currentEmployee.basic_salary)} {isYearlySalary ? t('/ year') : t('/ month')}</strong>
+                                                    <span className="text-[#8e8e93]">{t('Gross compensation')}:</span> <strong className="text-[#1c1c1e]">{isYearlySalary ? `${formatCurrency(displayYearlySalary)} / year (${formatCurrency(displayMonthlySalary)} / month)` : `${formatCurrency(displayMonthlySalary)} / month`}</strong>
                                                 </div>
                                             </div>
 
@@ -1214,14 +1022,14 @@ export default function Index({ employees, companySettings, prefill }: IndexProp
                                                     <div className="p-4 space-y-2 text-xs">
                                                         <div className="flex justify-between items-center">
                                                             <span className="text-[#787880]">{t('Basic salary')}</span>
-                                                            <span className="font-semibold text-[#1c1c1e]">{formatCurrency(currentEmployee.basic_salary)}</span>
+                                                            <span className="font-semibold text-[#1c1c1e]">{formatCurrency(isYearlySalary ? displayYearlySalary : displayMonthlySalary)}</span>
                                                         </div>
                                                         <div className="text-[#8e8e93] italic text-[11px]">
                                                             {t('N/A - no allowances configured')}
                                                         </div>
                                                         <div className="flex justify-between items-center border-t border-[#e5e5ea] pt-2 font-bold text-[#1c1c1e] mt-4">
                                                             <span>{t('Gross (CTC)')}</span>
-                                                            <span>{formatCurrency(currentEmployee.basic_salary)}</span>
+                                                            <span>{formatCurrency(isYearlySalary ? displayYearlySalary : displayMonthlySalary)}</span>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -1233,7 +1041,7 @@ export default function Index({ employees, companySettings, prefill }: IndexProp
                                                         </div>
                                                         <div className="flex justify-between items-center border-t border-[#e5e5ea] pt-2 font-bold text-[#1c1c1e]">
                                                             <span>{t('Net take-home')}</span>
-                                                            <span>{formatCurrency(currentEmployee.basic_salary)}</span>
+                                                            <span>{formatCurrency(isYearlySalary ? displayYearlySalary : displayMonthlySalary)}</span>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -1255,7 +1063,7 @@ export default function Index({ employees, companySettings, prefill }: IndexProp
                                                 <div><span className="text-[#8e8e93]">{t('Employment type')}:</span> <strong className="text-[#1c1c1e]">{overrideEmploymentType}</strong></div>
                                                 <div><span className="text-[#8e8e93]">{t('Job type')}:</span> <strong className="text-[#1c1c1e]">{overrideJobType}</strong></div>
                                                 <div><span className="text-[#8e8e93]">{t('Work location')}:</span> <strong className="text-[#1c1c1e]">{workLocation || '—'}</strong></div>
-                                                <div><span className="text-[#8e8e93]">{t('Gross salary')}:</span> <strong className="text-[#1c1c1e]">{formatCurrency(currentEmployee.basic_salary)} {isYearlySalary ? t('/ year') : t('/ month')}</strong></div>
+                                                <div><span className="text-[#8e8e93]">{t('Gross salary')}:</span> <strong className="text-[#1c1c1e]">{isYearlySalary ? `${formatCurrency(displayYearlySalary)} / year (${formatCurrency(displayMonthlySalary)} / month)` : `${formatCurrency(displayMonthlySalary)} / month`}</strong></div>
                                             </div>
 
                                             {/* Earnings and Deductions tables side-by-side */}
@@ -1265,14 +1073,14 @@ export default function Index({ employees, companySettings, prefill }: IndexProp
                                                     <div className="p-4 space-y-2 text-xs">
                                                         <div className="flex justify-between font-semibold text-[#1c1c1e]">
                                                             <span>{t('Basic salary')}</span>
-                                                            <span>{formatCurrency(currentEmployee.basic_salary)}</span>
+                                                            <span>{formatCurrency(isYearlySalary ? displayYearlySalary : displayMonthlySalary)}</span>
                                                         </div>
                                                         <div className="text-[#8e8e93] italic">
                                                             {t('N/A - no allowances configured')}
                                                         </div>
                                                         <div className="flex justify-between border-t border-[#e5e5ea] pt-2 font-bold text-[#1c1c1e]">
                                                             <span>{t('Gross (CTC)')}</span>
-                                                            <span>{formatCurrency(currentEmployee.basic_salary)}</span>
+                                                            <span>{formatCurrency(isYearlySalary ? displayYearlySalary : displayMonthlySalary)}</span>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -1291,9 +1099,9 @@ export default function Index({ employees, companySettings, prefill }: IndexProp
                                             </div>
 
                                             {/* Agreement terms (Editable body content) */}
-                                            {customParagraph && (
+                                            {resolvedCustomParagraph && (
                                                 <div className="mt-4 text-[13px] text-[#1c1c1e] whitespace-pre-wrap leading-relaxed text-justify">
-                                                    {customParagraph}
+                                                    {resolvedCustomParagraph}
                                                 </div>
                                             )}
                                         </div>
@@ -1358,7 +1166,7 @@ export default function Index({ employees, companySettings, prefill }: IndexProp
                                         <div className="space-y-4">
                                             <h3 className="font-bold text-center text-sm uppercase tracking-wider border-b border-[#e5e5ea] pb-2 mb-4">{t('TO WHOM IT MAY CONCERN')}</h3>
                                             <div className="text-[13px] text-[#1c1c1e] whitespace-pre-wrap leading-relaxed text-justify">
-                                                {customParagraph}
+                                                {resolvedCustomParagraph}
                                             </div>
                                         </div>
                                     )}
@@ -1368,7 +1176,7 @@ export default function Index({ employees, companySettings, prefill }: IndexProp
                                         <div className="space-y-4">
                                             <h3 className="font-bold text-center text-sm uppercase tracking-wider border-b border-[#e5e5ea] pb-2 mb-4">{t('TO WHOM IT MAY CONCERN')}</h3>
                                             <div className="text-[13px] text-[#1c1c1e] whitespace-pre-wrap leading-relaxed text-justify">
-                                                {customParagraph}
+                                                {resolvedCustomParagraph}
                                             </div>
                                         </div>
                                     )}
@@ -1401,9 +1209,9 @@ export default function Index({ employees, companySettings, prefill }: IndexProp
                                                 </div>
                                             </div>
 
-                                            {customParagraph && (
+                                            {resolvedCustomParagraph && (
                                                 <div className="mt-4 text-[13px] text-[#1c1c1e] whitespace-pre-wrap leading-relaxed text-justify">
-                                                    {customParagraph}
+                                                    {resolvedCustomParagraph}
                                                 </div>
                                             )}
                                         </div>
@@ -1431,9 +1239,9 @@ export default function Index({ employees, companySettings, prefill }: IndexProp
                                                 </div>
                                             </div>
 
-                                            {customParagraph && (
+                                            {resolvedCustomParagraph && (
                                                 <div className="mt-4 text-[13px] text-[#1c1c1e] whitespace-pre-wrap leading-relaxed text-justify">
-                                                    {customParagraph}
+                                                    {resolvedCustomParagraph}
                                                 </div>
                                             )}
                                         </div>
@@ -1462,7 +1270,7 @@ export default function Index({ employees, companySettings, prefill }: IndexProp
 
                                             {/* Main Editable Body Text */}
                                             <div className="mt-6 text-[#1c1c1e] whitespace-pre-wrap min-h-[220px] text-justify leading-relaxed">
-                                                {customParagraph || (
+                                                {resolvedCustomParagraph || (
                                                     <span className="text-gray-400 italic">
                                                         {t('[Document Body Content]')}
                                                     </span>
@@ -1472,9 +1280,9 @@ export default function Index({ employees, companySettings, prefill }: IndexProp
                                     )}
 
                                     {/* Custom Appended Paragraph */}
-                                    {customParagraph && ['offer_letter', 'payslip'].includes(documentType) && (
+                                    {resolvedCustomParagraph && ['offer_letter', 'payslip'].includes(documentType) && (
                                         <p className="mt-4 border-t border-[#e5e5ea] pt-4 text-[#787880] italic">
-                                            {customParagraph}
+                                            {resolvedCustomParagraph}
                                         </p>
                                     )}
                                 </div>

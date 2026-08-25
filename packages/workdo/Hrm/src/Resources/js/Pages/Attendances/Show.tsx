@@ -1,8 +1,10 @@
+import { useState } from 'react';
 import { DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useTranslation } from 'react-i18next';
-import { Clock, User, Calendar, Timer, FileText, CheckCircle } from 'lucide-react';
+import { Clock, User, Calendar, Timer, FileText, CheckCircle, Monitor } from 'lucide-react';
 import { Attendance } from './types';
-    import { formatDate, formatTime, formatDateTime, getCurrencySymbol } from '@/utils/helpers';
+import { formatDate, formatTime, formatDateTime, getCurrencySymbol } from '@/utils/helpers';
+import { AttendanceScreenshotGalleryModal } from '../../Components/AttendanceScreenshotGalleryModal';
 
 interface ViewAttendanceProps {
     attendance: Attendance;
@@ -11,6 +13,7 @@ interface ViewAttendanceProps {
 
 export default function View({ attendance, onSuccess }: ViewAttendanceProps) {
     const { t } = useTranslation();
+    const [isGalleryOpen, setIsGalleryOpen] = useState(false);
 
     const formatStatus = (status: string) => {
         return status.split(' ').map(word => 
@@ -140,7 +143,37 @@ export default function View({ attendance, onSuccess }: ViewAttendanceProps) {
                         </div>
                     </div>
                 )}
+
+                {/* Duty Desktop Screenshots Inspection Section */}
+                <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
+                    <button
+                        type="button"
+                        onClick={() => setIsGalleryOpen(true)}
+                        className="w-full flex items-center justify-between p-3.5 rounded-xl bg-gradient-to-r from-slate-900 to-indigo-950 text-white shadow-sm hover:shadow-md transition-all duration-200"
+                    >
+                        <div className="flex items-center gap-2.5">
+                            <div className="p-1.5 rounded-lg bg-indigo-500/20 text-indigo-400">
+                                <Monitor className="w-4 h-4" />
+                            </div>
+                            <div className="text-left">
+                                <h5 className="text-xs font-bold uppercase tracking-wider">{t('Duty Desktop Screenshots')}</h5>
+                                <p className="text-[11px] text-indigo-300/80">{t('Inspect Upwork-style random desktop activity snapshots')}</p>
+                            </div>
+                        </div>
+                        <span className="px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 font-semibold text-xs transition-colors">
+                            {t('View Screenshots')}
+                        </span>
+                    </button>
+                </div>
             </div>
+
+            <AttendanceScreenshotGalleryModal
+                isOpen={isGalleryOpen}
+                onClose={() => setIsGalleryOpen(false)}
+                attendanceId={attendance.id}
+                employeeName={attendance.user?.name}
+                attendanceDate={attendance.date ? formatDate(attendance.date) : ''}
+            />
         </DialogContent>
     );
 }

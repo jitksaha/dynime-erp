@@ -1,4 +1,4 @@
-import { LayoutGrid, Users, Warehouse,ArrowRightLeft, Package, Tag, Tags, Shield, Settings, Image, CreditCard, Headphones, ShoppingCart, Kanban, Calendar, MessageCircle, Replace ,Receipt, Star } from 'lucide-react';
+import { LayoutGrid, Users, Warehouse, ArrowRightLeft, Package, Tag, Tags, Shield, Settings, Image, CreditCard, Headphones, ShoppingCart, Kanban, Calendar, MessageCircle, Replace, Receipt, Star, FileText } from 'lucide-react';
 import { NavItem } from '@/types';
 
 export const getCompanyMenu = (t: (key: string) => string): NavItem[] => [
@@ -29,11 +29,32 @@ export const getCompanyMenu = (t: (key: string) => string): NavItem[] => [
         ],
     },
     {
-        title: t('Proposal'),
-        href: route('sales-proposals.index'),
-        icon: Replace,
-        permission: 'manage-sales-proposals',
-        order: 20,
+        title: t('Document Builder'),
+        icon: FileText,
+        permission: 'manage-agreement-builder|view-agreement-builder|create-agreement-builder|edit-agreement-builder|manage-sales-proposals|manage-quotations',
+        order: 21,
+        children: [
+            {
+                title: t('Proposal'),
+                href: route('agreement-builder.index') + '?type=proposal',
+                permission: 'manage-sales-proposals|manage-agreement-builder|view-agreement-builder',
+            },
+            {
+                title: t('Quotation'),
+                href: route('quotations.index'),
+                permission: 'manage-quotations|manage-agreement-builder|view-agreement-builder',
+            },
+            {
+                title: t('Agreement'),
+                href: route('agreement-builder.index'),
+                permission: 'manage-agreement-builder|view-agreement-builder|create-agreement-builder|edit-agreement-builder',
+            },
+            {
+                title: t('Notice'),
+                href: route('agreement-builder.index') + '?type=notice',
+                permission: 'manage-agreement-builder|view-agreement-builder|create-agreement-builder|edit-agreement-builder',
+            },
+        ],
     },
     {
         title: t('Sales Invoice'),

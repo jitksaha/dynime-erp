@@ -68,6 +68,9 @@ export interface Employee {
     designation_id?: number;
     designation?: Designation;
     official_email?: string;
+    whatsapp?: string;
+    roles_responsibilities?: string;
+    is_verified?: boolean;
     official_email_password?: string;
     created_at: string;
 }
@@ -87,6 +90,8 @@ export interface DeductionItem {
 export interface CreateEmployeeFormData {
     employee_id: string;
     mobile_no: string;
+    whatsapp: string;
+    roles_responsibilities: string;
     date_of_birth: string;
     gender: string;
     shift_id: string;
@@ -118,7 +123,10 @@ export interface CreateEmployeeFormData {
     days_per_week: string;
     rate_per_hour: string;
     user_id: string;
+    manager_id?: string;
     branch_id: string;
+    additional_branch_ids?: number[];
+    roles?: string[];
     department_id: string;
     designation_id: string;
     avatar: File | null;
@@ -139,6 +147,7 @@ export interface EditEmployeeFormData {
     date_of_birth: string;
     gender: string;
     shift_id: string;
+    is_flexible_shift_allowed?: boolean;
     date_of_joining: string;
     employment_type: string;
     employment_status: string;
@@ -167,7 +176,10 @@ export interface EditEmployeeFormData {
     days_per_week: string;
     rate_per_hour: string;
     user_id: string;
+    manager_id?: string;
     branch_id: string;
+    additional_branch_ids?: number[];
+    roles?: string[];
     department_id: string;
     designation_id: string;
     avatar: File | null;

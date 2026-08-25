@@ -1,0 +1,38 @@
+{
+  "name": "dynime-time-tracker",
+  "version": "2.4.0",
+  "description": "Official Dynime ERP Cross-Platform Time Tracker & Auto-Sync App",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build:win": "electron-builder --win nsis",
+    "build:mac": "electron-builder --mac dmg"
+  },
+  "keywords": [
+    "time-tracker",
+    "electron",
+    "dynime-erp",
+    "auto-sync"
+  ],
+  "author": "Dynime Inc",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^28.2.0",
+    "electron-builder": "^24.9.0"
+  },
+  "dependencies": {
+    "axios": "^1.6.7",
+    "desktop-screenshot": "^0.1.1",
+    "node-cron": "^3.0.3"
+  },
+  "build": {
+    "appId": "com.dynime.timetracker",
+    "productName": "Dynime Time Tracker",
+    "mac": {
+      "category": "public.app-category.productivity"
+    },
+    "win": {
+      "target": "nsis"
+    }
+  }
+}

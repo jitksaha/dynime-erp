@@ -2,7 +2,7 @@ import { useState } from "react";
 import MediaLibraryModal from "@/components/MediaLibraryModal";
 import { getImagePath } from "@/utils/helpers";
 import { DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { useForm } from "@inertiajs/react";
+import { useForm, usePage } from "@inertiajs/react";
 import { useTranslation } from 'react-i18next';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,17 +10,23 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import InputError from "@/components/ui/input-error";
 import { PhoneInputComponent } from "@/components/ui/phone-input";
+import { ShieldCheck, Check } from "lucide-react";
 import { EditUserProps, EditUserFormData } from './types';
 
 export default function Edit({ user, onSuccess, roles = {} }: EditUserProps) {
     const { t } = useTranslation();
+    const { allRoles: pageAllRoles } = usePage<any>().props;
     const [isMediaModalOpen, setIsMediaModalOpen] = useState(false);
     const [avatarPreview, setAvatarPreview] = useState<string | null>(user.avatar && user.avatar !== 'null' ? getImagePath(user.avatar) : null);
+
+    const initialUserRoles = user.roles ? user.roles.map((r: any) => r.name) : [];
 
     const { data, setData, put, processing, errors, transform } = useForm<EditUserFormData>({
         name: user.name,
         email: user.email,
         mobile_no: user.mobile_no,
+        type: user.type,
+        roles: initialUserRoles,
         is_enable_login: user.is_enable_login,
         avatar: user.avatar && user.avatar !== 'null' ? user.avatar : null,
     });
@@ -119,6 +125,76 @@ export default function Edit({ user, onSuccess, roles = {} }: EditUserProps) {
                         placeholder="+1234567890"
                         error={errors.mobile_no}
                     />
+                </div>
+
+                {/* Multi-Role System Selector Grid */}
+                <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-2.5">
+                    <div>
+                        <Label className="font-bold text-xs text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+                            <ShieldCheck className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                            {t('Assign System Roles (Multi-Role Support)')}
+                        </Label>
+                        <p className="text-[11px] text-slate-500 mt-0.5">
+                            {t('Permissions are dynamically combined from all assigned roles.')}
+                        </p>
+                    </div>
+
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                        {pageAllRoles && pageAllRoles.length > 0 ? (
+                            pageAllRoles.map((roleItem: any) => {
+                                const isSelected = (data.roles || []).includes(roleItem.name);
+                                return (
+                                    <button
+                                        key={roleItem.id}
+                                        type="button"
+                                        onClick={() => {
+                                            const currentRoles = data.roles || [];
+                                            if (isSelected) {
+                                                const updated = currentRoles.filter((r: string) => r !== roleItem.name);
+                                                setData('roles', updated);
+                                                if (updated.length > 0) setData('type', updated[0]);
+                                            } else {
+                                                const updated = [...currentRoles, roleItem.name];
+                                                setData('roles', updated);
+                                                setData('type', updated[0]);
+                                            }
+                                        }}
+                                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition-all border ${
+                                            isSelected
+                                                ? 'bg-indigo-600 text-white border-indigo-700 shadow-2xs'
+                                                : 'bg-white dark:bg-slate-950 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:border-indigo-300'
+                                        }`}
+                                    >
+                                        <span className={`w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-white' : 'bg-slate-300 dark:bg-slate-700'}`} />
+                                        {roleItem.label || roleItem.name}
+                                        {isSelected && <Check className="w-3 h-3 ml-0.5" />}
+                                    </button>
+                                );
+                            })
+                        ) : (
+                            Object.entries(roles).map(([id, label]) => {
+                                const isSelected = data.type === id || (data.roles || []).includes(label as string);
+                                return (
+                                    <button
+                                        key={id}
+                                        type="button"
+                                        onClick={() => {
+                                            setData('type', id);
+                                            setData('roles', [label as string]);
+                                        }}
+                                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition-all border ${
+                                            isSelected
+                                                ? 'bg-indigo-600 text-white border-indigo-700 shadow-2xs'
+                                                : 'bg-white dark:bg-slate-950 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800'
+                                        }`}
+                                    >
+                                        {label}
+                                    </button>
+                                );
+                            })
+                        )}
+                    </div>
+                    <InputError message={errors.roles || errors.type} />
                 </div>
 
                 <div>

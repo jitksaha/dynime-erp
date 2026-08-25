@@ -1,10 +1,12 @@
+import { useState } from 'react';
 import { Head, usePage } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
 import AuthenticatedLayout from "@/layouts/authenticated-layout";
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from '@/components/ui/badge';
-import { Megaphone, Calendar, MapPin, Building2, DollarSign, Clock, Users, FileText, CheckCircle, Star } from 'lucide-react';
+import { Megaphone, Calendar, MapPin, Building2, DollarSign, Clock, Users, FileText, CheckCircle, Star, ExternalLink, Copy, Check } from 'lucide-react';
+import { toast } from 'sonner';
 import { JobPosting, JobPostingShowProps } from './types';
 import { formatCurrency, formatDate } from '@/utils/helpers';
 import { FormattedJobText } from '../../Components/FormattedJobText';
@@ -12,16 +14,27 @@ import { FormattedJobText } from '../../Components/FormattedJobText';
 export default function Show() {
     const { t } = useTranslation();
     const { jobposting } = usePage<JobPostingShowProps>().props;
+    const [isCopied, setIsCopied] = useState(false);
 
     if (!jobposting) {
         return (
-            <AuthenticatedLayout pageTitle={t('Job Posting Details')}>
+            <AuthenticatedLayout pageTitle={t('Open Job Details')}>
                 <div className="p-8 text-center text-slate-500 font-medium">
-                    {t('Job posting details not available or deleted.')}
+                    {t('Job details not available or deleted.')}
                 </div>
             </AuthenticatedLayout>
         );
     }
+
+    const jobSlug = (jobposting as any).slug || (jobposting.title ? jobposting.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') : jobposting.id);
+    const publicUrl = `https://careers.dynime.com/job/${jobSlug}`;
+
+    const handleCopy = () => {
+        navigator.clipboard.writeText(publicUrl);
+        setIsCopied(true);
+        toast.success(t('Job URL copied to clipboard!'));
+        setTimeout(() => setIsCopied(false), 2500);
+    };
 
     const statusConfig: any = {
         "0": { label: "Draft", class: "bg-gray-100 text-gray-800" },
@@ -33,19 +46,39 @@ export default function Show() {
     };
     const statusInfo = statusConfig[jobposting?.status] || { label: jobposting?.status || '-', class: 'bg-gray-100 text-gray-800' };
 
-    const departmentOptions: any = {"0":"Technology","1":"Accounting","2":"HR section"};
-
     return (
         <AuthenticatedLayout
             breadcrumbs={[
                 { label: t('Recruitment'), url: route('recruitment.index') },
-                {label: t('Job Postings'), url: route('recruitment.job-postings.index')},
-                {label: t('Job Posting Details')}
+                { label: t('Open Jobs'), url: route('recruitment.job-postings.index') },
+                { label: t('Job Details') }
             ]}
-            pageTitle={t('Job Posting Details')}
+            pageTitle={t('Open Job Details')}
+            pageActions={
+                <div className="flex items-center gap-2">
+                    <a
+                        href={publicUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 shadow-2xs transition-colors no-underline"
+                    >
+                        <ExternalLink className="h-3.5 w-3.5 text-blue-600" />
+                        {t('View on Live Career Portal')}
+                    </a>
+                    <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handleCopy}
+                        className="gap-1.5 font-semibold text-xs border-slate-200 text-slate-700 bg-white hover:bg-slate-50 shadow-2xs"
+                    >
+                        {isCopied ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5 text-slate-500" />}
+                        {isCopied ? t('Copied!') : t('Copy Job Link')}
+                    </Button>
+                </div>
+            }
             backUrl={route('recruitment.job-postings.index')}
         >
-            <Head title={`${t('Job Posting Details')} - ${jobposting.title}`} />
+            <Head title={`${t('Open Job Details')} - ${jobposting.title}`} />
 
             <div className="space-y-6">
                 {/* Header Card */}

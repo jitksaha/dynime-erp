@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import CalendarView from "@/components/calendar-view";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
     Clock,
     Calendar,
@@ -12,6 +13,7 @@ import {
     FileText,
     User,
     CheckCircle,
+    CheckCircle2,
     XCircle,
     AlertCircle,
     TrendingUp,
@@ -20,17 +22,69 @@ import {
     Square,
     Shield,
     MessageSquare,
-    PenTool
+    PenTool,
+    Globe,
+    Building2,
+    Utensils,
+    Coffee,
+    Briefcase,
+    Sparkles,
+    MapPin,
+    Sun,
+    Moon
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { router } from '@inertiajs/react';
-import { formatDate, formatTime,formatDateTime } from '@/utils/helpers';
-import { getDocumentName } from '../DocumentBuilder/Index';
+import { getDocumentName } from '../DocumentBuilder/documentUtils';
+import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
+import TimezoneDutyWidget from '../../Components/TimezoneDutyWidget';
+import OnboardingBannerWidget from '../../Components/OnboardingBannerWidget';
+import { formatDate, formatDateTime } from '@/utils/helpers';
 
 interface EmployeeDashboardProps {
     message: string;
     auth: any;
     stats: {
+        company_timezone_info?: {
+            timezone: string;
+            label: string;
+            current_time: string;
+            current_date: string;
+            utc_offset: string;
+            abbreviation: string;
+        };
+        emp_timezone_info?: {
+            timezone: string;
+            country: string;
+            current_time: string;
+            current_date: string;
+            utc_offset: string;
+            abbreviation: string;
+        };
+        utc_timezone_info?: {
+            timezone: string;
+            label: string;
+            current_time: string;
+            current_date: string;
+            utc_offset: string;
+            abbreviation: string;
+        };
+        duty_schedule_info?: {
+            shift_start: string;
+            shift_end: string;
+            shift_utc?: string;
+            break_start: string;
+            break_end: string;
+            total_shift_hours: number;
+            paid_duty_hours: number;
+            break_hours: number;
+            weekly_days: number;
+            weekly_paid_hours: number;
+            duty_status: string;
+            shift_progress: number;
+            is_weekend: boolean;
+            weekend_days: number[];
+        };
         my_attendance: number;
         total_approved_leave_year: number;
         total_approved_leave_month: number;
@@ -39,6 +93,7 @@ interface EmployeeDashboardProps {
         total_awards: number;
         total_warnings: number;
         total_complaints: number;
+        attendance_data?: any;
         calendar_events?: Array<{
             id: number;
             title: string;
@@ -105,6 +160,87 @@ export default function EmployeeDashboard({ message, stats }: EmployeeDashboardP
 
     const [currentTime, setCurrentTime] = useState(new Date());
     const [elapsedTime, setElapsedTime] = useState('00:00:00');
+    const [showEndShiftConfirm, setShowEndShiftConfirm] = useState(false);
+    const [isShiftEndedToday, setIsShiftEndedToday] = useState(false);
+
+    // Live Tickers for Company Standard Time, Employee Local Time & UTC
+    const [companyTimeStr, setCompanyTimeStr] = useState('');
+    const [companyDateStr, setCompanyDateStr] = useState('');
+    const [empTimeStr, setEmpTimeStr] = useState('');
+    const [empDateStr, setEmpDateStr] = useState('');
+    const [utcTimeStr, setUtcTimeStr] = useState('');
+    const [utcDateStr, setUtcDateStr] = useState('');
+
+    const compTimezone = stats.company_timezone_info?.timezone || 'America/Denver';
+    const browserTimezone = typeof Intl !== 'undefined' ? (Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Dhaka') : 'Asia/Dhaka';
+    const empTimezone = stats.emp_timezone_info?.timezone && stats.emp_timezone_info.timezone !== 'UTC' ? stats.emp_timezone_info.timezone : browserTimezone;
+
+    const startTime = stats.duty_schedule_info?.start_time || '09:00:00';
+    const endTime = stats.duty_schedule_info?.end_time || '18:00:00';
+
+    const formatShiftHours = (startT: string, endT: string, fromTz: string, toTz: string) => {
+        try {
+            const testDate = new Date();
+            const fromD = new Date(testDate.toLocaleString('en-US', { timeZone: fromTz }));
+            const toD = new Date(testDate.toLocaleString('en-US', { timeZone: toTz }));
+            const diffMs = toD.getTime() - fromD.getTime();
+
+            const parseHMs = (tStr: string) => {
+                const parts = tStr.split(':');
+                let h = parseInt(parts[0], 10) || 9;
+                let m = parseInt(parts[1], 10) || 0;
+                if (tStr.toLowerCase().includes('pm') && h < 12) h += 12;
+                if (tStr.toLowerCase().includes('am') && h === 12) h = 0;
+                return { h, m };
+            };
+
+            const startParsed = parseHMs(startT);
+            const endParsed = parseHMs(endT);
+
+            const sDate = new Date();
+            sDate.setHours(startParsed.h, startParsed.m, 0, 0);
+            const targetStart = new Date(sDate.getTime() + diffMs);
+
+            const eDate = new Date();
+            eDate.setHours(endParsed.h, endParsed.m, 0, 0);
+            const targetEnd = new Date(eDate.getTime() + diffMs);
+
+            const fmtStart = targetStart.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+            const fmtEnd = targetEnd.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+
+            return `${fmtStart} – ${fmtEnd}`;
+        } catch (e) {
+            return '09:00 AM – 06:00 PM';
+        }
+    };
+
+    const compShiftHours = formatShiftHours(startTime, endTime, compTimezone, compTimezone);
+    const utcShiftHours = formatShiftHours(startTime, endTime, compTimezone, 'UTC');
+    const empShiftHours = formatShiftHours(startTime, endTime, compTimezone, empTimezone);
+
+    useEffect(() => {
+        const updateClocks = () => {
+            const now = new Date();
+            try {
+                setCompanyTimeStr(now.toLocaleTimeString('en-US', { timeZone: compTimezone, hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+                setCompanyDateStr(now.toLocaleDateString('en-US', { timeZone: compTimezone, weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }));
+            } catch (e) {}
+
+            try {
+                setEmpTimeStr(now.toLocaleTimeString('en-US', { timeZone: empTimezone, hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+                setEmpDateStr(now.toLocaleDateString('en-US', { timeZone: empTimezone, weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }));
+            } catch (e) {}
+
+            try {
+                setUtcTimeStr(now.toLocaleTimeString('en-US', { timeZone: 'UTC', hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+                setUtcDateStr(now.toLocaleDateString('en-US', { timeZone: 'UTC', weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }));
+            } catch (e) {}
+        };
+
+        updateClocks();
+        const interval = setInterval(updateClocks, 1000);
+        return () => clearInterval(interval);
+    }, [compTimezone, empTimezone]);
 
     useEffect(() => {
         const interval = setInterval(() => {
@@ -116,16 +252,27 @@ export default function EmployeeDashboard({ message, stats }: EmployeeDashboardP
     useEffect(() => {
         if (!isClockedIn || !clockInTime) {
             setElapsedTime('00:00:00');
+            localStorage.removeItem('dynime_clock_in_epoch');
             return;
+        }
+
+        // Establish persistent clock-in epoch timestamp in localStorage
+        let startMs: number;
+        const storedEpoch = localStorage.getItem('dynime_clock_in_epoch');
+        if (storedEpoch) {
+            startMs = parseInt(storedEpoch, 10);
+        } else {
+            const normalizedStr = clockInTime.includes(' ') ? clockInTime.replace(' ', 'T') : clockInTime;
+            const parsedDate = new Date(normalizedStr);
+            startMs = isNaN(parsedDate.getTime()) ? Date.now() : parsedDate.getTime();
+            localStorage.setItem('dynime_clock_in_epoch', startMs.toString());
         }
 
         const calculateElapsed = () => {
             try {
-                const normalizedStr = clockInTime.includes(' ') ? clockInTime.replace(' ', 'T') : clockInTime;
-                const start = new Date(normalizedStr);
-                const now = new Date();
-                const diffMs = now.getTime() - start.getTime();
-                if (diffMs < 0) return '00:00:00';
+                const nowMs = Date.now();
+                const diffMs = nowMs - startMs;
+                if (diffMs <= 0) return '00:00:00';
                 
                 const totalSecs = Math.floor(diffMs / 1000);
                 const hrs = Math.floor(totalSecs / 3600);
@@ -213,8 +360,9 @@ export default function EmployeeDashboard({ message, stats }: EmployeeDashboardP
             <Head title={t('Employee Dashboard')} />
 
             <div className="space-y-6">
-                {/* Documents Awaiting Digital Signature */}
-                {stats.pending_signatures && stats.pending_signatures.length > 0 && (
+                {/* Timezone Calculation & Employee Duty Control Card for HR & Employees */}
+                <TimezoneDutyWidget stats={stats} />
+                {Array.isArray(stats?.pending_signatures) && stats.pending_signatures.length > 0 && (
                     <Card className="border-amber-200 bg-amber-50/20 shadow-sm">
                         <CardHeader className="pb-3">
                             <CardTitle className="text-base font-bold text-amber-900 flex items-center gap-2">
@@ -229,7 +377,7 @@ export default function EmployeeDashboard({ message, stats }: EmployeeDashboardP
                                         <div className="space-y-1">
                                             <p className="font-semibold text-slate-800 text-sm">{getDocumentName(doc.document_type)}</p>
                                             <p className="text-xs text-slate-400 font-medium">
-                                                {t('Issued Date')}: {new Date(doc.issued_date).toLocaleDateString()}
+                                                {t('Issued Date')}: {doc.issued_date ? formatDate(doc.issued_date) : '-'}
                                             </p>
                                         </div>
                                         <Button
@@ -344,177 +492,10 @@ export default function EmployeeDashboard({ message, stats }: EmployeeDashboardP
                     </div>
                 </div>
 
-                {/* Clock In/Out Section */}
-                <div className="grid grid-cols-1 gap-6">
-                    <Card className="overflow-hidden border-0 shadow-md bg-white rounded-2xl relative">
-                        <div className="absolute top-0 left-0 right-0 h-1.5 bg-[#635bff]" />
-                        <CardContent className="p-6 md:p-8">
-                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-center">
-                                {/* Left Side - Real-time Current Clock & Status */}
-                                <div className="lg:col-span-1 flex flex-col justify-between h-full space-y-4">
-                                    <div>
-                                        <div className="flex items-center gap-2 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
-                                            <Calendar className="h-3.5 w-3.5 text-[#635bff]" />
-                                            {currentTime.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })}
-                                        </div>
-                                        <div className="text-3xl font-extrabold text-gray-900 tracking-tight">
-                                            {currentTime.toLocaleTimeString()}
-                                        </div>
-                                    </div>
 
-                                    <div className="flex items-center gap-3">
-                                        <div className={`p-2.5 rounded-xl ${isClockedIn ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>
-                                            <Clock className="h-5 w-5" />
-                                        </div>
-                                        <div>
-                                            <p className="text-xs text-gray-500 font-medium">{t('Status')}</p>
-                                            <h4 className="text-sm font-bold text-gray-800">
-                                                {isClockedIn ? t('Clocked In') : t('Not Clocked In')}
-                                            </h4>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Center Side - Timer and Actions */}
-                                <div className="lg:col-span-1 flex flex-col items-center justify-center py-6 lg:py-0 border-y lg:border-y-0 lg:border-x border-gray-100 px-0 lg:px-8">
-                                    {isClockedIn && !clockOutTime && (
-                                        <div className="text-center mb-4">
-                                            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">{t('Active Work Duration')}</p>
-                                            <div className="text-4xl font-mono font-bold text-[#635bff] tracking-widest tabular-nums drop-shadow-sm">
-                                                {elapsedTime}
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {clockOutTime ? (
-                                        <div className="w-full text-center space-y-2">
-                                            <Badge className="bg-emerald-50 text-emerald-700 hover:bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full text-xs font-semibold">
-                                                {t('Completed Today')}
-                                            </Badge>
-                                            <div className="grid grid-cols-2 gap-4 mt-2 text-left">
-                                                <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100">
-                                                    <p className="text-[10px] text-gray-500 font-semibold uppercase">{t('Clock In')}</p>
-                                                    <p className="text-xs font-bold text-gray-700 mt-0.5">{formatTime(clockInTime)}</p>
-                                                </div>
-                                                <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100">
-                                                    <p className="text-[10px] text-gray-500 font-semibold uppercase">{t('Clock Out')}</p>
-                                                    <p className="text-xs font-bold text-gray-700 mt-0.5">{formatTime(clockOutTime)}</p>
-                                                </div>
-                                            </div>
-                                            <p className="text-xs font-bold text-gray-500 mt-2">
-                                                {t('Total Hours')}: <span className="text-[#635bff]">{totalWorkingHours}</span>
-                                            </p>
-                                        </div>
-                                    ) : (
-                                        <div className="w-full flex flex-col items-center">
-                                            {!stats.attendance_data?.can_clock ? (
-                                                <div className="w-full text-center">
-                                                    {(() => {
-                                                        if (stats.attendance_data?.is_on_leave) {
-                                                            const today = new Date().toISOString().split('T')[0];
-                                                            const todayLeave = stats.recent_leave_applications?.find(leave => {
-                                                                const leaveStart = leave.start_date.split('T')[0];
-                                                                const leaveEnd = leave.end_date.split('T')[0];
-                                                                return leaveStart <= today && leaveEnd >= today && leave.status === 'approved';
-                                                            });
-                                                            return (
-                                                                <div className="p-3 bg-orange-50 border border-orange-100 rounded-xl">
-                                                                    <p className="font-bold text-xs text-orange-600">{t('On Leave Today')}</p>
-                                                                    {todayLeave && (
-                                                                        <p className="text-[11px] text-orange-500 mt-1 font-medium">{todayLeave.leave_type} ({todayLeave.total_days} {todayLeave.total_days > 1 ? t('days') : t('day')})</p>
-                                                                    )}
-                                                                </div>
-                                                            );
-                                                        } else if (stats.attendance_data?.is_holiday) {
-                                                            const today = new Date().toISOString().split('T')[0];
-                                                            const todayHoliday = stats.calendar_events?.find(event => {
-                                                                const eventStart = event.startDate.split('T')[0];
-                                                                const eventEnd = event.endDate.split('T')[0];
-                                                                return eventStart <= today && eventEnd >= today && event.type === 'holiday';
-                                                            });
-                                                            return (
-                                                                <div className="p-3 bg-red-50 border border-red-100 rounded-xl">
-                                                                    <p className="font-bold text-xs text-red-600">{t('Today is a Holiday')}</p>
-                                                                    {todayHoliday && (
-                                                                        <p className="text-[11px] text-red-500 mt-1 font-medium">{todayHoliday.title}</p>
-                                                                    )}
-                                                                </div>
-                                                            );
-                                                        } else if (stats.attendance_data?.is_non_working_day) {
-                                                            return (
-                                                                <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl">
-                                                                    <p className="font-bold text-xs text-slate-500">{t('Non-Working Day')}</p>
-                                                                </div>
-                                                            );
-                                                        }
-                                                        return null;
-                                                    })()}
-                                                </div>
-                                            ) : (
-                                                <div className="w-full space-y-2">
-                                                    <Button
-                                                        onClick={handleClockAction}
-                                                        className={`w-full py-6 rounded-xl font-bold text-sm tracking-wide shadow-sm transition-all duration-300 hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2 ${
-                                                            isClockedIn
-                                                                ? 'bg-rose-600 hover:bg-rose-700 text-white shadow-rose-100'
-                                                                : 'bg-[#635bff] hover:bg-[#534bd6] text-white shadow-[#635bff]/10'
-                                                        }`}
-                                                    >
-                                                        {isClockedIn ? (
-                                                            <>
-                                                                <Square className="h-4.5 w-4.5 fill-current" />
-                                                                {t('Clock Out')}
-                                                            </>
-                                                        ) : (
-                                                            <>
-                                                                <Play className="h-4.5 w-4.5 fill-current" />
-                                                                {t('Clock In')}
-                                                            </>
-                                                        )}
-                                                    </Button>
-                                                    {isClockedIn && clockInTime && (
-                                                        <p className="text-[11px] text-center text-gray-500 font-medium">
-                                                            {t('Clocked in at')} <span className="font-bold">{formatTime(clockInTime)}</span>
-                                                        </p>
-                                                    )}
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
-
-                                {/* Right Side - Important Notes & Schedule */}
-                                <div className="lg:col-span-1 p-4 rounded-xl bg-slate-50 border border-slate-100 self-stretch flex flex-col justify-between">
-                                    <div>
-                                        <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
-                                            <Shield className="h-3.5 w-3.5 text-[#635bff]" />
-                                            {t('Shift & Schedule')}
-                                        </h4>
-                                        <div className="space-y-2 text-xs text-gray-600">
-                                            <div className="flex justify-between items-center bg-white p-2 rounded-lg border border-slate-100">
-                                                <span className="font-medium text-gray-500">{t('Shift Timing')}</span>
-                                                <span className="font-bold text-gray-800">
-                                                    {stats.attendance_data?.shift_start_time ? formatTime(stats.attendance_data.shift_start_time) : '--:--'} - {stats.attendance_data?.shift_end_time ? formatTime(stats.attendance_data.shift_end_time) : '--:--'}
-                                                </span>
-                                            </div>
-                                            <div className="flex justify-between items-center bg-white p-2 rounded-lg border border-slate-100">
-                                                <span className="font-medium text-gray-500">{t('Work Mode')}</span>
-                                                <span className="font-bold text-gray-800">{t('Office')}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="mt-4 pt-3 border-t border-slate-100 text-[10px] text-gray-400 font-medium space-y-1">
-                                        <p>• {t('You can clock in/out once per day.')}</p>
-                                        <p>• {t('Missed clock-outs will auto-complete at shift end.')}</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>
 
                 {/* Signed Letters & Documents */}
-                {stats.signed_documents && stats.signed_documents.length > 0 && (
+                {Array.isArray(stats?.signed_documents) && stats.signed_documents.length > 0 && (
                     <Card className="border-slate-200 shadow-sm">
                         <CardHeader className="pb-3 border-b border-slate-100">
                             <CardTitle className="flex items-center gap-2 text-base font-bold text-slate-800">
@@ -529,7 +510,7 @@ export default function EmployeeDashboard({ message, stats }: EmployeeDashboardP
                                         <div className="space-y-1">
                                             <p className="font-semibold text-slate-800 text-sm">{getDocumentName(doc.document_type)}</p>
                                             <p className="text-[11px] text-slate-400 font-medium">
-                                                {t('Signed on')}: {formatDate(doc.signed_at.split(' ')[0])}
+                                                {t('Signed on')}: {doc.signed_at ? formatDate(doc.signed_at.split(' ')[0]) : '-'}
                                             </p>
                                         </div>
                                         <Button
@@ -560,10 +541,10 @@ export default function EmployeeDashboard({ message, stats }: EmployeeDashboardP
                         </CardHeader>
                         <CardContent>
                             <div className="h-80 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100 space-y-3 pr-2">
-                                {stats.recent_attendance && stats.recent_attendance.length > 0 ? (
+                                {Array.isArray(stats?.recent_attendance) && stats.recent_attendance.length > 0 ? (
                                     stats.recent_attendance.map((attendance, index) => {
-                                        const getStatusIcon = (status) => {
-                                            switch (status) {
+                                        const getStatusIcon = (status?: string) => {
+                                            switch (status?.toLowerCase()) {
                                                 case 'present': return <CheckCircle className="h-5 w-5 text-green-500" />;
                                                 case 'absent': return <XCircle className="h-5 w-5 text-red-500" />;
                                                 case 'half day': return <AlertCircle className="h-5 w-5 text-yellow-500" />;
@@ -571,13 +552,13 @@ export default function EmployeeDashboard({ message, stats }: EmployeeDashboardP
                                             }
                                         };
                                         
-                                        const getStatusBadge = (status) => {
-                                            const statusColors = {
+                                        const getStatusBadge = (status?: string) => {
+                                            const statusColors: Record<string, string> = {
                                                 'present': 'bg-green-100 text-green-800',
                                                 'absent': 'bg-red-100 text-red-800',
                                                 'half day': 'bg-yellow-100 text-yellow-800'
                                             };
-                                            return statusColors[status] || 'bg-gray-100 text-gray-800';
+                                            return statusColors[status?.toLowerCase() || ''] || 'bg-gray-100 text-gray-800';
                                         };
                                         
 
@@ -587,7 +568,7 @@ export default function EmployeeDashboard({ message, stats }: EmployeeDashboardP
                                                 <div className="flex items-center gap-3">
                                                     {getStatusIcon(attendance.status)}
                                                     <div>
-                                                        <p className="text-sm font-medium">{formatDate(attendance.date)}</p>
+                                                        <p className="text-sm font-medium">{attendance.date ? formatDate(attendance.date) : '-'}</p>
                                                         <p className="text-xs text-gray-500">
                                                             {attendance.clock_in && attendance.clock_out 
                                                                 ? `${formatDateTime(attendance.clock_in)} - ${formatDateTime(attendance.clock_out)}`
@@ -599,7 +580,7 @@ export default function EmployeeDashboard({ message, stats }: EmployeeDashboardP
                                                     </div>
                                                 </div>
                                                 <span className={`px-2 py-1 rounded-full text-sm ${getStatusBadge(attendance.status)}`}>
-                                                    {t(attendance.status?.charAt(0).toUpperCase() + attendance.status?.slice(1) || 'Unknown')}
+                                                    {t(attendance.status ? (attendance.status.charAt(0).toUpperCase() + attendance.status.slice(1)) : 'Unknown')}
                                                 </span>
                                             </div>
                                         );
@@ -626,7 +607,7 @@ export default function EmployeeDashboard({ message, stats }: EmployeeDashboardP
                         </CardHeader>
                         <CardContent>
                             <div className="h-80 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100 space-y-3 pr-2">
-                                {stats.recent_leave_applications && stats.recent_leave_applications.length > 0 ? (
+                                {Array.isArray(stats?.recent_leave_applications) && stats.recent_leave_applications.length > 0 ? (
                                     stats.recent_leave_applications.map((leave, index) => {
                                         const getStatusColor = (status: string) => {
                                             const statusColors = {
@@ -634,7 +615,7 @@ export default function EmployeeDashboard({ message, stats }: EmployeeDashboardP
                                                 approved: 'bg-green-100 text-green-800',
                                                 rejected: 'bg-red-100 text-red-800'
                                             };
-                                            return statusColors[status.toLowerCase() as keyof typeof statusColors] || statusColors.pending;
+                                            return statusColors[status?.toLowerCase() as keyof typeof statusColors] || statusColors.pending;
                                         };
                                         return (
                                             <div key={index} className="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200">
@@ -648,7 +629,7 @@ export default function EmployeeDashboard({ message, stats }: EmployeeDashboardP
                                                     </p>
                                                 </div>
                                                 <span className={`px-2 py-1 rounded-full text-sm ${getStatusColor(leave.status)}`}>
-                                                    {t(leave.status.charAt(0).toUpperCase() + leave.status.slice(1))}
+                                                    {t(leave.status ? (leave.status.charAt(0).toUpperCase() + leave.status.slice(1)) : 'Pending')}
                                                 </span>
                                             </div>
                                         );
@@ -678,7 +659,7 @@ export default function EmployeeDashboard({ message, stats }: EmployeeDashboardP
                         </CardHeader>
                         <CardContent>
                             <div className="h-80 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100 space-y-3 pr-2">
-                                {stats.recent_awards && stats.recent_awards.length > 0 ? (
+                                {Array.isArray(stats?.recent_awards) && stats.recent_awards.length > 0 ? (
                                     stats.recent_awards.map((award, index) => {
                                         const colors = ['bg-green-500', 'bg-blue-500', 'bg-purple-500', 'bg-orange-500', 'bg-red-500', 'bg-indigo-500'];
                                         return (
@@ -689,7 +670,7 @@ export default function EmployeeDashboard({ message, stats }: EmployeeDashboardP
                                                     </div>
                                                     <div>
                                                         <p className="text-sm font-medium">{award.award_type}</p>
-                                                        <p className="text-xs text-gray-500">{formatDate(award.award_date)}</p>
+                                                        <p className="text-xs text-gray-500">{award.award_date ? formatDate(award.award_date) : '-'}</p>
                                                     </div>
                                                 </div>
                                                 <span className="px-2 py-1 rounded-full text-sm bg-green-100 text-green-800">
@@ -720,7 +701,7 @@ export default function EmployeeDashboard({ message, stats }: EmployeeDashboardP
                         </CardHeader>
                         <CardContent>
                             <div className="h-80 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100 space-y-3 pr-2">
-                                {stats.recent_warnings && stats.recent_warnings.length > 0 ? (
+                                {Array.isArray(stats?.recent_warnings) && stats.recent_warnings.length > 0 ? (
                                     stats.recent_warnings.map((warning, index) => {
                                         const colors = ['bg-red-500', 'bg-orange-500', 'bg-yellow-500', 'bg-pink-500', 'bg-rose-500'];
                                         return (
@@ -731,7 +712,7 @@ export default function EmployeeDashboard({ message, stats }: EmployeeDashboardP
                                                     </div>
                                                     <div>
                                                         <p className="text-sm font-medium">{warning.warning_type}</p>
-                                                        <p className="text-xs text-gray-500">{formatDate(warning.warning_date)}</p>
+                                                        <p className="text-xs text-gray-500">{warning.warning_date ? formatDate(warning.warning_date) : '-'}</p>
                                                     </div>
                                                 </div>
                                                 <span className="px-2 py-1 rounded-full text-sm bg-red-100 text-red-800">
@@ -765,7 +746,7 @@ export default function EmployeeDashboard({ message, stats }: EmployeeDashboardP
                         </CardHeader>
                         <CardContent>
                             <CalendarView
-                                events={stats.calendar_events || []}
+                                events={Array.isArray(stats?.calendar_events) ? stats.calendar_events : []}
                                 height={350}
                             />
                         </CardContent>
@@ -781,10 +762,10 @@ export default function EmployeeDashboard({ message, stats }: EmployeeDashboardP
                         </CardHeader>
                         <CardContent>
                             <div className="space-y-3 max-h-[700px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100">
-                                {stats.recent_announcements && stats.recent_announcements.length > 0 ? (
+                                {Array.isArray(stats?.recent_announcements) && stats.recent_announcements.length > 0 ? (
                                     stats.recent_announcements.map((announcement, index) => {
                                         const colors = ['bg-blue-500', 'bg-green-500', 'bg-purple-500', 'bg-orange-500', 'bg-red-500', 'bg-indigo-500'];
-                                        const timeAgo = formatDate(announcement.created_at);
+                                        const timeAgo = announcement.created_at ? formatDate(announcement.created_at) : '';
                                         return (
                                             <div key={index} className="flex items-start space-x-3 p-3 bg-white rounded-lg border border-gray-200">
                                                 <div className={`${colors[index % 6]} rounded-full p-1.5`}>
@@ -811,6 +792,22 @@ export default function EmployeeDashboard({ message, stats }: EmployeeDashboardP
                     </Card>
                 </div>
             </div>
+
+            <ConfirmationDialog
+                open={showEndShiftConfirm}
+                onOpenChange={setShowEndShiftConfirm}
+                title={t("End Today's Work Shift?")}
+                message={t("Are you sure you want to finish your work shift for today? If you are currently clocked in, you will be clocked out and your total tracked time will be saved for today's payroll.")}
+                confirmText={t('Yes, End Shift Today')}
+                cancelText={t('Keep Working')}
+                onConfirm={async () => {
+                    if (isClockedIn) {
+                        await handleClockAction();
+                    }
+                    setIsShiftEndedToday(true);
+                    setShowEndShiftConfirm(false);
+                }}
+            />
         </AuthenticatedLayout>
     );
 }

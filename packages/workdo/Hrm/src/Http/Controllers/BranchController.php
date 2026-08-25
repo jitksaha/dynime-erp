@@ -17,7 +17,7 @@ class BranchController extends Controller
     public function index()
     {
         if (Auth::user()->can('manage-branches')) {
-            $branches = Branch::select('id', 'branch_name', 'priority', 'created_at')
+            $branches = Branch::select('id', 'branch_name', 'branch_address', 'priority', 'created_at')
                 ->where(function ($q) {
                     if (Auth::user()->can('manage-any-branches')) {
                         $q->where('created_by', creatorId());
@@ -45,10 +45,9 @@ class BranchController extends Controller
         if (Auth::user()->can('create-branches')) {
             $validated = $request->validated();
 
-
-
             $branch = new Branch();
             $branch->branch_name = $validated['branch_name'];
+            $branch->branch_address = $validated['branch_address'] ?? null;
             $branch->priority = $validated['priority'] ?? 100;
 
             $branch->creator_id = Auth::id();
@@ -68,6 +67,7 @@ class BranchController extends Controller
         if (Auth::user()->can('edit-branches')) {
             $validated = $request->validated();
             $branch->branch_name = $validated['branch_name'];
+            $branch->branch_address = $validated['branch_address'] ?? null;
             $branch->priority = $validated['priority'] ?? 100;
             $branch->save();
 

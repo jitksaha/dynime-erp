@@ -4,19 +4,22 @@ import AuthenticatedLayout from "@/layouts/authenticated-layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Eye, EyeOff, Trash2, FileText, ExternalLink, Copy, Check, PenTool, Mail, Phone, MapPin, Calendar, Briefcase, User, Flag, Globe, Key, ShieldCheck } from 'lucide-react';
+import { VerifiedBadge } from '@/components/ui/verified-badge';
+import { Eye, EyeOff, Trash2, FileText, ExternalLink, Copy, Check, PenTool, Mail, Phone, MapPin, Calendar, Briefcase, User, Flag, Globe, Key, ShieldCheck, Lock, DollarSign, AlertCircle, Tag, Gift, Sparkles, Laptop, Save, Clock, Smartphone, Edit, Printer } from 'lucide-react';
 import { formatDate, getImagePath, getCurrencySymbol, formatCurrency } from '@/utils/helpers';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useState, useEffect, useRef } from 'react';
-import { getDocumentName } from '../DocumentBuilder/Index';
+import { getDocumentName } from '../DocumentBuilder/documentUtils';
 import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 import QRCode from 'qrcode';
 import axios from 'axios';
 import { Button } from "@/components/ui/button";
 import { EmployeeProfileInspectionWizard } from '../../Components/EmployeeProfileInspectionWizard';
+import DeviceConfigStep, { DeviceData } from '../Onboarding/Steps/DeviceConfigStep';
 
 const getCroppedCircularImage = (base64Str: string): Promise<string> => {
     return new Promise((resolve) => {
@@ -74,16 +77,36 @@ export default function Show() {
     const [changeMethod, setChangeMethod] = useState(employee?.payment_method || 'bank_transfer');
     const [changeDetails, setChangeDetails] = useState<any>(employee?.payment_details || {});
 
+    const [redotpayAccountId, setRedotpayAccountId] = useState(employee?.payment_details?.redotpay_user_id || '');
+    const [redotpayCardNumber, setRedotpayCardNumber] = useState(employee?.payment_details?.redotpay_card_number || '');
+    const [kastAccountId, setKastAccountId] = useState(employee?.payment_details?.kast_user_id || '');
+    const [kastCardNumber, setKastCardNumber] = useState(employee?.payment_details?.kast_card_number || '');
+    const [savingAccountId, setSavingAccountId] = useState(false);
+
+    const handleSaveAccountId = (field: string, val: string) => {
+        setSavingAccountId(true);
+        router.post(route('hrm.employees.save-probation-account', { employee: employee.id }), {
+            [field]: val
+        }, {
+            preserveScroll: true,
+            onFinish: () => setSavingAccountId(false)
+        });
+    };
+
     const [showOfficialPassword, setShowOfficialPassword] = useState(false);
     const [copiedEmail, setCopiedEmail] = useState(false);
+    const [copiedWhatsapp, setCopiedWhatsapp] = useState(false);
     const [copiedPassword, setCopiedPassword] = useState(false);
 
-    const handleCopyText = (text: string, type: 'email' | 'password') => {
+    const handleCopyText = (text: string, type: 'email' | 'password' | 'whatsapp') => {
         if (!text) return;
         navigator.clipboard.writeText(text);
         if (type === 'email') {
             setCopiedEmail(true);
             setTimeout(() => setCopiedEmail(false), 2000);
+        } else if (type === 'whatsapp') {
+            setCopiedWhatsapp(true);
+            setTimeout(() => setCopiedWhatsapp(false), 2000);
         } else {
             setCopiedPassword(true);
             setTimeout(() => setCopiedPassword(false), 2000);
@@ -110,6 +133,46 @@ export default function Show() {
     const [isIDCardModalOpen, setIsIDCardModalOpen] = useState(false);
     const [isWizardOpen, setIsWizardOpen] = useState(false);
     const [sealBase64, setSealBase64] = useState<string>('');
+
+    const initialTab = typeof window !== 'undefined' ? (new URLSearchParams(window.location.search).get('tab') || 'employment') : 'employment';
+    const [activeTab, setActiveTab] = useState(initialTab);
+    const [devices, setDevices] = useState<DeviceData[]>(
+        (employee?.devices || []).map((d: any) => ({
+            device_ownership: d.device_ownership,
+            device_category: d.device_category,
+            purchase_month_year: d.purchase_month_year,
+            device_name: d.device_name,
+            brand: d.brand,
+            model: d.model,
+            serial_number: d.serial_number,
+            imei: d.imei,
+            mobile_number: d.mobile_number,
+            operating_system: d.operating_system,
+            os_version: d.os_version,
+            notes: d.notes,
+        }))
+    );
+    const [savingDevices, setSavingDevices] = useState(false);
+    const [deviceSavedNotice, setDeviceSavedNotice] = useState(false);
+    const [isEditingDevices, setIsEditingDevices] = useState(false);
+
+    const handleSaveDevices = async () => {
+        setSavingDevices(true);
+        try {
+            await axios.post(route('hrm.onboarding.save-step'), {
+                step: 'devices',
+                data: { devices }
+            });
+            setDeviceSavedNotice(true);
+            setIsEditingDevices(false);
+            setTimeout(() => setDeviceSavedNotice(false), 2500);
+            router.reload({ preserveScroll: true });
+        } catch (err) {
+            console.error('Failed to save device inventory', err);
+        } finally {
+            setSavingDevices(false);
+        }
+    };
 
     useEffect(() => {
         const fetchSeal = async () => {
@@ -151,247 +214,86 @@ export default function Show() {
         });
     };
 
-    const handleDownloadIDCard = async () => {
-        try {
-            const verifyUrl = window.location.origin + `/employee/verify/${employee.employee_id}`;
-            const qrDataUrl = await QRCode.toDataURL(verifyUrl, { margin: 1, width: 150 });
+    const handlePrintIDCard = () => {
+        const frontEl = document.getElementById('id-card-front');
+        const backEl = document.getElementById('id-card-back');
 
-            // Initialize jsPDF (CR80 vertical ID Card size: 54mm width, 86mm height)
-            const doc = new jsPDF({
-                orientation: 'portrait',
-                unit: 'mm',
-                format: [54, 86]
-            });
+        if (!frontEl || !backEl) return;
 
-            // ------------------ FRONT SIDE ------------------
-            // Background
-            doc.setFillColor(250, 250, 252);
-            doc.rect(0, 0, 54, 86, 'F');
+        // Get QR Code canvas dataURL so it renders reliably in print window
+        const qrCanvas = frontEl.querySelector('canvas') as HTMLCanvasElement | null;
+        const qrDataUrl = qrCanvas ? qrCanvas.toDataURL('image/png') : '';
 
-            // Header Banner - Brand Violet (#635bff)
-            doc.setFillColor(99, 91, 255);
-            doc.rect(0, 0, 54, 22, 'F');
-
-            // Light Blue / Cyan Accent Stripe (#635bff)
-            doc.setFillColor(99, 91, 255);
-            doc.triangle(0, 22, 54, 22, 54, 20.2, 'F');
-
-            // Header Text (Company Name & Tagline)
-            doc.setFont('Helvetica', 'bold');
-            doc.setFontSize(10);
-            doc.setTextColor(255, 255, 255);
-            doc.text('DYNIME LLC', 27, 10, { align: 'center' });
-            
-            doc.setFont('Helvetica', 'normal');
-            doc.setFontSize(5);
-            doc.setTextColor(186, 230, 253); // light sky blue text
-            doc.text('SECURE IDENTIFICATION', 27, 14, { align: 'center' });
-
-            // Fetch Avatar from Backend Base64 Route without CORS issues
-            let base64Avatar = '';
-            try {
-                const response = await axios.get(route('hrm.employees.avatar-base64', employee.id));
-                base64Avatar = response.data.base64;
-            } catch (e) {
-                console.error('Failed to fetch avatar from base64 endpoint', e);
-            }
-
-            let circularAvatar = '';
-            if (base64Avatar) {
-                try {
-                    circularAvatar = await getCroppedCircularImage(base64Avatar);
-                } catch (err) {
-                    console.error('Failed to crop avatar to circle', err);
-                    circularAvatar = base64Avatar;
-                }
-            }
-
-            // Draw Photo Circle Container (with Brand Violet border)
-            if (circularAvatar) {
-                doc.setFillColor(255, 255, 255);
-                doc.circle(27, 31, 9, 'F');
-                doc.addImage(circularAvatar, 'PNG', 18, 22, 18, 18);
-                doc.setDrawColor(99, 91, 255); // #635bff
-                doc.setLineWidth(0.6);
-                doc.circle(27, 31, 9, 'S');
-            } else {
-                // Fallback colored circle with initials
-                doc.setFillColor(240, 239, 255);
-                doc.circle(27, 31, 9, 'F');
-                doc.setDrawColor(99, 91, 255); // #635bff
-                doc.setLineWidth(0.6);
-                doc.circle(27, 31, 9, 'S');
-
-                const initials = (employee.user?.name || '')
-                    .split(' ')
-                    .map((n: string) => n[0])
-                    .slice(0, 2)
-                    .join('')
-                    .toUpperCase();
-                
-                doc.setFont('Helvetica', 'bold');
-                doc.setFontSize(8.5);
-                doc.setTextColor(99, 91, 255);
-                doc.text(initials, 27, 34, { align: 'center' });
-            }
-
-            // Employee Name
-            doc.setFont('Helvetica', 'bold');
-            doc.setFontSize(9.5);
-            doc.setTextColor(15, 23, 42); // slate-900
-            const nameText = employee.user?.name || 'Employee';
-            const displayName = nameText.length > 18 ? nameText.substring(0, 16) + '..' : nameText;
-            doc.text(displayName.toUpperCase(), 27, 43, { align: 'center' });
-
-            // Designation Badge (Brand Violet theme with white text)
-            doc.setFillColor(99, 91, 255); // #635bff
-            doc.rect(13, 45.5, 28, 4, 'F');
-            doc.setFont('Helvetica', 'bold');
-            doc.setFontSize(6);
-            doc.setTextColor(255, 255, 255); // white text
-            const jobTitle = employee.designation?.designation_name || 'Staff Member';
-            const displayTitle = jobTitle.length > 22 ? jobTitle.substring(0, 20) + '..' : jobTitle;
-            doc.text(displayTitle.toUpperCase(), 27, 48.5, { align: 'center' });
-
-            // Details Grid
-            doc.setFont('Helvetica', 'normal');
-            doc.setFontSize(5);
-            
-            // Centered EMP ID Highlight spanning the columns
-            doc.setFillColor(240, 239, 255); // bg-[#635bff]/10
-            doc.rect(4, 51.5, 46, 4.5, 'F');
-            doc.setFont('Helvetica', 'bold');
-            doc.setFontSize(6);
-            doc.setTextColor(99, 91, 255);
-            doc.text('ID: ' + (employee.employee_id || ''), 27, 54.7, { align: 'center' });
-
-            doc.setFont('Helvetica', 'normal');
-            doc.setFontSize(5);
-            doc.setTextColor(100, 116, 139);
-            doc.text('JOINED: ' + formatDate(employee.date_of_joining), 4, 59.5);
-            doc.text('BIRTH: ' + formatDate(employee.date_of_birth), 4, 63.5);
-            doc.text('COUNTRY: ' + (employee.work_location_country || 'USA'), 4, 67.5);
-
-            // Right Column
-            doc.text('DEPT: ' + (employee.department?.department_name || '—'), 28, 59.5);
-            doc.text('BRANCH: ' + (employee.branch?.branch_name || '—'), 28, 63.5);
-            doc.text('MAIL: ' + (employee.user?.email || '—'), 28, 67.5);
-            const empPhone = employee.user?.mobile_no || employee.payment_details?.recipient_phone || '—';
-            doc.text('PHONE: ' + empPhone, 4, 71.5);
-
-            // Verification QR Code - with a clean 3mm bottom padding/margin
-            doc.addImage(qrDataUrl, 'PNG', 38, 71, 12, 12);
-            doc.setDrawColor(99, 91, 255);
-            doc.setLineWidth(0.3);
-            doc.rect(38, 71, 12, 12, 'S');
-
-            // ------------------ BACK SIDE ------------------
-            doc.addPage([54, 86], 'portrait');
-
-            // Background
-            doc.setFillColor(250, 250, 252);
-            doc.rect(0, 0, 54, 86, 'F');
-
-            // Header Banner - Brand Violet (#635bff)
-            doc.setFillColor(99, 91, 255);
-            doc.rect(0, 0, 54, 15, 'F');
-
-            // Accent Stripe - Brand Violet (#635bff)
-            doc.setFillColor(99, 91, 255);
-            doc.triangle(0, 15, 54, 15, 54, 13.5, 'F');
-
-            doc.setFont('Helvetica', 'bold');
-            doc.setFontSize(8.5);
-            doc.setTextColor(255, 255, 255);
-            doc.text('DYNIME LLC', 27, 7.5, { align: 'center' });
-            
-            doc.setFont('Helvetica', 'normal');
-            doc.setFontSize(5);
-            doc.setTextColor(186, 230, 253);
-            doc.text('SECURITY & ACCESS CONTROL', 27, 11.5, { align: 'center' });
-
-            // Headquarters
-            doc.setFont('Helvetica', 'bold');
-            doc.setFontSize(6.5);
-            doc.setTextColor(99, 91, 255);
-            doc.text('HEADQUARTERS', 27, 21, { align: 'center' });
-
-            doc.setFont('Helvetica', 'normal');
-            doc.setFontSize(5.2);
-            doc.setTextColor(71, 85, 105);
-            doc.text('1209 Mountain Road PL NE', 27, 24.5, { align: 'center' });
-            doc.text('Albuquerque, NM 87110, USA', 27, 27.5, { align: 'center' });
-
-            // Guidelines
-            doc.setFont('Helvetica', 'bold');
-            doc.setFontSize(6.5);
-            doc.setTextColor(99, 91, 255);
-            doc.text('CARD RULES & GUIDELINES', 27, 33.5, { align: 'center' });
-
-            doc.setFont('Helvetica', 'normal');
-            doc.setFontSize(3.8);
-            doc.setTextColor(100, 116, 139);
-            
-            const rules = [
-                'This ID card is the property of the company.',
-                'Must be worn and displayed at all times on premises.',
-                'Non-transferable; for authorized holder only.',
-                'Report loss or theft to HR immediately.',
-                'Do not alter, damage, or duplicate this card.',
-                'Return upon resignation or termination.',
-                'If found, return to HR/Admin office.'
-            ];
-            
-            let ruleY = 37.5;
-            rules.forEach(rule => {
-                doc.text('•  ' + rule, 6, ruleY);
-                ruleY += 2.2;
-            });
-
-            // Contact info
-            doc.setFont('Helvetica', 'normal');
-            doc.setFontSize(4.5);
-            doc.setTextColor(71, 85, 105);
-            doc.text('Email: contact@dynime.com', 27, 54, { align: 'center' });
-            doc.text('Phone: +1 (646) 884-0271', 27, 57, { align: 'center' });
-            
-            // WhatsApp contact
-            doc.setFont('Helvetica', 'bold');
-            doc.setTextColor(71, 85, 105);
-            doc.text('WhatsApp: +1 (646) 884-0271', 27, 60.5, { align: 'center' });
-            
-            doc.setTextColor(99, 91, 255);
-            doc.text('www.dynime.com', 27, 64, { align: 'center' });
-
-            // Line separator
-            doc.setDrawColor(226, 232, 240); // slate-200
-            doc.setLineWidth(0.3);
-            doc.line(12, 66.5, 42, 66.5);
-
-            // Fetch and draw official Company Seal
-            let activeSealBase64 = sealBase64;
-            if (!activeSealBase64) {
-                try {
-                    const response = await axios.get(route('hrm.employees.seal-base64'));
-                    activeSealBase64 = response.data.base64;
-                } catch (e) {
-                    console.error('Failed to load seal dynamically in download handler', e);
-                }
-            }
-
-            if (activeSealBase64) {
-                doc.addImage(activeSealBase64, 'PNG', 21.5, 68, 11, 11);
-            }
-
-            doc.setFont('Helvetica', 'bold');
-            doc.setFontSize(4.5);
-            doc.setTextColor(100, 116, 139);
-            doc.text('OFFICIAL COMPANY SEAL', 27, 81.5, { align: 'center' });
-
-            doc.save(`employee-id-${employee.employee_id}.pdf`);
-        } catch (error) {
-            console.error('Failed to generate ID Card PDF', error);
+        // Clone Front HTML and replace blank canvas with image
+        let frontHtml = frontEl.outerHTML;
+        if (qrCanvas && qrDataUrl) {
+            frontHtml = frontHtml.replace(/<canvas[^>]*><\/canvas>/gi, `<img src="${qrDataUrl}" style="width:75px;height:75px;display:block;margin:0 auto;" alt="QR Code" />`);
         }
+
+        const backHtml = backEl.outerHTML;
+
+        const printWindow = window.open('', '_blank', 'width=950,height=750');
+        if (!printWindow) return;
+
+        printWindow.document.write(`
+            <!DOCTYPE html>
+            <html>
+                <head>
+                    <title>ID Card - ${employee.employee_id || 'Employee'}</title>
+                    <script src="https://cdn.tailwindcss.com"></script>
+                    <style>
+                        @page {
+                            margin: 0;
+                            size: auto;
+                        }
+                        body {
+                            margin: 0;
+                            padding: 40px 20px;
+                            background: #ffffff;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+                            -webkit-print-color-adjust: exact !important;
+                            print-color-adjust: exact !important;
+                            color-adjust: exact !important;
+                        }
+                        .id-card-wrapper {
+                            display: flex;
+                            flex-direction: row;
+                            gap: 32px;
+                            align-items: center;
+                            justify-content: center;
+                        }
+                        @media print {
+                            body {
+                                padding: 25px 0;
+                                margin: 0;
+                                background: #ffffff;
+                            }
+                            .id-card-wrapper {
+                                gap: 32px;
+                            }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="id-card-wrapper">
+                        ${frontHtml}
+                        ${backHtml}
+                    </div>
+                    <script>
+                        window.onload = function() {
+                            setTimeout(function() {
+                                window.print();
+                                window.close();
+                            }, 500);
+                        };
+                    </script>
+                </body>
+            </html>
+        `);
+        printWindow.document.close();
     };
 
     const getGenderText = (gender: string) => {
@@ -437,8 +339,66 @@ export default function Show() {
                                     onError={(e) => { e.currentTarget.src = '/default-avatar.png'; }}
                                 />
                             </div>
-                            <h3 className="text-xl font-semibold mb-2">{employee.user?.name}</h3>
-                            <p className="text-muted-foreground mb-4">{employee.user?.email}</p>
+                            <h3 className="text-xl font-bold mb-1 flex items-center justify-center gap-1.5">
+                                <span>{employee.user?.name}</span>
+                                {Boolean(employee.is_verified) && <VerifiedBadge size="md" />}
+                            </h3>
+                            <p className="text-muted-foreground text-sm mb-2">{employee.user?.email}</p>
+
+                            {(auth.user.type === 'company' || auth.user.type === 'hr' || auth.user.can?.('edit-employees')) && (
+                                <div className="mb-4">
+                                    <button
+                                        type="button"
+                                        onClick={() => router.post(route('hrm.employees.toggle-verification', employee.id))}
+                                        className={`w-full py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 shadow-2xs ${
+                                            Boolean(employee.is_verified)
+                                                ? 'bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-200'
+                                                : 'bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all'
+                                        }`}
+                                        title={t('Click to toggle official employee verification status')}
+                                    >
+                                        {Boolean(employee.is_verified) ? (
+                                            <>
+                                                <VerifiedBadge size="xs" />
+                                                <span>{t('Official Verified Employee')}</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <ShieldCheck className="h-4 w-4 text-slate-500 group-hover:text-white" />
+                                                <span>{t('⚡ Mark as Verified Employee')}</span>
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
+                            )}
+                            
+                            {employee.whatsapp && (
+                                <div className="mb-4 flex justify-center">
+                                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-slate-200 bg-white shadow-2xs hover:border-emerald-400 hover:shadow-xs transition-all group">
+                                        <a 
+                                            href={`https://wa.me/${employee.whatsapp.replace(/[^0-9]/g, '')}`} 
+                                            target="_blank" 
+                                            rel="noreferrer" 
+                                            title={t('Click to open WhatsApp')}
+                                            className="flex items-center gap-2 text-slate-800 hover:text-emerald-600 transition-colors"
+                                        >
+                                            <span className="w-5 h-5 rounded-full bg-[#25D366] flex items-center justify-center text-white shrink-0 shadow-2xs">
+                                                <svg className="w-3 h-3 fill-current" viewBox="0 0 24 24">
+                                                    <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
+                                                </svg>
+                                            </span>
+                                            <span className="font-semibold text-xs text-slate-800 font-mono tracking-tight">{employee.whatsapp}</span>
+                                        </a>
+                                        <button 
+                                            onClick={() => handleCopyText(employee.whatsapp, 'whatsapp')} 
+                                            title={t('Copy WhatsApp Number')}
+                                            className="text-slate-400 hover:text-slate-700 transition-colors p-1 rounded-md hover:bg-slate-100 ml-0.5"
+                                        >
+                                            {copiedWhatsapp ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
                             
                             <div className="space-y-3 text-left">
                                 <div>
@@ -459,13 +419,6 @@ export default function Show() {
                                         >
                                             <Eye className="w-3.5 h-3.5" />
                                             {t('Preview & Download ID Card')}
-                                        </button>
-                                        <button 
-                                            onClick={() => setIsWizardOpen(true)}
-                                            className="mt-2 inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-900 text-white rounded-md text-xs font-bold hover:bg-slate-800 transition shadow-sm w-full"
-                                        >
-                                            <PenTool className="w-3.5 h-3.5 text-indigo-400" />
-                                            {t('Verify & Inspect Profile (Wizard)')}
                                         </button>
                                     </div>
                                 </div>
@@ -498,13 +451,32 @@ export default function Show() {
                 <div className="lg:col-span-3 space-y-6">
                     <Card className="shadow-sm">
                         <CardContent className="p-6">
-                            <Tabs defaultValue="employment" className="w-full">
-                                <TabsList className="grid w-full grid-cols-5">
-                                    <TabsTrigger value="employment">{t('Employment')}</TabsTrigger>
-                                    <TabsTrigger value="contact">{t('Contact')}</TabsTrigger>
-                                    <TabsTrigger value="payroll">{t('Payroll')}</TabsTrigger>
-                                    <TabsTrigger value="hours">{t('Hours & Rates')}</TabsTrigger>
-                                    <TabsTrigger value="documents">{t('Documents')}</TabsTrigger>
+                            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                                <TabsList className="grid w-full grid-cols-6">
+                                    <TabsTrigger value="employment" className="flex items-center gap-1">
+                                        <Briefcase className="w-3.5 h-3.5" />
+                                        {t('Employment')}
+                                    </TabsTrigger>
+                                    <TabsTrigger value="contact" className="flex items-center gap-1">
+                                        <Phone className="w-3.5 h-3.5" />
+                                        {t('Contact')}
+                                    </TabsTrigger>
+                                    <TabsTrigger value="payroll" className="flex items-center gap-1">
+                                        <DollarSign className="w-3.5 h-3.5" />
+                                        {t('Payroll')}
+                                    </TabsTrigger>
+                                    <TabsTrigger value="hours" className="flex items-center gap-1">
+                                        <Clock className="w-3.5 h-3.5" />
+                                        {t('Hours & Rates')}
+                                    </TabsTrigger>
+                                    <TabsTrigger value="documents" className="flex items-center gap-1">
+                                        <FileText className="w-3.5 h-3.5" />
+                                        {t('Documents')}
+                                    </TabsTrigger>
+                                    <TabsTrigger value="devices" className="flex items-center gap-1">
+                                        <Laptop className="w-3.5 h-3.5" />
+                                        {t('Devices')}
+                                    </TabsTrigger>
                                 </TabsList>
 
                                 <TabsContent value="employment" className="space-y-6 mt-6">
@@ -536,6 +508,34 @@ export default function Show() {
                                         <div>
                                             <p className="text-sm text-muted-foreground mb-1">{t('Shift')}</p>
                                             <p className="font-medium">{employee.shift?.shift_name || 'N/A'}</p>
+                                        </div>
+
+                                        {/* Roles & Responsibilities Section (Read-Only for Employee) */}
+                                        <div className="col-span-1 md:col-span-2 pt-5 border-t border-slate-200 dark:border-slate-800 space-y-3">
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="p-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400">
+                                                        <Briefcase className="w-4 h-4" />
+                                                    </div>
+                                                    <h4 className="font-bold text-slate-900 dark:text-slate-100 text-sm">
+                                                        {t('Roles & Responsibilities')}
+                                                    </h4>
+                                                </div>
+                                                <Badge variant="outline" className="text-[10px] text-slate-500 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 font-mono">
+                                                    <Lock className="w-3 h-3 mr-1 text-slate-400 shrink-0" />
+                                                    {t('Read Only - Managed by HR')}
+                                                </Badge>
+                                            </div>
+
+                                            <div className="p-4 rounded-xl bg-slate-50/80 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-sans whitespace-pre-line shadow-2xs">
+                                                {employee.roles_responsibilities ? (
+                                                    employee.roles_responsibilities
+                                                ) : (
+                                                    <span className="italic text-slate-400">
+                                                        {t('No official roles & responsibilities specified yet by HR.')}
+                                                    </span>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
                                 </TabsContent>
@@ -575,18 +575,394 @@ export default function Show() {
                                             <p className="font-medium">{employee.emergency_contact_relationship}</p>
                                         </div>
                                         <div>
-                                            <p className="text-sm text-muted-foreground mb-1">{t('Emergency Contact Number')}</p>
-                                            <p className="font-medium">{employee.emergency_contact_number}</p>
-                                        </div>
+                                             <p className="text-sm text-muted-foreground mb-1">{t('Emergency Contact Number')}</p>
+                                             <p className="font-medium">{employee.emergency_contact_number}</p>
+                                         </div>
+
+                                         {employee.whatsapp && (
+                                             <div className="col-span-1 md:col-span-2 p-4 bg-emerald-50/60 border border-emerald-200/80 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                                 <div className="flex items-center gap-3">
+                                                     <div className="w-10 h-10 rounded-full bg-[#25D366] flex items-center justify-center text-white shrink-0 shadow-xs">
+                                                         <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
+                                                             <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
+                                                         </svg>
+                                                     </div>
+                                                     <div>
+                                                         <p className="text-xs text-emerald-800 font-extrabold uppercase tracking-wider">{t('Direct WhatsApp')}</p>
+                                                         <p className="font-mono font-bold text-slate-900 text-sm mt-0.5">{employee.whatsapp}</p>
+                                                     </div>
+                                                 </div>
+                                                 <div className="flex items-center gap-2">
+                                                     <button
+                                                         type="button"
+                                                         onClick={() => handleCopyText(employee.whatsapp, 'whatsapp')}
+                                                         className="px-3 py-1.5 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 text-xs font-semibold rounded-lg shadow-2xs flex items-center gap-1.5 transition"
+                                                     >
+                                                         {copiedWhatsapp ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                                                         <span>{copiedWhatsapp ? t('Copied!') : t('Copy Number')}</span>
+                                                     </button>
+                                                     <a
+                                                         href={`https://wa.me/${employee.whatsapp.replace(/[^0-9]/g, '')}`}
+                                                         target="_blank"
+                                                         rel="noreferrer"
+                                                         className="px-3.5 py-1.5 bg-[#25D366] text-white hover:bg-[#20bd5a] text-xs font-bold rounded-lg shadow-2xs flex items-center gap-1.5 transition"
+                                                     >
+                                                         <ExternalLink className="w-3.5 h-3.5" />
+                                                         <span>{t('Open WhatsApp')}</span>
+                                                     </a>
+                                                 </div>
+                                             </div>
+                                         )}          
                                     </div>
                                 </TabsContent>
 
-                                <TabsContent value="payroll" className="space-y-6 mt-6">
-                                    <div className="bg-slate-50/50 p-4 border border-dashed rounded-xl mb-4">
-                                        <div className="flex justify-between items-center">
+                                <TabsContent value="payroll" className="space-y-4 mt-4">
+                                    {/* CARD 1: Salary & Compensation Transparency Summary (Neutral Compact Design) */}
+                                    {(() => {
+                                        const basicSalary = parseFloat(employee.basic_salary || '0') || 0;
+                                        const isYearly = employee.salary_type === 'yearly';
+                                        const monthlyBasic = isYearly ? basicSalary / 12 : basicSalary;
+                                        const yearlyBasic = isYearly ? basicSalary : basicSalary * 12;
+
+                                        const isProbation = employee.employment_status === 'probation';
+                                        const probationPct = parseFloat(employee.probation_percentage || '70') || 70;
+                                        const effectiveMonthlySalary = isProbation ? (monthlyBasic * probationPct) / 100 : monthlyBasic;
+
+                                        const feeType = companyAllSetting[`payroll_method_fee_type_${employee.payment_method || 'bank_transfer'}`] || 'percentage';
+                                        const percentageFee = parseFloat(companyAllSetting[`payroll_method_fee_percentage_${employee.payment_method || 'bank_transfer'}`] || '0') || 0;
+                                        const fixedFee = parseFloat(companyAllSetting[`payroll_method_fee_fixed_${employee.payment_method || 'bank_transfer'}`] || '0') || 0;
+
+                                        let feeText = '';
+                                        let estimatedCharge = 0;
+
+                                        if (feeType === 'percentage') {
+                                            feeText = `${percentageFee}%`;
+                                            estimatedCharge = (effectiveMonthlySalary * percentageFee) / 100;
+                                        } else if (feeType === 'fixed') {
+                                            feeText = `${formatCurrency(fixedFee)}`;
+                                            estimatedCharge = fixedFee;
+                                        } else if (feeType === 'both') {
+                                            feeText = `${percentageFee}% + ${formatCurrency(fixedFee)}`;
+                                            estimatedCharge = ((effectiveMonthlySalary * percentageFee) / 100) + fixedFee;
+                                        }
+                                        const netPayout = Math.max(0, effectiveMonthlySalary - estimatedCharge);
+
+                                        return (
+                                            <div className="bg-slate-50/70 dark:bg-slate-900/60 p-4 rounded-xl border border-slate-200 dark:border-slate-800 space-y-3">
+                                                <div className="flex items-center justify-between pb-2 border-b border-slate-200/80 dark:border-slate-800">
+                                                    <div className="flex items-center gap-2">
+                                                        <DollarSign className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                                                        <h4 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">
+                                                            {t('Salary & Payroll Breakdown')}
+                                                        </h4>
+                                                    </div>
+                                                    {isProbation ? (
+                                                        <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                                                            {t('Probation Active')} ({employee.probation_period || 3} {t('Months')})
+                                                        </span>
+                                                    ) : (
+                                                        <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                                                            {t('Permanent Employee')}
+                                                        </span>
+                                                    )}
+                                                </div>
+
+                                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                                    {/* Full Basic Salary Box */}
+                                                    <div className="p-3 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-0.5">
+                                                        <span className="text-[11px] font-medium text-slate-500 uppercase tracking-wider block">{t('Set Basic Salary')}</span>
+                                                        <div className="text-base font-bold text-slate-900 dark:text-slate-100">
+                                                            {formatCurrency(monthlyBasic)} <span className="text-xs font-normal text-slate-500">/ {t('mo')}</span>
+                                                        </div>
+                                                        <p className="text-[11px] text-slate-500">
+                                                            {formatCurrency(yearlyBasic)} / {t('yr')} ({t('Period:')} <span className="capitalize font-medium">{employee.salary_type || 'yearly'}</span>)
+                                                        </p>
+                                                    </div>
+
+                                                    {/* Current Receiving Salary Box */}
+                                                    <div className="p-3 rounded-lg bg-emerald-50/60 dark:bg-emerald-950/30 border border-emerald-200/80 dark:border-emerald-800/60 space-y-0.5">
+                                                        <div className="flex items-center justify-between">
+                                                            <span className="text-[11px] font-bold text-emerald-800 dark:text-emerald-300 uppercase tracking-wider block">{t('Current Receiving Pay')}</span>
+                                                            {isProbation && (
+                                                                <span className="text-[10px] bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-200 px-1.5 py-0.2 rounded font-semibold">
+                                                                    {probationPct}% {t('Rate')}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <div className="text-base font-extrabold text-emerald-700 dark:text-emerald-400">
+                                                            {formatCurrency(effectiveMonthlySalary)} <span className="text-xs font-normal">/ {t('mo')}</span>
+                                                        </div>
+                                                        <p className="text-[11px] text-emerald-700/80 dark:text-emerald-300/80">
+                                                            {isProbation ? `${t('Receiving')} ${probationPct}% ${t('of basic salary during probation')}` : t('Receiving 100% full basic salary')}
+                                                        </p>
+                                                    </div>
+
+                                                    {/* Estimated Net Payout Box */}
+                                                    <div className="p-3 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-0.5">
+                                                        <span className="text-[11px] font-medium text-slate-500 uppercase tracking-wider block">{t('Estimated Net Payout')}</span>
+                                                        <div className="text-base font-bold text-slate-900 dark:text-slate-100">
+                                                            {formatCurrency(netPayout)} <span className="text-xs font-normal text-slate-500">/ {t('mo')}</span>
+                                                        </div>
+                                                        <p className="text-[11px] text-slate-500">
+                                                            {t('Fee:')} <span className="font-semibold text-slate-700 dark:text-slate-300">{feeText}</span> ({t('Charge:')} <span className="text-rose-600 dark:text-rose-400 font-semibold">{formatCurrency(estimatedCharge)}</span>)
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })()}
+
+                                    {/* CARD 2: Probation Preferred Payroll & Partner Payment Accounts (VISIBLE ONLY IF PROBATION) */}
+                                    {employee.employment_status === 'probation' && (
+                                        <div className="bg-slate-50/70 dark:bg-slate-900/60 p-4 rounded-xl border border-slate-200 dark:border-slate-800 space-y-3">
+                                            <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-slate-200/80 dark:border-slate-800">
+                                                <div className="flex items-center gap-2">
+                                                    <ShieldCheck className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                                                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">
+                                                        {t('Probation Preferred Payroll Gateways (Supported Regions)')}
+                                                    </h4>
+                                                </div>
+                                                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+                                                    {t('Company Partner Promotion')}
+                                                </span>
+                                            </div>
+
+                                            {/* Informational Text */}
+                                            <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                                                {companyAllSetting.probation_notice_text || t('During probation, we only accept RedotPay & Kast virtual card gateways for supported regions. Account creation & payroll transfers are Totally Free ($0.00).')}
+                                            </p>
+
+                                            {/* Gateways Grid */}
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+                                                {/* RedotPay Partner Card (SUGGESTED BANNER) */}
+                                                <div className="p-3.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-2.5">
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+                                                            <span className="w-2 h-2 rounded-full bg-rose-500" />
+                                                            RedotPay (Virtual Card)
+                                                        </span>
+                                                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300 font-extrabold border border-amber-200 dark:border-amber-800 flex items-center gap-1">
+                                                            ⭐ {t('SUGGESTED GATEWAY')}
+                                                        </span>
+                                                    </div>
+
+                                                    <div className="flex items-center justify-between text-xs text-slate-500">
+                                                        <span>{t('Transaction Fee:')} <strong className="text-emerald-600 dark:text-emerald-400">{t('Totally Free ($0.00)')}</strong></span>
+                                                    </div>
+
+                                                    {/* Bonus Promotion Perks */}
+                                                    <div className="space-y-1.5 text-[11px]">
+                                                        <div className="flex items-center gap-1.5 text-amber-700 dark:text-amber-300 font-semibold bg-amber-50/80 dark:bg-amber-950/40 px-2 py-1 rounded border border-amber-200/80 dark:border-amber-800">
+                                                            <Gift className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                                                            <span>{t('$5 Instant Bonus via our link')} <span className="text-[10px] text-slate-500 font-normal">({t('T&C apply')})</span></span>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Coupon Code OPENCLAW Strap */}
+                                                    <div className="flex items-center justify-between p-2 rounded-lg bg-rose-50/80 dark:bg-rose-950/40 border border-dashed border-rose-200 dark:border-rose-800 text-xs">
+                                                        <div className="flex items-center gap-1.5">
+                                                            <Tag className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400 shrink-0" />
+                                                            <span className="text-slate-700 dark:text-slate-300 text-[11px] font-medium">
+                                                                {t('20% Discount Code:')}
+                                                            </span>
+                                                            <code className="px-1.5 py-0.5 rounded bg-white dark:bg-slate-900 border border-rose-200 dark:border-rose-800 text-rose-600 dark:text-rose-400 font-mono font-bold text-xs tracking-wider">
+                                                                OPENCLAW
+                                                            </code>
+                                                        </div>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                navigator.clipboard.writeText('OPENCLAW');
+                                                                alert(t('Coupon code OPENCLAW copied to clipboard!'));
+                                                            }}
+                                                            className="text-[11px] font-bold text-rose-600 hover:text-rose-700 dark:text-rose-400 hover:underline flex items-center gap-1 shrink-0 ml-1"
+                                                        >
+                                                            <Copy className="w-3 h-3" />
+                                                            {t('Copy')}
+                                                        </button>
+                                                    </div>
+
+                                                    <a
+                                                        href={companyAllSetting.probation_redotpay_link || "https://url.hk/i/en/cwqej"}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="inline-flex items-center justify-center gap-1.5 w-full py-1.5 px-3 rounded bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-xs transition-colors"
+                                                    >
+                                                        <span>{t('Create Free RedotPay Account')}</span>
+                                                        <ExternalLink className="w-3.5 h-3.5" />
+                                                    </a>
+
+                                                    {/* Account ID / User ID & Card Number Submission Fields */}
+                                                    <div className="pt-2 border-t border-slate-100 dark:border-slate-800 space-y-2">
+                                                        <div>
+                                                            <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 block mb-0.5">
+                                                                {t('RedotPay User ID / Account ID:')}
+                                                            </label>
+                                                            <div className="flex gap-2">
+                                                                <Input
+                                                                    type="text"
+                                                                    placeholder="e.g. 1556606624"
+                                                                    value={redotpayAccountId}
+                                                                    onChange={(e) => setRedotpayAccountId(e.target.value)}
+                                                                    className="h-8 text-xs font-mono"
+                                                                />
+                                                                <Button
+                                                                    type="button"
+                                                                    size="sm"
+                                                                    disabled={savingAccountId}
+                                                                    onClick={() => handleSaveAccountId('redotpay_user_id', redotpayAccountId)}
+                                                                    className="h-8 text-xs font-bold px-3"
+                                                                >
+                                                                    {t('Save')}
+                                                                </Button>
+                                                            </div>
+                                                            {employee.payment_details?.redotpay_user_id && (
+                                                                <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-mono font-medium mt-0.5">
+                                                                    ✓ Saved ID: {employee.payment_details.redotpay_user_id}
+                                                                </p>
+                                                            )}
+                                                        </div>
+
+                                                        <div>
+                                                            <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 block mb-0.5">
+                                                                {t('RedotPay Virtual Card Number:')}
+                                                            </label>
+                                                            <div className="flex gap-2">
+                                                                <Input
+                                                                    type="text"
+                                                                    placeholder="e.g. 4532 •••• •••• 8910"
+                                                                    value={redotpayCardNumber}
+                                                                    onChange={(e) => setRedotpayCardNumber(e.target.value)}
+                                                                    className="h-8 text-xs font-mono"
+                                                                />
+                                                                <Button
+                                                                    type="button"
+                                                                    size="sm"
+                                                                    disabled={savingAccountId}
+                                                                    onClick={() => handleSaveAccountId('redotpay_card_number', redotpayCardNumber)}
+                                                                    className="h-8 text-xs font-bold px-3"
+                                                                >
+                                                                    {t('Save')}
+                                                                </Button>
+                                                            </div>
+                                                            {employee.payment_details?.redotpay_card_number && (
+                                                                <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-mono font-medium mt-0.5">
+                                                                    ✓ Saved Card: {employee.payment_details.redotpay_card_number}
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {/* Kast Partner Card */}
+                                                <div className="p-3.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-2.5">
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+                                                            <span className="w-2.5 h-2.5 rounded-full bg-purple-500" />
+                                                            Kast (Virtual Card)
+                                                        </span>
+                                                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 dark:bg-purple-950 dark:text-purple-300 font-extrabold border border-purple-200 dark:border-purple-800">
+                                                            {t('Supported Gateway')}
+                                                        </span>
+                                                    </div>
+
+                                                    <div className="flex items-center justify-between text-xs text-slate-500">
+                                                        <span>{t('Transaction Fee:')} <strong className="text-emerald-600 dark:text-emerald-400">{t('Totally Free ($0.00)')}</strong></span>
+                                                    </div>
+
+                                                    {/* Bonus Promotion & Cashback Perks */}
+                                                    <div className="space-y-1.5 text-[11px]">
+                                                        <div className="flex items-center gap-1.5 text-purple-700 dark:text-purple-300 font-semibold bg-purple-50/80 dark:bg-purple-950/40 px-2 py-1 rounded border border-purple-200/80 dark:border-purple-800">
+                                                            <Gift className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400 shrink-0" />
+                                                            <span>{t('$10 Signup Bonus via our link')} <span className="text-[10px] text-slate-500 font-normal">({t('T&C apply')})</span></span>
+                                                        </div>
+                                                        <div className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-300 font-semibold bg-emerald-50/80 dark:bg-emerald-950/40 px-2 py-1 rounded border border-emerald-200/80 dark:border-emerald-800">
+                                                            <Sparkles className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                                                            <span>{t('Cashback on every card purchase')}</span>
+                                                        </div>
+                                                    </div>
+
+                                                    <a
+                                                        href={companyAllSetting.probation_kast_link || "https://app.kast.xyz/referral/XJLR09R1"}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="inline-flex items-center justify-center gap-1.5 w-full py-1.5 px-3 rounded bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs shadow-xs transition-colors"
+                                                    >
+                                                        <span>{t('Create Free Kast Account')}</span>
+                                                        <ExternalLink className="w-3.5 h-3.5" />
+                                                    </a>
+
+                                                    {/* Account ID / User ID & Card Number Submission Fields */}
+                                                    <div className="pt-2 border-t border-slate-100 dark:border-slate-800 space-y-2">
+                                                        <div>
+                                                            <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 block mb-0.5">
+                                                                {t('Kast User ID / Wallet:')}
+                                                            </label>
+                                                            <div className="flex gap-2">
+                                                                <Input
+                                                                    type="text"
+                                                                    placeholder="e.g. @username or Wallet"
+                                                                    value={kastAccountId}
+                                                                    onChange={(e) => setKastAccountId(e.target.value)}
+                                                                    className="h-8 text-xs font-mono"
+                                                                />
+                                                                <Button
+                                                                    type="button"
+                                                                    size="sm"
+                                                                    disabled={savingAccountId}
+                                                                    onClick={() => handleSaveAccountId('kast_user_id', kastAccountId)}
+                                                                    className="h-8 text-xs font-bold px-3"
+                                                                >
+                                                                    {t('Save')}
+                                                                </Button>
+                                                            </div>
+                                                            {employee.payment_details?.kast_user_id && (
+                                                                <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-mono font-medium mt-0.5">
+                                                                    ✓ Saved ID: {employee.payment_details.kast_user_id}
+                                                                </p>
+                                                            )}
+                                                        </div>
+
+                                                        <div>
+                                                            <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 block mb-0.5">
+                                                                {t('Kast Virtual Card Number:')}
+                                                            </label>
+                                                            <div className="flex gap-2">
+                                                                <Input
+                                                                    type="text"
+                                                                    placeholder="e.g. 5241 •••• •••• 1234"
+                                                                    value={kastCardNumber}
+                                                                    onChange={(e) => setKastCardNumber(e.target.value)}
+                                                                    className="h-8 text-xs font-mono"
+                                                                />
+                                                                <Button
+                                                                    type="button"
+                                                                    size="sm"
+                                                                    disabled={savingAccountId}
+                                                                    onClick={() => handleSaveAccountId('kast_card_number', kastCardNumber)}
+                                                                    className="h-8 text-xs font-bold px-3"
+                                                                >
+                                                                    {t('Save')}
+                                                                </Button>
+                                                            </div>
+                                                            {employee.payment_details?.kast_card_number && (
+                                                                <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-mono font-medium mt-0.5">
+                                                                    ✓ Saved Card: {employee.payment_details.kast_card_number}
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* CARD 3: Selected Payment Method Details */}
+                                    <div className="bg-slate-50/50 p-5 border border-slate-200 dark:border-slate-800 rounded-2xl">
+                                        <div className="flex justify-between items-center pb-4 border-b border-slate-200 dark:border-slate-800 mb-4">
                                             <div>
-                                                <p className="text-xs text-muted-foreground uppercase tracking-wider">{t('Payment Method')}</p>
-                                                <h4 className="text-base font-semibold text-slate-900 mt-0.5">
+                                                <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">{t('Selected Payment Method')}</p>
+                                                <h4 className="text-lg font-bold text-slate-900 dark:text-slate-100 mt-0.5">
                                                     {employee.payment_method === 'bank_transfer' && t('Bank Transfer')}
                                                     {employee.payment_method === 'cards_transfer' && t('Cards Transfer')}
                                                     {employee.payment_method === 'paypal' && t('PayPal')}
@@ -612,42 +988,6 @@ export default function Show() {
                                                 </Button>
                                             )}
                                         </div>
-                                        {employee.payment_method && (() => {
-                                            const feeType = companyAllSetting[`payroll_method_fee_type_${employee.payment_method}`] || 'percentage';
-                                            const percentageFee = parseFloat(companyAllSetting[`payroll_method_fee_percentage_${employee.payment_method}`] || '0') || 0;
-                                            const fixedFee = parseFloat(companyAllSetting[`payroll_method_fee_fixed_${employee.payment_method}`] || '0') || 0;
-                                            const basicSalary = parseFloat(employee.basic_salary || '0') || 0;
-
-                                            let feeText = '';
-                                            let estimatedCharge = 0;
-
-                                            if (feeType === 'percentage') {
-                                                feeText = `${percentageFee}%`;
-                                                estimatedCharge = (basicSalary * percentageFee) / 100;
-                                            } else if (feeType === 'fixed') {
-                                                feeText = `${formatCurrency(fixedFee)}`;
-                                                estimatedCharge = fixedFee;
-                                            } else if (feeType === 'both') {
-                                                feeText = `${percentageFee}% + ${formatCurrency(fixedFee)}`;
-                                                estimatedCharge = ((basicSalary * percentageFee) / 100) + fixedFee;
-                                            }
-
-                                            return (
-                                                <div className="mt-3 p-3 bg-white/60 border border-slate-100 rounded-lg text-xs flex flex-col gap-1 max-w-sm">
-                                                    <div className="flex justify-between items-center">
-                                                        <span className="text-slate-500 font-medium">{t('Transaction Fee')}:</span>
-                                                        <span className="font-semibold text-slate-800">{feeText}</span>
-                                                    </div>
-                                                    {basicSalary > 0 && (
-                                                        <div className="flex justify-between items-center border-t border-slate-100 pt-1 mt-1">
-                                                            <span className="text-slate-500 font-medium">{t('Estimated Charge')}:</span>
-                                                            <span className="font-bold text-primary">{formatCurrency(estimatedCharge)}</span>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            );
-                                        })()}
-                                    </div>
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         {(employee.payment_method === 'bank_transfer' || !employee.payment_method) && (
@@ -849,6 +1189,7 @@ export default function Show() {
                                             </>
                                         )}
                                     </div>
+                                </div>
                                 </TabsContent>
 
                                 <TabsContent value="hours" className="space-y-6 mt-6">
@@ -1001,6 +1342,162 @@ export default function Show() {
                                             </div>
                                         )}
                                     </div>
+                                </TabsContent>
+
+                                {/* Devices & Hardware Inventory Tab */}
+                                <TabsContent value="devices" className="space-y-6 mt-6">
+                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+                                        <div>
+                                            <h4 className="text-sm font-semibold text-slate-800 flex items-center gap-1.5">
+                                                <Laptop className="w-4 h-4 text-indigo-600" />
+                                                {t('Hardware Assets & Devices Inventory')}
+                                            </h4>
+                                            <p className="text-xs text-slate-500 font-normal">
+                                                {t('Company-provided hardware (laptops, desktops, phones) and BYOD devices associated with this profile.')}
+                                            </p>
+                                        </div>
+
+                                        <div className="flex items-center gap-2">
+                                            {deviceSavedNotice && (
+                                                <span className="text-xs text-emerald-600 font-medium flex items-center gap-1">
+                                                    <Check className="w-3.5 h-3.5" />
+                                                    {t('Inventory Saved!')}
+                                                </span>
+                                            )}
+                                            {!isEditingDevices ? (
+                                                <Button
+                                                    type="button"
+                                                    onClick={() => setIsEditingDevices(true)}
+                                                    className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-medium gap-1.5 shadow-sm"
+                                                >
+                                                    <Edit className="w-3.5 h-3.5" />
+                                                    {t('Edit / Manage Devices')}
+                                                </Button>
+                                            ) : (
+                                                <div className="flex items-center gap-2">
+                                                    <Button
+                                                        type="button"
+                                                        variant="outline"
+                                                        onClick={() => setIsEditingDevices(false)}
+                                                        className="rounded-xl text-xs font-medium"
+                                                    >
+                                                        {t('Cancel')}
+                                                    </Button>
+                                                    <Button
+                                                        type="button"
+                                                        onClick={handleSaveDevices}
+                                                        disabled={savingDevices}
+                                                        className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-medium gap-1.5 shadow-sm"
+                                                    >
+                                                        <Save className="w-3.5 h-3.5" />
+                                                        {savingDevices ? t('Saving Inventory...') : t('Save Device Inventory')}
+                                                    </Button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {!isEditingDevices ? (
+                                        devices.length === 0 ? (
+                                            <div className="text-center py-10 border border-dashed border-slate-200 rounded-xl bg-slate-50/50 space-y-3">
+                                                <Laptop className="w-10 h-10 text-slate-300 mx-auto" />
+                                                <div>
+                                                    <p className="text-sm font-medium text-slate-700">{t('No hardware devices registered yet.')}</p>
+                                                    <p className="text-xs text-slate-400 font-normal">{t('Add laptops, desktop workstations, or smartphones assigned to this employee.')}</p>
+                                                </div>
+                                                <Button
+                                                    type="button"
+                                                    onClick={() => setIsEditingDevices(true)}
+                                                    className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium rounded-xl h-8 gap-1.5"
+                                                >
+                                                    <Laptop className="w-3.5 h-3.5" />
+                                                    + {t('Add Device')}
+                                                </Button>
+                                            </div>
+                                        ) : (
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                {devices.map((dev, idx) => (
+                                                    <Card key={idx} className="border border-slate-200 shadow-sm rounded-xl overflow-hidden bg-white">
+                                                        <div className="p-4 bg-slate-50/80 border-b border-slate-100 flex items-center justify-between">
+                                                            <div className="flex items-center gap-2">
+                                                                {dev.device_category === 'desktop_laptop' ? (
+                                                                    <Laptop className="w-4 h-4 text-indigo-600" />
+                                                                ) : (
+                                                                    <Smartphone className="w-4 h-4 text-purple-600" />
+                                                                )}
+                                                                <div>
+                                                                    <h5 className="text-xs font-semibold text-slate-900">{dev.device_name || t('Registered Device')}</h5>
+                                                                    <span className="text-[11px] text-slate-500 font-normal">
+                                                                        {dev.device_category === 'desktop_laptop' ? t('Desktop / Laptop') : t('Mobile Phone')}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+
+                                                            <Badge
+                                                                variant="outline"
+                                                                className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${
+                                                                    dev.device_ownership === 'company_provided'
+                                                                        ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
+                                                                        : 'bg-purple-50 text-purple-700 border-purple-200'
+                                                                }`}
+                                                            >
+                                                                {dev.device_ownership === 'company_provided' ? t('Company Provided') : t('BYOD (Employee Owned)')}
+                                                            </Badge>
+                                                        </div>
+
+                                                        <CardContent className="p-4 space-y-3 text-xs">
+                                                            <div className="grid grid-cols-2 gap-3">
+                                                                <div>
+                                                                    <span className="text-slate-400 font-normal">{t('Brand / Model')}</span>
+                                                                    <p className="font-medium text-slate-800 mt-0.5">{dev.brand || '-'} {dev.model ? `/ ${dev.model}` : ''}</p>
+                                                                </div>
+
+                                                                {dev.device_category === 'desktop_laptop' ? (
+                                                                    <div>
+                                                                        <span className="text-slate-400 font-normal">{t('Serial Number')}</span>
+                                                                        <p className="font-mono font-medium text-slate-800 mt-0.5">{dev.serial_number || '-'}</p>
+                                                                    </div>
+                                                                ) : (
+                                                                    <div>
+                                                                        <span className="text-slate-400 font-normal">{t('IMEI Number')}</span>
+                                                                        <p className="font-mono font-medium text-slate-800 mt-0.5">{dev.imei || '-'}</p>
+                                                                    </div>
+                                                                )}
+
+                                                                <div>
+                                                                    <span className="text-slate-400 font-normal">{t('Operating System')}</span>
+                                                                    <p className="font-medium text-slate-800 mt-0.5">{dev.operating_system || '-'} {dev.os_version ? `(${dev.os_version})` : ''}</p>
+                                                                </div>
+
+                                                                {dev.device_ownership === 'company_provided' && (
+                                                                    <div>
+                                                                        <span className="text-slate-400 font-normal">{t('Purchase Date')}</span>
+                                                                        <p className="font-medium text-slate-800 mt-0.5">{dev.purchase_month_year || '-'}</p>
+                                                                    </div>
+                                                                )}
+
+                                                                {dev.mobile_number && (
+                                                                    <div>
+                                                                        <span className="text-slate-400 font-normal">{t('Mobile Number')}</span>
+                                                                        <p className="font-medium text-slate-800 mt-0.5">{dev.mobile_number}</p>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+
+                                                            {dev.notes && (
+                                                                <div className="pt-2 border-t border-slate-100">
+                                                                    <span className="text-slate-400 font-normal">{t('Notes & Accessories')}</span>
+                                                                    <p className="text-slate-700 font-normal mt-0.5 italic text-[11px]">{dev.notes}</p>
+                                                                </div>
+                                                            )}
+                                                        </CardContent>
+                                                    </Card>
+                                                ))}
+                                            </div>
+                                        )
+                                    ) : (
+                                        <DeviceConfigStep devices={devices} onChange={setDevices} />
+                                    )}
                                 </TabsContent>
                             </Tabs>
                         </CardContent>
@@ -1202,7 +1699,7 @@ export default function Show() {
                         {/* Modal Content */}
                         <div className="p-6 overflow-y-auto max-h-[70vh] flex flex-col md:flex-row items-center justify-center gap-8 bg-slate-50 dark:bg-slate-950/40">
                             {/* FRONT SIDE */}
-                            <div className="w-[270px] h-[430px] bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden relative flex flex-col justify-between select-none pb-2">
+                            <div id="id-card-front" className="w-[270px] h-[430px] bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden relative flex flex-col justify-between select-none pb-2">
                                 {/* Top curved banner */}
                                 <div className="absolute top-0 inset-x-0 h-[92px] bg-[#635bff] flex flex-col items-center justify-center pt-2">
                                     <div className="absolute bottom-0 right-0 left-[-20%] h-1 bg-[#635bff] transform rotate-3 origin-bottom-left"></div>
@@ -1284,7 +1781,7 @@ export default function Show() {
                             </div>
 
                             {/* BACK SIDE */}
-                            <div className="w-[270px] h-[430px] bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden relative flex flex-col justify-between p-4 select-none">
+                            <div id="id-card-back" className="w-[270px] h-[430px] bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden relative flex flex-col justify-between p-4 select-none">
                                 <div>
                                     {/* Back Header banner */}
                                     <div className="h-[52px] bg-[#635bff] rounded-xl flex flex-col items-center justify-center relative overflow-hidden">
@@ -1378,11 +1875,11 @@ export default function Show() {
                             </Button>
                             <Button 
                                 size="sm" 
-                                onClick={handleDownloadIDCard}
+                                onClick={handlePrintIDCard}
                                 className="gap-2 bg-blue-600 hover:bg-blue-700 text-white"
                             >
-                                <FileText className="w-4 h-4" />
-                                {t('Download PDF')}
+                                <Printer className="w-4 h-4" />
+                                {t('Print / Save PDF')}
                             </Button>
                         </div>
                     </div>
@@ -1742,13 +2239,6 @@ export default function Show() {
                     </form>
                 </DialogContent>
             </Dialog>
-
-            {/* Profile Inspection Step-by-Step Wizard */}
-            <EmployeeProfileInspectionWizard
-                employee={employee}
-                isOpen={isWizardOpen}
-                onClose={() => setIsWizardOpen(false)}
-            />
         </AuthenticatedLayout>
     );
 }

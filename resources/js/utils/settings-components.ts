@@ -5,6 +5,8 @@ import { usePage } from '@inertiajs/react';
 const coreComponents = {
   'brand-settings': lazy(() => import('@/pages/settings/components/brand-settings')),
   'company-settings': lazy(() => import('@/pages/settings/components/company-settings')),
+  'timezone-duty-settings': lazy(() => import('@/pages/settings/components/timezone-duty-settings')),
+  'maintenance-mode-settings': lazy(() => import('@/pages/settings/components/maintenance-mode-settings')),
   'system-settings': lazy(() => import('@/pages/settings/components/system-settings')),
   'currency-settings': lazy(() => import('@/pages/settings/components/currency-settings')),
   'seo-settings': lazy(() => import('@/pages/settings/components/seo-settings')),

@@ -1,4 +1,4 @@
-import { Palette, Building, Settings as SettingsIcon, Search, HardDrive, Mail, Cookie, Trash2, DollarSign, CreditCard, FileText, Radio } from 'lucide-react';
+import { Palette, Building, Settings as SettingsIcon, Search, HardDrive, Mail, Cookie, Trash2, DollarSign, CreditCard, FileText, Radio, ShieldAlert } from 'lucide-react';
 
 export interface SettingMenuItem {
   order: number;
@@ -25,6 +25,14 @@ export const getSuperAdminSettings = (t: (key: string) => string): SettingMenuIt
     icon: SettingsIcon,
     permission: 'manage-system-settings',
     component: 'system-settings'
+  },
+  {
+    order: 25,
+    title: t('Maintenance Mode'),
+    href: '#maintenance-mode-settings',
+    icon: ShieldAlert,
+    permission: 'manage-system-settings',
+    component: 'maintenance-mode-settings'
   },
   {
     order: 30,
@@ -95,7 +103,7 @@ export const getSuperAdminSettings = (t: (key: string) => string): SettingMenuIt
     title: t('Bank Transfer Settings'),
     href: '#bank-transfer-settings',
     icon: CreditCard,
-    permission: 'manage-bank-transfer-settings',
+    permission: 'manage-system-settings',
     component: 'bank-transfer-settings'
   }
 ];

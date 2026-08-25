@@ -523,30 +523,45 @@ if (!function_exists('SetConfigEmail')) {
     function SetConfigEmail($user_id = null)
     {
         try {
+            $company_settings = [];
             if (!empty($user_id)) {
                 $company_settings = getCompanyAllSetting($user_id);
             } else if (Auth::check()) {
                 $company_settings = getCompanyAllSetting();
-            } else {
-                $user_id = User::where('type', 'superadmin')->first()->id;
-                $company_settings = getCompanyAllSetting($user_id);
-            }
-            if(empty($company_settings['email_host'])) {
-                throw new \Exception(__('Email host is not configured'));
             }
 
-            config([
-                'mail.default' => $company_settings['email_driver'] ?? 'smtp',
-                'mail.mailers.smtp.host' => $company_settings['email_host'],
-                'mail.mailers.smtp.port' => $company_settings['email_port'] ?? 587,
-                'mail.mailers.smtp.encryption' => $company_settings['email_encryption'] ?? 'tls',
-                'mail.mailers.smtp.username' => $company_settings['email_username'] ?? '',
-                'mail.mailers.smtp.password' => $company_settings['email_password'] ?? '',
-                'mail.from.address' => $company_settings['email_fromAddress'] ?? 'noreply@example.com',
-            ]);
+            // Fallback to Company User settings if specified user has no email_host
+            if (empty($company_settings['email_host'])) {
+                $companyUser = User::where('type', 'company')->first();
+                if ($companyUser) {
+                    $company_settings = getCompanyAllSetting($companyUser->id);
+                }
+            }
+
+            // Fallback to Super Admin user settings
+            if (empty($company_settings['email_host'])) {
+                $superAdmin = User::where('type', 'superadmin')->first();
+                if ($superAdmin) {
+                    $company_settings = getCompanyAllSetting($superAdmin->id);
+                }
+            }
+
+            if (!empty($company_settings['email_host'])) {
+                config([
+                    'mail.default' => $company_settings['email_driver'] ?? 'smtp',
+                    'mail.mailers.smtp.host' => $company_settings['email_host'],
+                    'mail.mailers.smtp.port' => $company_settings['email_port'] ?? 465,
+                    'mail.mailers.smtp.encryption' => $company_settings['email_encryption'] ?? 'tls',
+                    'mail.mailers.smtp.username' => $company_settings['email_username'] ?? '',
+                    'mail.mailers.smtp.password' => $company_settings['email_password'] ?? '',
+                    'mail.from.address' => $company_settings['email_fromAddress'] ?? config('mail.from.address', 'contact@dynime.com'),
+                    'mail.from.name' => $company_settings['company_email_from_name'] ?? config('mail.from.name', 'Dynime ERP'),
+                ]);
+            }
             return true;
         } catch (\Exception $e) {
-            throw new \Exception($e->getMessage());
+            \Illuminate\Support\Facades\Log::warning('SetConfigEmail Warning: ' . $e->getMessage());
+            return false;
         }
     }
 }

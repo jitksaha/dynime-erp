@@ -1,4 +1,4 @@
-import { Palette, Building, SettingsIcon, Mail, DollarSign, CreditCard, Package, HardDrive } from 'lucide-react';
+import { Palette, Building, SettingsIcon, Mail, DollarSign, CreditCard, Package, HardDrive, Clock, ShieldAlert } from 'lucide-react';
 
 export interface SettingMenuItem {
   order: number;
@@ -43,6 +43,22 @@ export const getCompanySettings = (t: (key: string) => string): SettingMenuItem[
     component: 'company-settings'
   },
   {
+    order: 35,
+    title: t('Timezone & Duty Policy'),
+    href: '#timezone-duty-settings',
+    icon: Clock,
+    permission: 'manage-company-settings',
+    component: 'timezone-duty-settings'
+  },
+  {
+    order: 36,
+    title: t('Maintenance Mode'),
+    href: '#maintenance-mode-settings',
+    icon: ShieldAlert,
+    permission: 'manage-company-settings',
+    component: 'maintenance-mode-settings'
+  },
+  {
     order: 40,
     title: t('Currency Settings'),
     href: '#currency-settings',
@@ -71,7 +87,7 @@ export const getCompanySettings = (t: (key: string) => string): SettingMenuItem[
     title: t('Bank Transfer Settings'),
     href: '#bank-transfer-settings',
     icon: CreditCard,
-    permission: 'manage-bank-transfer-settings',
+    permission: 'manage-company-settings',
     component: 'bank-transfer-settings'
   },
   {

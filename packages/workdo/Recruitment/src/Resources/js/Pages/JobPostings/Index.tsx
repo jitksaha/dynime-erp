@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
-import { Plus, Edit as EditIcon, Trash2, Eye, Megaphone as MegaphoneIcon, Download, FileImage, Upload, Star, Globe, Copy, Check, Share2, Bot, UserCheck, RefreshCw, Settings } from "lucide-react";
+import { Plus, Edit as EditIcon, Trash2, Eye, Megaphone as MegaphoneIcon, Download, FileImage, Upload, Star, Globe, Copy, Check, Share2, ExternalLink } from "lucide-react";
 import { toast } from 'sonner';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { FilterButton } from '@/components/ui/filter-button';
@@ -56,42 +56,25 @@ export default function Index() {
     const [filteredLocations, setFilteredLocations] = useState(joblocations || []);
     const [showFilters, setShowFilters] = useState(false);
     const [isCopied, setIsCopied] = useState(false);
-    const [isSyncing, setIsSyncing] = useState(false);
-    const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
-    const [flowmingoApiKey, setFlowmingoApiKey] = useState("");
 
-    const handleSyncFlowmingo = (key?: string) => {
-        setIsSyncing(true);
-        router.post(route("recruitment.flowmingo.sync"), { api_key: key || flowmingoApiKey }, {
-            preserveScroll: true,
-            onSuccess: () => {
-                setIsSyncing(false);
-                setIsSyncModalOpen(false);
-                toast.success(t("Flowmingo ATS jobs synchronized successfully!"));
-            },
-            onError: () => {
-                setIsSyncing(false);
-                toast.error(t("Failed to sync Flowmingo jobs."));
-            }
-        });
-    };
-
-    const handleCopyCareerUrl = (job?: JobPosting) => {
+    const getJobUrl = (job?: JobPosting) => {
         const slug = auth?.user?.slug;
-        let url = (slug && slug !== 'company' && slug !== 'demo')
-            ? `https://careers.dynime.com/${slug}`
-            : 'https://careers.dynime.com/';
-
         if (job) {
             const jobSlug = (job as any).slug || (job.title ? job.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') : job.id);
-            url = (slug && slug !== 'company' && slug !== 'demo')
+            return (slug && slug !== 'company' && slug !== 'demo')
                 ? `https://careers.dynime.com/${slug}/job/${jobSlug}`
                 : `https://careers.dynime.com/job/${jobSlug}`;
         }
+        return (slug && slug !== 'company' && slug !== 'demo')
+            ? `https://careers.dynime.com/${slug}`
+            : 'https://careers.dynime.com/';
+    };
 
+    const handleCopyCareerUrl = (job?: JobPosting) => {
+        const url = getJobUrl(job);
         navigator.clipboard.writeText(url);
         setIsCopied(true);
-        toast.success(t('Career Portal URL copied to clipboard!'));
+        toast.success(job ? t('Job URL copied to clipboard!') : t('Career Portal URL copied to clipboard!'));
         setTimeout(() => setIsCopied(false), 2500);
     };
 
@@ -161,12 +144,31 @@ export default function Index() {
             key: 'title',
             header: t('Title'),
             sortable: true,
-            render: (value: string, row: any) => (
-                <div className="flex items-center gap-2">
-                    <span>{value}</span>
-                    {row.is_featured && <Star className="h-4 w-4 text-yellow-500" />}
-                </div>
-            )
+            render: (value: string, row: any) => {
+                const jobSlug = row.slug || (row.title ? row.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') : row.id);
+                const publicUrl = `https://careers.dynime.com/job/${jobSlug}`;
+                return (
+                    <div className="flex flex-col gap-0.5">
+                        <div className="flex items-center gap-2">
+                            <span
+                                className="font-semibold text-slate-900 hover:text-blue-600 cursor-pointer"
+                                onClick={() => router.get(route('recruitment.job-postings.show', row.id))}
+                            >
+                                {value}
+                            </span>
+                            {row.is_featured && <Star className="h-3.5 w-3.5 text-yellow-500 fill-yellow-500" />}
+                        </div>
+                        <a
+                            href={publicUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[11px] text-blue-600 hover:underline inline-flex items-center gap-1 font-mono"
+                        >
+                            /job/{jobSlug} <ExternalLink className="h-2.5 w-2.5 inline" />
+                        </a>
+                    </div>
+                );
+            }
         },
         {
             key: 'jobType.name',
@@ -231,38 +233,6 @@ export default function Index() {
             }
         },
         {
-            key: 'posting_source',
-            header: t('Source'),
-            sortable: false,
-            render: (value: string, row: any) => {
-                const isApi = value === 'flowmingo_api' || (row.code && row.code.startsWith('FLOW-')) || (row.posting_code && row.posting_code.startsWith('FLOW-'));
-                return (
-                    <TooltipProvider>
-                        <Tooltip delayDuration={150}>
-                            <TooltipTrigger asChild>
-                                <div className="inline-flex items-center justify-center cursor-help">
-                                    {isApi ? (
-                                        <span className="p-1.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100 transition-colors shadow-xs">
-                                            <Bot className="h-3.5 w-3.5" />
-                                        </span>
-                                    ) : (
-                                        <span className="p-1.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200 hover:bg-slate-200 transition-colors shadow-xs">
-                                            <UserCheck className="h-3.5 w-3.5" />
-                                        </span>
-                                    )}
-                                </div>
-                            </TooltipTrigger>
-                            <TooltipContent side="top">
-                                <p className="text-xs font-medium">
-                                    {isApi ? t('Flowmingo API (Auto-synced)') : t('Manual Job Posting')}
-                                </p>
-                            </TooltipContent>
-                        </Tooltip>
-                    </TooltipProvider>
-                );
-            }
-        },
-        {
             key: 'application_deadline',
             header: t('Deadline'),
             sortable: true,
@@ -283,8 +253,8 @@ export default function Index() {
                                         onClick={() => router.post(route('recruitment.job-postings.toggle-publish', jobposting.id))}
                                         className={`h-8 w-8 p-0 ${
                                             (jobposting.status === 'draft' || jobposting.status === '0')
-                                                ? 'text-green-600 hover:text-green-700'
-                                                : 'text-orange-600 hover:text-orange-700'
+                                                 ? 'text-green-600 hover:text-green-700'
+                                                 : 'text-orange-600 hover:text-orange-700'
                                         }`}
                                     >
                                         {(jobposting.status === 'draft' || jobposting.status === '0') ? (
@@ -301,6 +271,21 @@ export default function Index() {
                         )}
                         <Tooltip delayDuration={0}>
                             <TooltipTrigger asChild>
+                                <a
+                                    href={getJobUrl(jobposting)}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center justify-center h-8 w-8 rounded-md text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                >
+                                    <ExternalLink className="h-4 w-4" />
+                                </a>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>{t('Open on Live Career Portal')}</p>
+                            </TooltipContent>
+                        </Tooltip>
+                        <Tooltip delayDuration={0}>
+                            <TooltipTrigger asChild>
                                 <Button
                                     variant="ghost"
                                     size="sm"
@@ -311,7 +296,7 @@ export default function Index() {
                                 </Button>
                             </TooltipTrigger>
                             <TooltipContent>
-                                <p>{t('Copy Direct Job Link (Social Share)')}</p>
+                                <p>{t('Copy Job URL')}</p>
                             </TooltipContent>
                         </Tooltip>
                         {auth.user?.permissions?.includes('view-job-postings') && (
@@ -322,7 +307,7 @@ export default function Index() {
                                     </Button>
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                    <p>{t('View')}</p>
+                                    <p>{t('View Details')}</p>
                                 </TooltipContent>
                             </Tooltip>
                         )}
@@ -365,82 +350,52 @@ export default function Index() {
         <AuthenticatedLayout
             breadcrumbs={[
                 { label: t('Recruitment'), url: route('recruitment.index') },
-                {label: t('Job Postings')}
+                { label: t('Open Jobs') }
             ]}
-            pageTitle={t('Manage Job Postings')}
+            pageTitle={t('Manage Open Jobs')}
             pageActions={
                 <div className="flex items-center gap-2">
                     <TooltipProvider>
+                        <a
+                            href="https://careers.dynime.com/"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 shadow-2xs transition-colors no-underline"
+                        >
+                            <Globe className="h-3.5 w-3.5 text-blue-600" />
+                            {t('Visit Career Portal')}
+                            <ExternalLink className="h-3 w-3 text-blue-500 ml-0.5" />
+                        </a>
                         <Tooltip delayDuration={0}>
                             <TooltipTrigger asChild>
                                 <Button
                                     size="sm"
                                     variant="outline"
                                     onClick={() => handleCopyCareerUrl()}
-                                    className="gap-1.5 font-bold text-xs border-indigo-200 text-indigo-700 bg-indigo-50/70 hover:bg-indigo-100 shadow-sm"
+                                    className="gap-1.5 font-semibold text-xs border-slate-200 text-slate-700 bg-white hover:bg-slate-50 shadow-2xs"
                                 >
-                                    {isCopied ? <Check className="h-4 w-4 text-emerald-600" /> : <Globe className="h-4 w-4 text-indigo-600" />}
-                                    {isCopied ? t('Copied Portal Link!') : t('Copy Career Portal URL')}
+                                    {isCopied ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5 text-slate-500" />}
+                                    {isCopied ? t('Copied!') : t('Copy Portal URL')}
                                 </Button>
                             </TooltipTrigger>
                             <TooltipContent>
                                 <p>{t('Copy https://careers.dynime.com/ to clipboard')}</p>
                             </TooltipContent>
                         </Tooltip>
-                        <div className="flex items-center gap-1">
-                            <Tooltip delayDuration={0}>
-                                <TooltipTrigger asChild>
-                                    <Button
-                                        size="sm"
-                                        variant="outline"
-                                        disabled={isSyncing}
-                                        onClick={() => handleSyncFlowmingo()}
-                                        className="gap-1.5 font-bold text-xs border-purple-200 text-purple-700 bg-purple-50/70 hover:bg-purple-100 shadow-sm"
-                                    >
-                                        <RefreshCw className={`h-4 w-4 text-purple-600 ${isSyncing ? "animate-spin" : ""}`} />
-                                        {isSyncing ? t("Syncing...") : t("Manual Sync Flowmingo")}
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    <p>{t("Manually trigger crawl and sync all jobs from Flowmingo ATS")}</p>
-                                </TooltipContent>
-                            </Tooltip>
-                            <Tooltip delayDuration={0}>
-                                <TooltipTrigger asChild>
-                                    <Button
-                                        size="sm"
-                                        variant="ghost"
-                                        onClick={() => setIsSyncModalOpen(true)}
-                                        className="h-8 w-8 p-0 text-slate-500 hover:text-purple-700 hover:bg-purple-50 border border-slate-200"
-                                    >
-                                        <Settings className="h-3.5 w-3.5" />
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    <p>{t("Flowmingo API Key & Configuration Settings")}</p>
-                                </TooltipContent>
-                            </Tooltip>
-                        </div>
                         {dropboxBtn.map((button) => (
                             <div key={button.id}>{button.component}</div>
                         ))}
-                    {auth.user?.permissions?.includes('create-job-postings') && (
-                        <Tooltip delayDuration={0}>
-                            <TooltipTrigger asChild>
-                                <Button size="sm" onClick={() => openModal('add')}>
-                                    <Plus className="h-4 w-4" />
-                                </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                                <p>{t('Create')}</p>
-                            </TooltipContent>
-                        </Tooltip>
-                    )}
-                </TooltipProvider>
+                        {auth.user?.permissions?.includes('create-job-postings') && (
+                            <Button size="sm" onClick={() => openModal('add')} className="gap-1.5 font-semibold text-xs bg-primary text-white shadow-2xs">
+                                <Plus className="h-4 w-4" />
+                                {t('Post New Job')}
+                            </Button>
+                        )}
+                    </TooltipProvider>
                 </div>
             }
         >
-            <Head title={t('Job Postings')} />
+            <Head title={t('Open Jobs')} />
 
             {/* Main Content Card */}
             <Card className="shadow-sm">
@@ -774,74 +729,6 @@ export default function Index() {
                 onConfirm={confirmDelete}
                 variant="destructive"
             />
-        
-            {/* Flowmingo API Sync Modal */}
-            <Dialog open={isSyncModalOpen} onOpenChange={setIsSyncModalOpen}>
-                <DialogContent className="sm:max-w-md">
-                    <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2 text-purple-700">
-                            <Bot className="h-5 w-5" />
-                            {t("Sync Jobs from Flowmingo ATS")}
-                        </DialogTitle>
-                        <DialogDescription className="text-xs text-slate-500">
-                            {t("Connect your Flowmingo workspace using your official API Key (found in Flowmingo -> Settings -> Integrations -> API Keys) to automatically crawl and populate all active interview positions.")}
-                        </DialogDescription>
-                    </DialogHeader>
-
-                    <div className="space-y-4 py-2">
-                        <div className="space-y-1.5">
-                            <Label htmlFor="flowmingo_api_key" className="text-xs font-semibold">
-                                {t("Flowmingo API Key (fl_live_...)")}
-                            </Label>
-                            <Input
-                                id="flowmingo_api_key"
-                                type="password"
-                                placeholder="fl_live_xxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                                value={flowmingoApiKey}
-                                onChange={(e) => setFlowmingoApiKey(e.target.value)}
-                                className="text-sm font-mono"
-                            />
-                            <p className="text-[11px] text-slate-400">
-                                {t("Leave blank to re-sync all 16 official default positions.")}
-                            </p>
-                        </div>
-                    </div>
-
-                    <DialogFooter className="flex gap-2 sm:justify-between items-center">
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            disabled={isSyncing}
-                            onClick={() => handleSyncFlowmingo()}
-                            className="text-xs text-slate-600"
-                        >
-                            {t("Quick Sync Default (16 Jobs)")}
-                        </Button>
-                        <div className="flex gap-2">
-                            <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setIsSyncModalOpen(false)}
-                            >
-                                {t("Cancel")}
-                            </Button>
-                            <Button
-                                type="button"
-                                size="sm"
-                                disabled={isSyncing}
-                                onClick={() => handleSyncFlowmingo(flowmingoApiKey)}
-                                className="bg-purple-700 hover:bg-purple-800 text-white"
-                            >
-                                <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${isSyncing ? "animate-spin" : ""}`} />
-                                {isSyncing ? t("Syncing...") : t("Save & Sync Now")}
-                            </Button>
-                        </div>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-
         </AuthenticatedLayout>
     );
 }

@@ -20,8 +20,15 @@ import {
     ArrowLeftRight,
     RefreshCw,
     CreditCard,
-    DollarSign
+    DollarSign,
+    X,
+    ShieldCheck,
+    Globe,
+    Copy,
+    Landmark
 } from 'lucide-react';
+import { toast } from 'sonner';
+import BankDetailsModal from '@/components/BankDetailsModal';
 import { SalesInvoice } from './types';
 import { getPaymentStatusBadgeClasses, getOperationalStatusBadgeClasses, getProjectStatusBadgeClasses, PROJECT_STATUS_MAP } from './utils';
 
@@ -101,10 +108,49 @@ const getSymbol = (currency: string): string => {
 
 export default function PublicView({ invoice, companySettings, paymentGateways, autoDownloadPdf, autoPrint }: PublicViewProps) {
     const [copied, setCopied] = useState(false);
-    const [isPayModalOpen, setIsPayModalOpen] = useState(false);
+    const [isPaymentPanelOpen, setIsPaymentPanelOpen] = useState(false);
     const [selectedGateway, setSelectedGateway] = useState('dodopay');
     const [paymentMode, setPaymentMode] = useState<'full' | 'partial'>('full');
     const [partialAmount, setPartialAmount] = useState('');
+    const [paymentNotice, setPaymentNotice] = useState<{ type: 'success' | 'failed' | 'info'; message: string } | null>(null);
+
+    const [bankCountryFilter, setBankCountryFilter] = useState<string>('all');
+    const [copiedAccId, setCopiedAccId] = useState<string | null>(null);
+
+    const copyBankDetails = (acc: any, idx: number) => {
+        const lines = [
+            `Bank Name: ${acc.bank_name}`,
+            `${acc.account_name_label || 'Account Name'}: ${acc.account_name}`,
+            `${acc.account_number_label || 'Account Number / IBAN'}: ${acc.account_number}`,
+        ];
+        if (acc.swift_code) lines.push(`${acc.swift_code_label || 'SWIFT/BIC'}: ${acc.swift_code}`);
+        if (acc.branch_routing) lines.push(`${acc.branch_routing_label || 'Branch/Routing'}: ${acc.branch_routing}`);
+        if (acc.currency) lines.push(`Currency: ${acc.currency}`);
+        if (acc.country) lines.push(`Country: ${acc.country}`);
+        if (acc.custom_fields && Array.isArray(acc.custom_fields)) {
+            acc.custom_fields.forEach((cf: any) => {
+                if (cf.label && cf.value) lines.push(`${cf.label}: ${cf.value}`);
+            });
+        }
+
+        navigator.clipboard.writeText(lines.join('\n'));
+        const accId = acc.id || `acc_${idx}`;
+        setCopiedAccId(accId);
+        toast.success('Bank deposit details copied to clipboard!');
+        setTimeout(() => setCopiedAccId(null), 2500);
+    };
+
+    useEffect(() => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const paymentState = urlParams.get('payment');
+        if (paymentState === 'success') {
+            setPaymentNotice({ type: 'success', message: 'Payment completed successfully! Status updated.' });
+            setIsPaymentPanelOpen(true);
+        } else if (paymentState === 'cancel' || paymentState === 'failed') {
+            setPaymentNotice({ type: 'failed', message: 'Payment process was cancelled or failed with operator. You can retry below.' });
+            setIsPaymentPanelOpen(true);
+        }
+    }, []);
 
     const activeGatewaysList = React.useMemo(() => {
         if (paymentGateways?.active_gateways && Array.isArray(paymentGateways.active_gateways) && paymentGateways.active_gateways.length > 0) {
@@ -159,6 +205,27 @@ export default function PublicView({ invoice, companySettings, paymentGateways, 
     const [rates, setRates] = useState<Record<string, number>>({ BDT: 123.24, USD: 1, EUR: 0.92, GBP: 0.78 });
     const [targetCurrency, setTargetCurrency] = useState("BDT");
     const [isFetchingRates, setIsFetchingRates] = useState(false);
+
+    const [selectedBankModalAccount, setSelectedBankModalAccount] = useState<any | null>(null);
+    const [isBankModalOpen, setIsBankModalOpen] = useState<boolean>(false);
+
+    const availableBankAccounts = React.useMemo(() => {
+        const list = paymentGateways?.bank_accounts || [];
+        if (list.length === 0) return [];
+
+        if (bankCountryFilter === 'all') return list;
+
+        const matched = list.filter((a: any) => (a.country || '').toLowerCase() === bankCountryFilter.toLowerCase());
+        if (matched.length > 0) return matched;
+
+        // Fallback: If no account matched for selected country, return primary USD, GBP, EUR, BDT accounts
+        const primaryFallback = list.filter((a: any) => 
+            ['USD', 'GBP', 'EUR', 'BDT'].includes((a.currency || '').toUpperCase()) || 
+            ['United States', 'United Kingdom', 'Bangladesh'].includes(a.country || '')
+        );
+
+        return primaryFallback.length > 0 ? primaryFallback : list;
+    }, [paymentGateways?.bank_accounts, bankCountryFilter]);
 
     // Calculated Variables & Helpers
     const logoUrl = companySettings?.company_logo || 'https://cdn.dynime.com/media/KVhzkR7rCJFuzFxBU8ljBqFb2PItfQM5i3omxMNF.png';
@@ -271,7 +338,7 @@ export default function PublicView({ invoice, companySettings, paymentGateways, 
     const copyLink = () => {
         navigator.clipboard.writeText(window.location.href);
         setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
+        setTimeout(() => setCopied(false), 2500);
     };
 
     const handlePrint = () => {
@@ -279,589 +346,677 @@ export default function PublicView({ invoice, companySettings, paymentGateways, 
     };
 
     return (
-        <div className="min-h-screen bg-white pb-24 print:pb-0 print:bg-white">
+        <div className="min-h-screen bg-slate-50/40 pb-24 print:pb-0 print:bg-white relative">
             <Head title={`Invoice ${invoice.invoice_number}`} />
 
-            {/* Quick Action bar (hidden in print) */}
-            <div className="max-w-[850px] mx-auto mt-2 mb-3 px-4 sm:px-0 flex flex-col sm:flex-row justify-between items-center gap-3 print:hidden">
-                <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold text-slate-400">Share Invoice URL</span>
+            {/* Floating Toast Notification for Link Copy (Auto Hides) */}
+            {copied && (
+                <div className="fixed top-5 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-5 py-2.5 rounded-2xl text-xs font-bold shadow-2xl z-[100] animate-in fade-in slide-in-from-top-3 duration-200 flex items-center gap-2 border border-slate-800">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
+                    <span>Shareable link copied to clipboard!</span>
                 </div>
-                <div className="flex flex-wrap justify-center gap-2">
-                    {balanceDue > 0 && (
-                        <Button
-                            onClick={() => { setPaymentMode('full'); setPartialAmount(''); setIsPayModalOpen(true); }}
-                            className="bg-[#4F46E5] hover:bg-[#4338CA] text-white font-bold shadow-lg shadow-indigo-500/25 rounded-xl px-5 transition-all duration-200"
-                        >
-                            <CreditCard className="h-4 w-4 mr-2" /> Pay Online ({formatCurrency(balanceDue)})
-                        </Button>
-                    )}
-                    <Button variant="outline" size="sm" onClick={copyLink} className="bg-white border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl">
-                        <Share2 className="h-4 w-4 mr-2 text-slate-500" />
-                        {copied ? 'Copied!' : 'Copy link'}
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={handlePrint} className="bg-white border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl font-medium">
-                        <Printer className="h-4 w-4 mr-2 text-slate-500" />
-                        Print PDF
-                    </Button>
-                </div>
-            </div>
+            )}
 
-            {/* Print Container (Single Card on Web Screen, Split Page during Print) */}
-            <div className="invoice-card-container max-w-[850px] mx-auto px-4 sm:px-0 print:p-0 print:max-w-full">
+            {/* Main Content Layout Container (Shifts to Left when Payment Panel is Open) */}
+            <div className={`transition-all duration-300 ${isPaymentPanelOpen ? 'max-w-[1320px] mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col lg:flex-row gap-6 items-start' : 'max-w-[850px] mx-auto px-4 sm:px-0'}`}>
                 
-                <div className="bg-white shadow-xl rounded-2xl border border-slate-100 relative overflow-hidden print:shadow-none print:border-none print:p-0 print:m-0">
+                {/* LEFT COLUMN: Actions Bar & Invoice Document */}
+                <div className={`transition-all duration-300 ${isPaymentPanelOpen ? 'w-full lg:w-[calc(100%-415px)] shrink-0' : 'w-full'}`}>
                     
-                    {/* ============================================================== */}
-                    {/* PAGE 1 CONTENT */}
-                    {/* ============================================================== */}
-                    <div className="p-6 sm:p-10 pb-4 print:p-0 print:pb-0">
-                        {/* Logo & Invoice Title Header */}
-                        <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-4 mt-2">
-                            <div>
-                                <h1 className="text-[38px] font-extrabold tracking-tight text-slate-900 leading-none mb-3">Invoice</h1>
-                                <div className="flex items-center gap-4">
-                                    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${getStatusBadgeStyles(invoice.status)}`}>
-                                        {getStatusIcon(invoice.status)}
-                                        {getStatusText(invoice.status)}
-                                    </span>
-                                    <span className="text-slate-800 font-semibold text-[13px]">Due {dateDue}</span>
-                                </div>
-                            </div>
-                            <div className="sm:text-right flex flex-col items-end">
-                                <img 
-                                    src={logoUrl} 
-                                    alt={companyName} 
-                                    className="h-[32px] object-contain mb-1.5" 
-                                />
-                                <p className="text-slate-900 font-bold text-[11px]">{companyDomain}</p>
-                            </div>
+                    {/* Quick Action bar (hidden in print) */}
+                    <div className="mt-2 mb-3 px-1 flex flex-col sm:flex-row justify-between items-center gap-3 print:hidden">
+                        <div className="flex items-center gap-2">
+                            <span className="text-sm font-semibold text-slate-400">Share Invoice URL</span>
                         </div>
-
-                        {/* Meta Fields Grid */}
-                        <div className="meta-fields-grid-print grid grid-cols-1 sm:grid-cols-2 print:grid-cols-2 gap-x-6 md:gap-x-12 gap-y-3 border-t border-b border-slate-100 py-4 mb-6 pdf-avoid-break">
-                            {/* Col 1 */}
-                            <div className="space-y-2.5">
-                                <div className="flex justify-between items-center text-[12.5px]">
-                                    <span className="text-slate-900 font-bold">Invoice number</span>
-                                    <span className="font-extrabold text-slate-950">{invoice.invoice_number}</span>
-                                </div>
-                                <div className="flex justify-between items-center text-[12.5px]">
-                                    <span className="text-slate-900 font-bold">Date of issue</span>
-                                    <span className="font-extrabold text-slate-950">{dateOfIssue}</span>
-                                </div>
-                                <div className="flex justify-between items-center text-[12.5px]">
-                                    <span className="text-slate-900 font-bold">Payment method</span>
-                                    <span className="font-extrabold text-slate-950">{invoice.service_brief?.payment_method || 'Bank Transfer'}</span>
-                                </div>
-                            </div>
-                            {/* Col 2 */}
-                            <div className="space-y-2.5">
-                                <div className="flex justify-between items-center text-[12.5px]">
-                                    <span className="text-slate-900 font-bold">Currency</span>
-                                    <span className="font-extrabold text-slate-950">{invoice.service_brief?.currency || 'USD'}</span>
-                                </div>
-                                <div className="flex justify-between items-center text-[12.5px]">
-                                    <span className="text-slate-900 font-bold">Date due</span>
-                                    <span className="font-extrabold text-slate-950">{dateDue}</span>
-                                </div>
-                                <div className="flex justify-between items-center text-[12.5px]">
-                                    <span className="text-slate-900 font-bold">Est. Delivery Date</span>
-                                    <span className="font-extrabold text-slate-950 flex items-center gap-1.5">
-                                        {(invoice.type === 'service' || !invoice.warehouse_id) ? <CalendarCheck className="h-4 w-4 shrink-0 text-slate-900" /> : <Truck className="h-4 w-4 shrink-0 text-slate-900" />}
-                                        {estDeliveryDate}
-                                    </span>
-                                </div>
-                            </div>
+                        <div className="flex flex-wrap justify-center gap-2">
+                            {balanceDue > 0 && (
+                                <a href={`/invoice/${invoice.invoice_number}/checkout`}>
+                                    <Button
+                                        className="bg-[#4F46E5] hover:bg-[#4338CA] text-white font-bold shadow-lg shadow-indigo-500/25 rounded-xl px-5 transition-all duration-200"
+                                    >
+                                        <CreditCard className="h-4 w-4 mr-2" /> 
+                                        {`Pay Online (${formatCurrency(balanceDue)})`}
+                                    </Button>
+                                </a>
+                            )}
+                            <Button variant="outline" size="sm" onClick={copyLink} className="bg-white border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl">
+                                <Share2 className="h-4 w-4 mr-2 text-slate-500" />
+                                {copied ? 'Copied!' : 'Copy link'}
+                            </Button>
+                            <Button variant="outline" size="sm" onClick={handlePrint} className="bg-white border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl font-medium">
+                                <Printer className="h-4 w-4 mr-2 text-slate-500" />
+                                Print PDF
+                            </Button>
                         </div>
+                    </div>
 
-                        {/* Statuses Horizontal Banner */}
-                        <div className={`status-banner-grid-print grid grid-cols-1 ${invoice.project_category && invoice.project_category !== 'N/A' ? 'sm:grid-cols-[auto_auto_1fr] print:grid-cols-[auto_auto_1fr]' : 'sm:grid-cols-2 print:grid-cols-2'} gap-6 bg-white border border-slate-200 rounded-xl p-4 mb-4 pdf-avoid-break items-start`}>
-                            {/* Payment Status */}
-                            <div className="flex items-center gap-3 bg-white/60 rounded-lg px-3 py-2.5 shrink-0">
-                                <div className="shrink-0">
-                                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-900 block mb-1">Payment status</span>
-                                    <span className={getPaymentStatusBadgeClasses(invoice.payment_status || 'Unpaid')}>
-                                        {invoice.payment_status || 'Unpaid'}
-                                    </span>
-                                </div>
-                            </div>
-
-                            {/* Operational Status */}
-                            <div className="flex items-center gap-3 bg-white/60 rounded-lg px-3 py-2.5 shrink-0">
-                                <div className="shrink-0">
-                                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-900 block mb-1">Operational status</span>
-                                    <span className={getOperationalStatusBadgeClasses(invoice.operational_status || 'Pending')}>
-                                        {invoice.operational_status || 'Pending'}
-                                    </span>
-                                </div>
-                            </div>
-
-                            {/* Project Status */}
-                            {invoice.project_category && invoice.project_category !== 'N/A' && (
-                                <div className="flex items-center gap-3 bg-white/60 rounded-lg px-3 py-2.5 min-w-0">
-                                    <div className="w-full">
-                                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-900 block mb-1">Project status</span>
-                                        <div className="flex items-center gap-2.5">
-                                            <span className={`${getProjectStatusBadgeClasses(invoice.project_status || '')} shrink-0`}>
-                                                {invoice.project_status || 'N/A'}
+                    {/* Invoice Card */}
+                    <div className="invoice-card-container print:p-0 print:max-w-full">
+                        <div className="bg-white shadow-xl rounded-2xl border border-slate-100 relative overflow-hidden print:shadow-none print:border-none print:p-0 print:m-0">
+                            
+                            {/* PAGE 1 CONTENT */}
+                            <div className="p-6 sm:p-10 pb-4 print:p-0 print:pb-0">
+                                {/* Logo & Invoice Title Header */}
+                                <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-4 mt-2">
+                                    <div>
+                                        <h1 className="text-[38px] font-extrabold tracking-tight text-slate-900 leading-none mb-3">Invoice</h1>
+                                        <div className="flex items-center gap-4">
+                                            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${getStatusBadgeStyles(invoice.status)}`}>
+                                                {getStatusIcon(invoice.status)}
+                                                {getStatusText(invoice.status)}
                                             </span>
-                                            {invoice.project_status && PROJECT_STATUS_MAP[invoice.project_category]?.find(x => x.label === invoice.project_status)?.desc && (
-                                                <span className="text-[11px] text-slate-700 leading-snug font-medium">
-                                                    {PROJECT_STATUS_MAP[invoice.project_category]?.find(x => x.label === invoice.project_status)?.desc}
-                                                </span>
+                                            <span className="text-slate-800 font-semibold text-[13px]">Due {dateDue}</span>
+                                        </div>
+                                    </div>
+                                    <div className="sm:text-right flex flex-col items-end">
+                                        <img 
+                                            src={logoUrl} 
+                                            alt={companyName} 
+                                            className="h-[32px] object-contain mb-1.5" 
+                                        />
+                                        <p className="text-slate-900 font-bold text-[11px]">{companyDomain}</p>
+                                    </div>
+                                </div>
+
+                                {/* Meta Fields Grid */}
+                                <div className="meta-fields-grid-print grid grid-cols-1 sm:grid-cols-2 print:grid-cols-2 gap-x-6 md:gap-x-12 gap-y-3 border-t border-b border-slate-100 py-4 mb-6 pdf-avoid-break">
+                                    {/* Col 1 */}
+                                    <div className="space-y-2.5">
+                                        <div className="flex justify-between items-center text-[12.5px]">
+                                            <span className="text-slate-900 font-bold">Invoice number</span>
+                                            <span className="font-extrabold text-slate-950">{invoice.invoice_number}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center text-[12.5px]">
+                                            <span className="text-slate-900 font-bold">Date of issue</span>
+                                            <span className="font-extrabold text-slate-950">{dateOfIssue}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center text-[12.5px]">
+                                            <span className="text-slate-900 font-bold">Payment method</span>
+                                            <span className="font-extrabold text-slate-950">{invoice.service_brief?.payment_method || 'Bank Transfer'}</span>
+                                        </div>
+                                    </div>
+                                    {/* Col 2 */}
+                                    <div className="space-y-2.5">
+                                        <div className="flex justify-between items-center text-[12.5px]">
+                                            <span className="text-slate-900 font-bold">Currency</span>
+                                            <span className="font-extrabold text-slate-950">{invoice.service_brief?.currency || 'USD'}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center text-[12.5px]">
+                                            <span className="text-slate-900 font-bold">Date due</span>
+                                            <span className="font-extrabold text-slate-950">{dateDue}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center text-[12.5px]">
+                                            <span className="text-slate-900 font-bold">Est. Delivery Date</span>
+                                            <span className="font-extrabold text-slate-950 flex items-center gap-1.5">
+                                                {(invoice.type === 'service' || !invoice.warehouse_id) ? <CalendarCheck className="h-4 w-4 shrink-0 text-slate-900" /> : <Truck className="h-4 w-4 shrink-0 text-slate-900" />}
+                                                {estDeliveryDate}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Statuses Horizontal Banner */}
+                                <div className={`status-banner-grid-print grid grid-cols-1 ${invoice.project_category && invoice.project_category !== 'N/A' ? 'sm:grid-cols-[auto_auto_1fr] print:grid-cols-[auto_auto_1fr]' : 'sm:grid-cols-2 print:grid-cols-2'} gap-6 bg-white border border-slate-200 rounded-xl p-4 mb-4 pdf-avoid-break items-start`}>
+                                    {/* Payment Status */}
+                                    <div className="flex items-center gap-3 bg-white/60 rounded-lg px-3 py-2.5 shrink-0">
+                                        <div className="shrink-0">
+                                            <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-900 block mb-1">Payment status</span>
+                                            <span className={getPaymentStatusBadgeClasses(invoice.payment_status || 'Unpaid')}>
+                                                {invoice.payment_status || 'Unpaid'}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    {/* Operational Status */}
+                                    <div className="flex items-center gap-3 bg-white/60 rounded-lg px-3 py-2.5 shrink-0">
+                                        <div className="shrink-0">
+                                            <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-900 block mb-1">Operational status</span>
+                                            <span className={getOperationalStatusBadgeClasses(invoice.operational_status || 'Pending')}>
+                                                {invoice.operational_status || 'Pending'}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    {/* Project Status */}
+                                    {invoice.project_category && invoice.project_category !== 'N/A' && (
+                                        <div className="flex items-center gap-3 bg-white/60 rounded-lg px-3 py-2.5 min-w-0">
+                                            <div className="w-full">
+                                                <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-900 block mb-1">Project status</span>
+                                                <div className="flex items-center gap-2.5">
+                                                    <span className={`${getProjectStatusBadgeClasses(invoice.project_status || '')} shrink-0`}>
+                                                        {invoice.project_status || 'N/A'}
+                                                    </span>
+                                                    {invoice.project_status && PROJECT_STATUS_MAP[invoice.project_category]?.find(x => x.label === invoice.project_status)?.desc && (
+                                                        <span className="text-[11px] text-slate-700 leading-snug font-medium">
+                                                            {PROJECT_STATUS_MAP[invoice.project_category]?.find(x => x.label === invoice.project_status)?.desc}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* From & Billed To Addresses */}
+                                <div className="addresses-grid-print grid grid-cols-1 sm:grid-cols-2 print:grid-cols-2 gap-8 mb-6 pdf-avoid-break">
+                                    {/* FROM */}
+                                    <div>
+                                        <div className="text-[11px] font-extrabold uppercase tracking-wider text-slate-900 mb-2.5 flex items-center gap-1.5">
+                                            <Building2 className="h-3.5 w-3.5 shrink-0 text-slate-900" />
+                                            FROM
+                                        </div>
+                                        <div className="space-y-1.5 text-[12.5px] text-slate-800 font-medium">
+                                            <p className="font-bold text-slate-950 text-[13.5px]">{companyName}</p>
+                                            <p className="flex items-center gap-2"><Mail className="h-3.5 w-3.5 text-slate-700 shrink-0" /> {companyEmail}</p>
+                                            {companyPhone && <p className="flex items-center gap-2"><Phone className="h-3.5 w-3.5 text-slate-700 shrink-0" /> {companyPhone}</p>}
+                                            <p className="flex items-center gap-2">
+                                                <MapPin className="h-3.5 w-3.5 text-slate-700 shrink-0" /> 
+                                                <span className="leading-snug">{companyAddress}</span>
+                                            </p>
+                                        </div>
+                                    </div>
+                                    {/* BILLED TO */}
+                                    <div>
+                                        <div className="text-[11px] font-extrabold uppercase tracking-wider text-slate-900 mb-2.5 flex items-center gap-1.5">
+                                            <User className="h-3.5 w-3.5 shrink-0 text-slate-900" />
+                                            BILLED TO
+                                        </div>
+                                        <div className="space-y-1.5 text-[12.5px] text-slate-800 font-medium">
+                                            <p className="font-bold text-slate-950 text-[13.5px]">{invoice.customer?.name || invoice.customer_name || 'Client'}</p>
+                                            <p className="flex items-center gap-2"><Mail className="h-3.5 w-3.5 text-slate-700 shrink-0" /> {invoice.customer?.email || 'client@dynime.com'}</p>
+                                            {invoice.customer?.phone && <p className="flex items-center gap-2"><Phone className="h-3.5 w-3.5 text-slate-700 shrink-0" /> {invoice.customer.phone}</p>}
+                                            {invoice.customer?.billing_address && (
+                                                <p className="flex items-center gap-2"><MapPin className="h-3.5 w-3.5 text-slate-700 shrink-0" /> <span className="leading-snug">{invoice.customer.billing_address}</span></p>
                                             )}
                                         </div>
                                     </div>
                                 </div>
-                            )}
-                        </div>
 
-                        {/* From & Billed To Addresses */}
-                        <div className="addresses-grid-print grid grid-cols-1 sm:grid-cols-2 print:grid-cols-2 gap-8 mb-6 pdf-avoid-break">
-                            {/* FROM */}
-                            <div>
-                                <div className="text-[11px] font-extrabold uppercase tracking-wider text-slate-900 mb-2.5 flex items-center gap-1.5">
-                                    <Building2 className="h-3.5 w-3.5 shrink-0 text-slate-900" />
-                                    FROM
+                                {/* Amount & Delivery Cards */}
+                                <div className="amount-delivery-grid-print grid grid-cols-2 gap-4 mb-6">
+                                    <div className="bg-[#FAFBFD] border border-slate-200/80 rounded-xl px-4 py-3 flex flex-col justify-center">
+                                        <span className="text-[10px] font-black uppercase tracking-wider text-slate-900 block mb-0.5">Balance Due</span>
+                                        <div className="flex items-baseline gap-2">
+                                            <span className="text-[22px] font-black text-slate-950 leading-tight">{formatCurrency(balanceDue)}</span>
+                                            <span className="text-[11px] font-bold text-slate-800">due {dateDue}</span>
+                                        </div>
+                                        <p className="text-[11px] font-semibold text-slate-700 mt-0.5">Total: {formatCurrency(invoice.total_amount)} · Paid: {formatCurrency(invoice.paid_amount || 0)}</p>
+                                    </div>
+                                    <div className="bg-white border border-slate-200/80 rounded-xl px-4 py-3 flex items-center gap-3">
+                                        <div className="p-2 bg-slate-100 text-slate-900 rounded-lg shrink-0">
+                                            {(invoice.type === 'service' || !invoice.warehouse_id) ? <CalendarCheck className="h-4 w-4" /> : <Truck className="h-4 w-4" />}
+                                        </div>
+                                        <div>
+                                            <span className="text-[10px] font-black uppercase tracking-wider text-slate-900 block mb-0.5">Estimated Delivery Date</span>
+                                            <p className="text-[13.5px] font-extrabold text-slate-950">{estDeliveryDate}</p>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div className="space-y-1.5 text-[12.5px] text-slate-800 font-medium">
-                                    <p className="font-bold text-slate-950 text-[13.5px]">{companyName}</p>
-                                    <p className="flex items-center gap-2"><Mail className="h-3.5 w-3.5 text-slate-700 shrink-0" /> {companyEmail}</p>
-                                    {companyPhone && <p className="flex items-center gap-2"><Phone className="h-3.5 w-3.5 text-slate-700 shrink-0" /> {companyPhone}</p>}
-                                    <p className="flex items-center gap-2">
-                                        <MapPin className="h-3.5 w-3.5 text-slate-700 shrink-0" /> 
-                                        <span className="leading-snug">{companyAddress}</span>
-                                    </p>
-                                </div>
-                            </div>
-                            {/* BILLED TO */}
-                            <div>
-                                <div className="text-[11px] font-extrabold uppercase tracking-wider text-slate-900 mb-2.5 flex items-center gap-1.5">
-                                    <User className="h-3.5 w-3.5 shrink-0 text-slate-900" />
-                                    BILLED TO
-                                </div>
-                                <div className="space-y-1.5 text-[12.5px] text-slate-800 font-medium">
-                                    <p className="font-bold text-slate-950 text-[13.5px]">{invoice.customer?.name || invoice.customer_name || 'Client'}</p>
-                                    <p className="flex items-center gap-2"><Mail className="h-3.5 w-3.5 text-slate-700 shrink-0" /> {invoice.customer?.email || 'client@dynime.com'}</p>
-                                    {invoice.customer?.phone && <p className="flex items-center gap-2"><Phone className="h-3.5 w-3.5 text-slate-700 shrink-0" /> {invoice.customer.phone}</p>}
-                                    {invoice.customer?.billing_address && (
-                                        <p className="flex items-center gap-2"><MapPin className="h-3.5 w-3.5 text-slate-700 shrink-0" /> <span className="leading-snug">{invoice.customer.billing_address}</span></p>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
 
-                        {/* Balance Due & Estimated Delivery Date 2-Column Row (Compact height) */}
-                        <div className="amount-delivery-grid-print grid grid-cols-2 gap-4 mb-6">
-                            {/* Left Column: Balance Due */}
-                            <div className="bg-[#FAFBFD] border border-slate-200/80 rounded-xl px-4 py-3 flex flex-col justify-center">
-                                <span className="text-[10px] font-black uppercase tracking-wider text-slate-900 block mb-0.5">Balance Due</span>
-                                <div className="flex items-baseline gap-2">
-                                    <span className="text-[22px] font-black text-slate-950 leading-tight">{formatCurrency(balanceDue)}</span>
-                                    <span className="text-[11px] font-bold text-slate-800">due {dateDue}</span>
-                                </div>
-                                <p className="text-[11px] font-semibold text-slate-700 mt-0.5">
-                                    Total: {formatCurrency(invoice.total_amount)} · Paid: {formatCurrency(invoice.paid_amount || 0)}
-                                </p>
-                            </div>
-
-                            {/* Right Column: Estimated Delivery Date */}
-                            <div className="bg-white border border-slate-200/80 rounded-xl px-4 py-3 flex items-center gap-3">
-                                <div className="p-2 bg-slate-100 text-slate-900 rounded-lg shrink-0">
-                                    {(invoice.type === 'service' || !invoice.warehouse_id) ? <CalendarCheck className="h-4 w-4" /> : <Truck className="h-4 w-4" />}
-                                </div>
-                                <div>
-                                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-900 block mb-0.5">Estimated Delivery Date</span>
-                                    <p className="text-[13.5px] font-extrabold text-slate-950">{estDeliveryDate}</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Line Items Table */}
-                        <div className="mb-6">
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-left text-[12.5px]">
-                                    <thead>
-                                        <tr className="border-b-[1.5px] border-slate-900 text-[10.5px] font-extrabold uppercase tracking-wider text-slate-900">
-                                            <th className="py-2.5 pl-0">Description</th>
-                                            <th className="py-2.5 text-center w-16">Qty</th>
-                                            <th className="py-2.5 text-right w-28">Unit Price</th>
-                                            <th className="py-2.5 text-right w-32 pr-0">Amount</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-slate-100">
-                                        {invoice.items?.map((item: any, index: number) => {
-                                            const name = item.item_name || item.name || item.product?.name || item.product_name || `Item #${index + 1}`;
-                                            const desc = item.description || item.product?.description;
-                                            return (
-                                                <tr key={index} className="pdf-avoid-break">
-                                                    <td className="py-3 pl-0">
-                                                        <div className="font-bold text-slate-900">{name}</div>
-                                                        {desc && <div className="text-[11px] text-slate-600 leading-snug mt-0.5">{desc}</div>}
-                                                    </td>
-                                                    <td className="py-3 text-center text-slate-700">{item.quantity}</td>
-                                                    <td className="py-3 text-right text-slate-600">{formatCurrency(item.unit_price)}</td>
-                                                    <td className="py-3 text-right font-bold text-slate-950">{formatCurrency(item.total_amount)}</td>
+                                {/* Items Table */}
+                                <div className="mb-6">
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-left text-[12.5px]">
+                                            <thead>
+                                                <tr className="border-b-[1.5px] border-slate-900 text-[10.5px] font-extrabold uppercase tracking-wider text-slate-900">
+                                                    <th className="py-2.5 pl-0">Description</th>
+                                                    <th className="py-2.5 text-center w-16">Qty</th>
+                                                    <th className="py-2.5 text-right w-28">Unit Price</th>
+                                                    <th className="py-2.5 text-right w-32 pr-0">Amount</th>
                                                 </tr>
-                                            );
-                                        })}
-                                    </tbody>
-                                </table>
-                            </div>
-
-                            {/* Table Totals aligned right */}
-                            <div className="flex justify-end mb-6 pdf-avoid-break">
-                                <div className="w-[320px] space-y-2.5 text-[13px]">
-                                    <div className="flex justify-between border-t border-slate-100 pt-2.5 text-slate-600">
-                                        <span>Subtotal</span>
-                                        <span className="font-medium text-slate-900">{formatCurrency(invoice.subtotal)}</span>
-                                    </div>
-                                    {invoice.discount_amount > 0 && (
-                                        <div className="flex justify-between text-[#10B981] font-semibold">
-                                            <span>Discount</span>
-                                            <span>-{formatCurrency(invoice.discount_amount)}</span>
-                                        </div>
-                                    )}
-                                    <div className="flex justify-between text-slate-600">
-                                        <span>Total excluding tax</span>
-                                        <span className="font-medium text-slate-900">{formatCurrency(invoice.total_amount)}</span>
-                                    </div>
-                                    <div className="flex justify-between text-slate-600">
-                                        <span>Tax</span>
-                                        <span className="font-medium text-slate-900">{formatCurrency(invoice.tax_amount)}</span>
-                                    </div>
-                                    <div className="flex justify-between border-t-[1.5px] border-slate-900 pt-2.5 text-[14.5px] font-black text-black">
-                                        <span>Total</span>
-                                        <span>{formatCurrency(invoice.total_amount)}</span>
-                                    </div>
-                                    {Number(invoice.paid_amount || 0) > 0 && (
-                                        <div className="flex justify-between text-slate-600 text-[13px]">
-                                            <span>Paid Amount</span>
-                                            <span className="font-medium text-emerald-600">{formatCurrency(invoice.paid_amount)}</span>
-                                        </div>
-                                    )}
-                                    <div className="flex justify-between border-t border-slate-200 pt-2 text-[14px] font-bold text-slate-900">
-                                        <span>Balance Due</span>
-                                        <span className={Number(invoice.balance_amount || 0) > 0 ? "text-indigo-600 font-extrabold" : "text-slate-900"}>{formatCurrency(invoice.balance_amount)}</span>
+                                            </thead>
+                                            <tbody className="divide-y divide-slate-100">
+                                                {invoice.items?.map((item, index) => {
+                                                    const name = item.item_name || item.name || item.product?.name || item.product_name || `Item #${index + 1}`;
+                                                    const desc = item.description || item.product?.description;
+                                                    return (
+                                                        <tr key={index} className="pdf-avoid-break">
+                                                            <td className="py-3 pl-0">
+                                                                <div className="font-bold text-slate-900">{name}</div>
+                                                                {desc && <div className="text-[11px] text-slate-600 leading-snug mt-0.5">{desc}</div>}
+                                                            </td>
+                                                            <td className="py-3 text-center text-slate-700">{item.quantity}</td>
+                                                            <td className="py-3 text-right text-slate-600">{formatCurrency(item.unit_price)}</td>
+                                                            <td className="py-3 text-right font-bold text-slate-950">{formatCurrency(item.total_amount)}</td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                            </tbody>
+                                        </table>
                                     </div>
 
-                                    {/* Pay Full / Pay Partial Buttons (Screen only) */}
-                                    {Number(invoice.balance_amount || 0) > 0 && (
-                                        <div className="flex gap-2 mt-3 print:hidden">
-                                            <button
-                                                onClick={() => { setPaymentMode('full'); setPartialAmount(''); setIsPayModalOpen(true); }}
-                                                className="flex-1 flex items-center justify-center gap-1.5 bg-[#4F46E5] hover:bg-[#4338CA] text-white text-[12px] font-bold py-2.5 px-3 rounded-xl transition-all duration-200 shadow-md shadow-indigo-500/20"
-                                            >
-                                                <CreditCard className="h-3.5 w-3.5" />
-                                                Pay Full
-                                            </button>
-                                            <button
-                                                onClick={() => { setPaymentMode('partial'); setPartialAmount(''); setIsPayModalOpen(true); }}
-                                                className="flex-1 flex items-center justify-center gap-1.5 bg-white hover:bg-slate-50 text-[#4F46E5] border-2 border-[#4F46E5]/20 hover:border-[#4F46E5]/40 text-[12px] font-bold py-2.5 px-3 rounded-xl transition-all duration-200"
-                                            >
-                                                <DollarSign className="h-3.5 w-3.5" />
-                                                Pay Partial
-                                            </button>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* ============================================================== */}
-                    {/* LIVE CURRENCY CONVERTER (Screen Only) */}
-                    {/* ============================================================== */}
-                    <div className="px-6 sm:px-10 py-2.5 bg-[#FAFBFD] border-t border-b border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 print:hidden pdf-hide text-xs text-slate-500 font-medium">
-                        <div className="flex items-center gap-1.5">
-                            <ArrowLeftRight className="w-3.5 h-3.5 text-indigo-500" />
-                            <span>Currency Converter:</span>
-                            <span className="font-bold text-slate-800">{formatCurrency(invoice.total_amount)} {invoice.service_brief?.currency || 'USD'}</span>
-                        </div>
-                        <div className="flex items-center gap-2.5">
-                            <span className="text-slate-500">is equivalent to</span>
-                            <div className="flex items-center gap-1 bg-indigo-50/50 border border-indigo-100/60 rounded-lg py-1 px-2.5">
-                                <span className="font-extrabold text-indigo-600 text-[13px] whitespace-nowrap">
-                                    {targetCurrency === 'BDT' ? `৳ ${formatConvertedCurrency(convertedAmount, 'BDT')}` : `${getSymbol(targetCurrency)} ${formatConvertedCurrency(convertedAmount, targetCurrency)}`}
-                                </span>
-                                <select
-                                    value={targetCurrency}
-                                    onChange={(e) => setTargetCurrency(e.target.value)}
-                                    className="bg-transparent border-none text-[11px] font-bold text-indigo-600 focus:outline-none focus:ring-0 cursor-pointer py-0 pl-1 pr-6 m-0"
-                                    aria-label="Convert invoice total to currency"
-                                >
-                                <option value="BDT">BDT — Bangladeshi Taka</option>
-                                <option value="USD">USD — US Dollar</option>
-                                <option value="EUR">EUR — Euro</option>
-                                <option value="GBP">GBP — British Pound</option>
-                                <option value="AUD">AUD — Australian Dollar</option>
-                                <option value="CAD">CAD — Canadian Dollar</option>
-                                <option value="JPY">JPY — Japanese Yen</option>
-                                <option value="SGD">SGD — Singapore Dollar</option>
-                                <option value="INR">INR — Indian Rupee</option>
-                                <option value="AED">AED — UAE Dirham</option>
-                                <option value="SAR">SAR — Saudi Riyal</option>
-                                <option value="CHF">CHF — Swiss Franc</option>
-                                <option value="CNY">CNY — Chinese Yuan</option>
-                                <option value="NZD">NZD — New Zealand Dollar</option>
-                                <option value="HKD">HKD — Hong Kong Dollar</option>
-                                <option value="SEK">SEK — Swedish Krona</option>
-                                <option value="NOK">NOK — Norwegian Krone</option>
-                                <option value="DKK">DKK — Danish Krone</option>
-                                <option value="MYR">MYR — Malaysian Ringgit</option>
-                                <option value="THB">THB — Thai Baht</option>
-                                <option value="PHP">PHP — Philippine Peso</option>
-                                <option value="IDR">IDR — Indonesian Rupiah</option>
-                                <option value="MXN">MXN — Mexican Peso</option>
-                                <option value="BRL">BRL — Brazilian Real</option>
-                                <option value="ZAR">ZAR — South African Rand</option>
-                                <option value="TRY">TRY — Turkish Lira</option>
-                                <option value="KRW">KRW — South Korean Won</option>
-                                <option value="PLN">PLN — Polish Zloty</option>
-                                <option value="KWD">KWD — Kuwaiti Dinar</option>
-                                <option value="QAR">QAR — Qatari Rial</option>
-                                <option value="OMR">OMR — Omani Rial</option>
-                                <option value="BHD">BHD — Bahraini Dinar</option>
-                                <option value="EGP">EGP — Egyptian Pound</option>
-                                <option value="PKR">PKR — Pakistani Rupee</option>
-                                <option value="LKR">LKR — Sri Lankan Rupee</option>
-                                <option value="NPR">NPR — Nepalese Rupee</option>
-                                <option value="VND">VND — Vietnamese Dong</option>
-                                <option value="RUB">RUB — Russian Ruble</option>
-                                <option value="UAH">UAH — Ukrainian Hryvnia</option>
-                                <option value="ILS">ILS — Israeli New Shekel</option>
-                             </select>
-                            </div>
-                            {isFetchingRates && <RefreshCw className="w-3.5 h-3.5 animate-spin text-slate-400 ml-1" />}
-                        </div>
-                    </div>
-
-                    {/* ============================================================== */}
-                    {/* PAGE 2 CONTENT (Prints cleanly on page 2) */}
-                    {/* ============================================================== */}
-                    <div className="p-6 sm:p-10 pt-8 print:p-0 print:pt-6 print-page-break-container border-t border-slate-50 print:border-none">
-                        
-                        {includedServices.length > 0 && (
-                            <>
-                                {/* Inclusion title */}
-                                <div className="mb-4">
-                                    <h2 className="text-[11px] font-extrabold uppercase tracking-widest text-slate-900 flex items-center gap-2">
-                                        <CheckCircle2 className="h-4 w-4 text-slate-900" />
-                                        WHAT'S INCLUDED
-                                    </h2>
-                                </div>
-
-                                {/* 2-Column inclusions grid */}
-                                <div className="inclusions-grid-print grid grid-cols-1 sm:grid-cols-2 print:grid-cols-2 gap-x-12 gap-y-3 mb-6 pb-6 border-b border-slate-100 pdf-avoid-break">
-                                    {includedServices.map((service: string, index: number) => (
-                                        <div key={index} className="flex items-start gap-3 text-[12.5px] text-slate-900 font-medium leading-tight">
-                                            <div className="bg-[#ECFDF5] border border-emerald-100 p-0.5 rounded-full mt-0.5 text-emerald-600">
-                                                <Check className="h-3 w-3 stroke-[3]" />
+                                    {/* Totals Summary */}
+                                    <div className="flex justify-end mb-6 pdf-avoid-break">
+                                        <div className="w-[320px] space-y-2.5 text-[13px]">
+                                            <div className="flex justify-between border-t border-slate-100 pt-2.5 text-slate-600">
+                                                <span>Subtotal</span>
+                                                <span className="font-medium text-slate-900">{formatCurrency(invoice.subtotal)}</span>
                                             </div>
-                                            <span>{service}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </>
-                        )}
+                                            {invoice.discount_amount > 0 && (
+                                                <div className="flex justify-between text-[#10B981] font-semibold">
+                                                    <span>Discount</span>
+                                                    <span>-{formatCurrency(invoice.discount_amount)}</span>
+                                                </div>
+                                            )}
+                                            <div className="flex justify-between text-slate-600">
+                                                <span>Total excluding tax</span>
+                                                <span className="font-medium text-slate-900">{formatCurrency(invoice.total_amount)}</span>
+                                            </div>
+                                            <div className="flex justify-between text-slate-600">
+                                                <span>Tax</span>
+                                                <span className="font-medium text-slate-900">{formatCurrency(invoice.tax_amount)}</span>
+                                            </div>
+                                            <div className="flex justify-between border-t-[1.5px] border-slate-900 pt-2.5 text-[14.5px] font-black text-black">
+                                                <span>Total</span>
+                                                <span>{formatCurrency(invoice.total_amount)}</span>
+                                            </div>
+                                            {Number(invoice.paid_amount || 0) > 0 && (
+                                                <div className="flex justify-between text-slate-600 text-[13px]">
+                                                    <span>Paid Amount</span>
+                                                    <span className="font-medium text-emerald-600">{formatCurrency(invoice.paid_amount)}</span>
+                                                </div>
+                                            )}
+                                            <div className="flex justify-between border-t border-slate-200 pt-2 text-[14px] font-bold text-slate-900">
+                                                <span>Balance Due</span>
+                                                <span className={Number(invoice.balance_amount || 0) > 0 ? "text-indigo-600 font-extrabold" : "text-slate-900"}>
+                                                    {formatCurrency(invoice.balance_amount)}
+                                                </span>
+                                            </div>
 
-                        <div className="pdf-avoid-break">
-                            {/* Project Brief Columns */}
-                            <div className="mb-8">
-                                <h3 className="text-[11px] font-extrabold uppercase tracking-widest text-slate-900 mb-4 flex items-center gap-2">
-                                    <Briefcase className="h-4 w-4 text-slate-900" />
-                                    PROJECT BRIEF
-                                </h3>
-                                <div className="project-brief-grid-print grid grid-cols-1 sm:grid-cols-3 print:grid-cols-3 gap-6">
-                                    <div className="space-y-0.5">
-                                        <span className="text-[11px] text-slate-900 uppercase font-black">Due Date</span>
-                                        <p className="text-[13.5px] font-extrabold text-slate-950">{invoice.due_date ? formatMockDate(invoice.due_date) : 'July 1, 2026'}</p>
+                                            {/* Action Buttons in Card */}
+                                            {Number(invoice.balance_amount || 0) > 0 && (
+                                                <div className="flex gap-2 mt-3 print:hidden">
+                                                    <button
+                                                        onClick={() => { setPaymentMode('full'); setPartialAmount(''); setIsPaymentPanelOpen(true); }}
+                                                        className="flex-1 flex items-center justify-center gap-1.5 bg-[#4F46E5] hover:bg-[#4338CA] text-white text-[12px] font-bold py-2.5 px-3 rounded-xl transition-all duration-200 shadow-md shadow-indigo-500/20"
+                                                    >
+                                                        <CreditCard className="h-3.5 w-3.5" />
+                                                        Pay Full
+                                                    </button>
+                                                    <button
+                                                        onClick={() => { setPaymentMode('partial'); setPartialAmount(''); setIsPaymentPanelOpen(true); }}
+                                                        className="flex-1 flex items-center justify-center gap-1.5 bg-white hover:bg-slate-50 text-[#4F46E5] border-2 border-[#4F46E5]/20 hover:border-[#4F46E5]/40 text-[12px] font-bold py-2.5 px-3 rounded-xl transition-all duration-200"
+                                                    >
+                                                        <DollarSign className="h-3.5 w-3.5" />
+                                                        Pay Partial
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
-                                    <div className="space-y-0.5">
-                                        <span className="text-[11px] text-slate-900 uppercase font-black">
-                                            {Number(invoice.paid_amount || 0) > 0 ? "Balance Due" : "Amount Due"}
+                                </div>
+                            </div>
+
+                            {/* Currency Converter */}
+                            <div className="px-6 sm:px-10 py-2.5 bg-[#FAFBFD] border-t border-b border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 print:hidden pdf-hide text-xs text-slate-500 font-medium">
+                                <div className="flex items-center gap-1.5">
+                                    <RefreshCw className="w-3.5 h-3.5 text-indigo-500" />
+                                    <span>Currency Converter:</span>
+                                    <span className="font-bold text-slate-800">{formatCurrency(invoice.total_amount)} {invoice.service_brief?.currency || 'USD'}</span>
+                                </div>
+                                <div className="flex items-center gap-2.5">
+                                    <span className="text-slate-500">is equivalent to</span>
+                                    <div className="flex items-center gap-1 bg-indigo-50/50 border border-indigo-100/60 rounded-lg py-1 px-2.5">
+                                        <span className="font-extrabold text-indigo-600 text-[13px] whitespace-nowrap">
+                                            {targetCurrency === "BDT" ? `৳ ${formatConvertedCurrency(convertedAmount, "BDT")}` : `${getSymbol(targetCurrency)} ${formatConvertedCurrency(convertedAmount, targetCurrency)}`}
                                         </span>
-                                        <p className="text-[13.5px] font-extrabold text-slate-950">
-                                            {formatCurrency(Number(invoice.paid_amount || 0) > 0 ? invoice.balance_amount : invoice.total_amount)}
+                                        <select
+                                            value={targetCurrency}
+                                            onChange={(e) => setTargetCurrency(e.target.value)}
+                                            className="bg-transparent border-none text-[11px] font-bold text-indigo-600 focus:outline-none focus:ring-0 cursor-pointer py-0 pl-1 pr-6 m-0"
+                                            aria-label="Convert invoice total to currency"
+                                        >
+                                            <option value="BDT">BDT — Bangladeshi Taka</option>
+                                            <option value="USD">USD — US Dollar</option>
+                                            <option value="EUR">EUR — Euro</option>
+                                            <option value="GBP">GBP — British Pound</option>
+                                            <option value="AUD">AUD — Australian Dollar</option>
+                                            <option value="CAD">CAD — Canadian Dollar</option>
+                                            <option value="JPY">JPY — Japanese Yen</option>
+                                            <option value="SGD">SGD — Singapore Dollar</option>
+                                            <option value="INR">INR — Indian Rupee</option>
+                                            <option value="AED">AED — UAE Dirham</option>
+                                            <option value="SAR">SAR — Saudi Riyal</option>
+                                            <option value="CHF">CHF — Swiss Franc</option>
+                                            <option value="CNY">CNY — Chinese Yuan</option>
+                                            <option value="NZD">NZD — New Zealand Dollar</option>
+                                            <option value="HKD">HKD — Hong Kong Dollar</option>
+                                            <option value="SEK">SEK — Swedish Krona</option>
+                                            <option value="NOK">NOK — Norwegian Krone</option>
+                                            <option value="DKK">DKK — Danish Krone</option>
+                                            <option value="MYR">MYR — Malaysian Ringgit</option>
+                                            <option value="THB">THB — Thai Baht</option>
+                                            <option value="PHP">PHP — Philippine Peso</option>
+                                            <option value="IDR">IDR — Indonesian Rupiah</option>
+                                            <option value="MXN">MXN — Mexican Peso</option>
+                                            <option value="BRL">BRL — Brazilian Real</option>
+                                            <option value="ZAR">ZAR — South African Rand</option>
+                                            <option value="TRY">TRY — Turkish Lira</option>
+                                            <option value="KRW">KRW — South Korean Won</option>
+                                            <option value="PLN">PLN — Polish Zloty</option>
+                                            <option value="KWD">KWD — Kuwaiti Dinar</option>
+                                            <option value="QAR">QAR — Qatari Rial</option>
+                                            <option value="OMR">OMR — Omani Rial</option>
+                                            <option value="BHD">BHD — Bahraini Dinar</option>
+                                            <option value="EGP">EGP — Egyptian Pound</option>
+                                            <option value="PKR">PKR — Pakistani Rupee</option>
+                                            <option value="LKR">LKR — Sri Lankan Rupee</option>
+                                            <option value="NPR">NPR — Nepalese Rupee</option>
+                                            <option value="VND">VND — Vietnamese Dong</option>
+                                            <option value="RUB">RUB — Russian Ruble</option>
+                                            <option value="UAH">UAH — Ukrainian Hryvnia</option>
+                                            <option value="ILS">ILS — Israeli New Shekel</option>
+                                        </select>
+                                    </div>
+                                    {isFetchingRates && <RefreshCw className="w-3.5 h-3.5 animate-spin text-slate-400 ml-1" />}
+                                </div>
+                            </div>
+
+                            {/* PAGE 2 INCLUSIONS & FOOTER */}
+                            <div className="p-6 sm:p-10 pt-8 print:p-0 print:pt-6 print-page-break-container border-t border-slate-50 print:border-none">
+                                {includedServices.length > 0 && (
+                                    <>
+                                        <div className="mb-4">
+                                            <h2 className="text-[11px] font-extrabold uppercase tracking-widest text-slate-900 flex items-center gap-2">
+                                                <CheckCircle2 className="h-4 w-4 text-slate-900" />
+                                                WHAT'S INCLUDED
+                                            </h2>
+                                        </div>
+
+                                        <div className="inclusions-grid-print grid grid-cols-1 sm:grid-cols-2 print:grid-cols-2 gap-x-12 gap-y-3 mb-6 pb-6 border-b border-slate-100 pdf-avoid-break">
+                                            {includedServices.map((service: string, index: number) => (
+                                                <div key={index} className="flex items-start gap-3 text-[12.5px] text-slate-900 font-medium leading-tight">
+                                                    <div className="bg-[#ECFDF5] border border-emerald-100 p-0.5 rounded-full mt-0.5 text-emerald-600">
+                                                        <Check className="h-3 w-3 stroke-[3]" />
+                                                    </div>
+                                                    <span>{service}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </>
+                                )}
+
+                                <div className="pdf-avoid-break">
+                                    <div className="mb-8">
+                                        <h3 className="text-[11px] font-extrabold uppercase tracking-widest text-slate-900 mb-4 flex items-center gap-2">
+                                            <Briefcase className="h-4 w-4 text-slate-900" />
+                                            PROJECT BRIEF
+                                        </h3>
+                                        <div className="project-brief-grid-print grid grid-cols-1 sm:grid-cols-3 print:grid-cols-3 gap-6">
+                                            <div className="space-y-0.5">
+                                                <span className="text-[11px] text-slate-900 uppercase font-black">Due Date</span>
+                                                <p className="text-[13.5px] font-extrabold text-slate-950">{invoice.due_date ? formatMockDate(invoice.due_date) : 'July 1, 2026'}</p>
+                                            </div>
+                                            <div className="space-y-0.5">
+                                                <span className="text-[11px] text-slate-900 uppercase font-black">
+                                                    {Number(invoice.paid_amount || 0) > 0 ? "Balance Due" : "Amount Due"}
+                                                </span>
+                                                <p className="text-[13.5px] font-extrabold text-slate-950">
+                                                    {formatCurrency(Number(invoice.paid_amount || 0) > 0 ? invoice.balance_amount : invoice.total_amount)}
+                                                </p>
+                                            </div>
+                                            <div className="space-y-0.5">
+                                                <span className="text-[11px] text-slate-900 uppercase font-black">Estimated Delivery Date</span>
+                                                <p className="text-[13.5px] font-extrabold text-slate-950">{estDeliveryDate}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="border-t border-slate-100 pt-6 text-center space-y-3.5">
+                                        <div className="flex items-center justify-center text-[13px] font-bold text-slate-800">
+                                            <img src={logoUrl} alt={companyName} className="h-6 object-contain" />
+                                        </div>
+                                        <p className="text-[12.5px] text-slate-900 font-bold">Thank you for choosing <span className="font-extrabold">Dynime</span>.</p>
+                                        <p className="text-[11.5px] text-slate-900 font-semibold">
+                                            Questions? Email <span className="text-slate-950 font-bold">{companyEmail}</span> · Reference #{invoice.invoice_number}
+                                        </p>
+                                        <p className="text-[11px] text-slate-900 font-bold">{companyDomain}</p>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+
+                        {/* Public Link Footer */}
+                        <div className="mt-6 text-center print:hidden pdf-hide">
+                            <p className="text-xs text-slate-400 font-medium">
+                                Public link: <span className="text-[#4F46E5] font-semibold">https://billing.dynime.com/{invoice.invoice_number}</span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                {/* RIGHT COLUMN: Payment Side Panel (Opens on right when Pay Online is clicked) */}
+                {isPaymentPanelOpen && (
+                    <div className="w-full lg:w-[395px] shrink-0 sticky top-6 transition-all duration-300 print:hidden animate-in slide-in-from-right-4 fade-in duration-300">
+                        <div className="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+                            
+                            {/* Side Panel Header with Top-Right Close Button */}
+                            <div className="p-5 border-b border-slate-100 bg-gradient-to-r from-indigo-50/70 to-slate-50/50 flex items-center justify-between">
+                                <div className="flex items-center gap-2.5">
+                                    <div className="p-2 bg-[#4F46E5] text-white rounded-xl shadow-md shadow-indigo-500/20">
+                                        <CreditCard className="h-5 w-5" />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-extrabold text-base text-slate-900 flex items-center gap-1.5">
+                                            Pay Invoice #{invoice.invoice_number}
+                                        </h3>
+                                        <p className="text-xs text-slate-500 font-medium">
+                                            {paymentMode === 'partial' ? 'Partial payment checkout' : 'Full balance checkout'}
                                         </p>
                                     </div>
-                                    <div className="space-y-0.5">
-                                        <span className="text-[11px] text-slate-900 uppercase font-black">Estimated Delivery Date</span>
-                                        <p className="text-[13.5px] font-extrabold text-slate-950">{estDeliveryDate}</p>
-                                    </div>
                                 </div>
-                            </div>
-
-                            {/* Page 2 Footer / Signature */}
-                            <div className="border-t border-slate-100 pt-6 text-center space-y-3.5">
-                                <div className="flex items-center justify-center text-[13px] font-bold text-slate-800">
-                                    <img src={logoUrl} alt={companyName} className="h-6 object-contain" />
-                                </div>
-                                <p className="text-[12.5px] text-slate-900 font-bold">Thank you for choosing <span className="font-extrabold">Dynime</span>.</p>
-                                <p className="text-[11.5px] text-slate-900 font-semibold">
-                                    Questions? Email <span className="text-slate-950 font-bold">{companyEmail}</span> · Reference #{invoice.invoice_number}
-                                </p>
-                                <p className="text-[11px] text-slate-900 font-bold">{companyDomain}</p>
-                            </div>
-                        </div>
-
-                    </div>
-
-                </div>
-
-                {/* Public Link Label under Card (hidden in print & PDF) */}
-                <div className="mt-6 text-center print:hidden pdf-hide">
-                    <p className="text-xs text-slate-400 font-medium">
-                        Public link: <span className="text-[#4F46E5] font-semibold">https://billing.dynime.com/{invoice.invoice_number}</span>
-                    </p>
-                </div>
-
-            </div>
-            
-            {/* Custom print styling to inject clean page break and custom page setup */}
-            {/* ============================================================== */}
-            {/* PAYMENT SELECTOR MODAL (Screen Only) */}
-            {/* ============================================================== */}
-            {isPayModalOpen && (
-                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 print:hidden">
-                    <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-2xl shadow-2xl border border-slate-100 dark:border-slate-800 overflow-hidden" style={{animation: 'fadeInScale 0.2s ease-out'}}>
-                        <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                            <div>
-                                <h3 className="font-bold text-lg text-slate-900 dark:text-white flex items-center gap-2">
-                                    <CreditCard className="h-5 w-5 text-[#4F46E5]" /> Pay Invoice #{invoice.invoice_number}
-                                </h3>
-                                <p className="text-xs text-slate-500 mt-0.5">{paymentMode === 'partial' ? 'Enter partial payment amount' : 'Pay the full balance due'}</p>
-                            </div>
-                            <button
-                                onClick={() => setIsPayModalOpen(false)}
-                                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-lg font-bold w-8 h-8 rounded-full flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                            >
-                                ✕
-                            </button>
-                        </div>
-
-                        <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
-                            {/* Payment Mode Toggle */}
-                            <div className="flex gap-1 bg-slate-100 dark:bg-slate-800 rounded-xl p-1">
+                                
+                                {/* Top Right Close Button */}
                                 <button
-                                    type="button"
-                                    onClick={() => { setPaymentMode('full'); setPartialAmount(''); }}
-                                    className={`flex-1 py-2 px-3 rounded-lg text-[12px] font-bold transition-all duration-200 ${paymentMode === 'full' ? 'bg-[#4F46E5] text-white shadow-md' : 'text-slate-600 hover:text-slate-900'}`}
+                                    onClick={() => setIsPaymentPanelOpen(false)}
+                                    title="Close Payment Panel"
+                                    className="text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 w-8 h-8 rounded-full flex items-center justify-center transition-colors font-bold"
                                 >
-                                    Pay Full Amount
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setPaymentMode('partial')}
-                                    className={`flex-1 py-2 px-3 rounded-lg text-[12px] font-bold transition-all duration-200 ${paymentMode === 'partial' ? 'bg-[#4F46E5] text-white shadow-md' : 'text-slate-600 hover:text-slate-900'}`}
-                                >
-                                    Pay Partial Amount
+                                    <X className="h-5 w-5" />
                                 </button>
                             </div>
 
-                            {/* Amount Display */}
-                            <div className="bg-gradient-to-r from-indigo-50 to-slate-50 dark:from-indigo-950/30 dark:to-slate-800/50 p-4 rounded-xl border border-indigo-100/60 dark:border-indigo-900/40">
-                                <div className="flex items-center justify-between mb-1">
-                                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Balance Due</span>
-                                    <span className="text-sm font-bold text-slate-600">{formatCurrency(balanceDue)}</span>
+                            {/* Payment Notice (if return from checkout) */}
+                            {paymentNotice && (
+                                <div className={`p-3.5 mx-4 mt-4 rounded-xl text-xs font-semibold flex items-center justify-between ${paymentNotice.type === 'success' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-rose-50 text-rose-800 border border-rose-200'}`}>
+                                    <span>{paymentNotice.message}</span>
+                                    <button onClick={() => setPaymentNotice(null)} className="ml-2 text-slate-400 hover:text-slate-700 font-bold">✕</button>
                                 </div>
-                                {paymentMode === 'partial' && (
-                                    <div className="mt-3">
-                                        <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-1.5">Amount to Pay</label>
-                                        <div className="relative">
-                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">{getSymbol(invoice.service_brief?.currency || 'USD')}</span>
-                                            <input
-                                                type="number"
-                                                step="0.01"
-                                                min="0.01"
-                                                max={balanceDue}
-                                                value={partialAmount}
-                                                onChange={(e) => setPartialAmount(e.target.value)}
-                                                placeholder={`Max ${balanceDue.toFixed(2)}`}
-                                                className="w-full pl-8 pr-4 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-900 dark:text-white bg-white dark:bg-slate-800 focus:ring-2 focus:ring-[#4F46E5]/20 focus:border-[#4F46E5] outline-none transition-all"
-                                            />
-                                        </div>
-                                        {partialAmount && parseFloat(partialAmount) > balanceDue && (
-                                            <p className="text-[11px] text-rose-500 mt-1 font-medium">Amount cannot exceed balance due</p>
-                                        )}
+                            )}
+
+                            <div className="p-5 space-y-4 max-h-[calc(100vh-100px)] overflow-y-auto">
+                                
+                                {/* Payment Mode Toggle */}
+                                <div className="flex gap-1 bg-slate-100 dark:bg-slate-800 rounded-xl p-1">
+                                    <button
+                                        type="button"
+                                        onClick={() => { setPaymentMode('full'); setPartialAmount(''); }}
+                                        className={`flex-1 py-2 px-3 rounded-lg text-[12px] font-bold transition-all duration-200 ${paymentMode === 'full' ? 'bg-[#4F46E5] text-white shadow-md' : 'text-slate-600 hover:text-slate-900'}`}
+                                    >
+                                        Pay Full Amount
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setPaymentMode('partial')}
+                                        className={`flex-1 py-2 px-3 rounded-lg text-[12px] font-bold transition-all duration-200 ${paymentMode === 'partial' ? 'bg-[#4F46E5] text-white shadow-md' : 'text-slate-600 hover:text-slate-900'}`}
+                                    >
+                                        Pay Partial Amount
+                                    </button>
+                                </div>
+
+                                {/* Amount Summary */}
+                                <div className="bg-gradient-to-r from-indigo-50/60 to-slate-50 p-4 rounded-xl border border-indigo-100/60">
+                                    <div className="flex items-center justify-between mb-1">
+                                        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Balance Due</span>
+                                        <span className="text-sm font-bold text-slate-700">{formatCurrency(balanceDue)}</span>
                                     </div>
-                                )}
-                                <div className="flex items-center justify-between mt-3 pt-3 border-t border-indigo-100/60 dark:border-indigo-900/40">
-                                    <span className="text-sm font-bold text-slate-700 dark:text-slate-300">You will pay</span>
-                                    <span className="text-xl font-extrabold text-[#4F46E5]">
-                                        {formatCurrency(paymentMode === 'partial' && partialAmount ? Math.min(parseFloat(partialAmount) || 0, balanceDue) : balanceDue)}
-                                    </span>
-                                </div>
-                            </div>
-
-                            <form action={typeof window !== 'undefined' ? `${window.location.pathname.replace(/\/$/, '')}/pay` : `/invoice/${invoice.invoice_number}/pay`} method="POST" className="space-y-4">
-                                <input type="hidden" name="_token" value={(document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || ''} />
-                                <input type="hidden" name="gateway" value={selectedGateway} />
-                                <input type="hidden" name="amount" value={paymentMode === 'partial' && partialAmount ? Math.min(parseFloat(partialAmount) || 0, balanceDue) : balanceDue} />
-
-                                <div className="space-y-2">
-                                    <label className="text-xs font-bold uppercase tracking-wider text-slate-400 block">Payment Method</label>
-
-                                    {activeGatewaysList.length > 0 ? (
-                                        activeGatewaysList.map((gw) => (
-                                            <label
-                                                key={gw.id}
-                                                className={`flex items-center justify-between p-3.5 rounded-xl border cursor-pointer transition-all ${
-                                                    selectedGateway === gw.id
-                                                        ? 'border-[#4F46E5] bg-indigo-50/50 dark:bg-indigo-950/20 ring-2 ring-indigo-500/20'
-                                                        : 'border-slate-200 dark:border-slate-800 hover:bg-slate-50'
-                                                }`}
-                                            >
-                                                <div className="flex items-center gap-3">
-                                                    <input
-                                                        type="radio"
-                                                        name="gateway_radio"
-                                                        checked={selectedGateway === gw.id}
-                                                        onChange={() => setSelectedGateway(gw.id)}
-                                                        className="text-[#4F46E5] focus:ring-[#4F46E5]"
-                                                    />
-                                                    <div>
-                                                        <div className="font-bold text-sm text-slate-900 dark:text-white">{gw.name}</div>
-                                                        <div className="text-xs text-slate-500">{gw.description}</div>
-                                                    </div>
-                                                </div>
-                                                <span className="text-xs font-bold px-2.5 py-1 bg-indigo-100/80 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 rounded-md">
-                                                    {gw.badge}
-                                                </span>
-                                            </label>
-                                        ))
-                                    ) : (
-                                        <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 font-medium">
-                                            No active payment gateways are currently enabled by the merchant. Please contact the company to enable a payment method.
+                                    {paymentMode === 'partial' && (
+                                        <div className="mt-3">
+                                            <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block mb-1.5">Amount to Pay</label>
+                                            <div className="relative">
+                                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">{getSymbol(invoice.service_brief?.currency || 'USD')}</span>
+                                                <input
+                                                    type="number"
+                                                    step="0.01"
+                                                    min="0.01"
+                                                    max={balanceDue}
+                                                    value={partialAmount}
+                                                    onChange={(e) => setPartialAmount(e.target.value)}
+                                                    placeholder={`Max ${balanceDue.toFixed(2)}`}
+                                                    className="w-full pl-8 pr-4 py-2.5 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 bg-white focus:ring-2 focus:ring-[#4F46E5]/20 focus:border-[#4F46E5] outline-none transition-all"
+                                                />
+                                            </div>
+                                            {partialAmount && parseFloat(partialAmount) > balanceDue && (
+                                                <p className="text-[11px] text-rose-500 mt-1 font-medium">Amount cannot exceed balance due</p>
+                                            )}
                                         </div>
                                     )}
-                                </div>
-
-                                {selectedGateway === 'bank_transfer' && (
-                                    <div className="bg-amber-50/80 dark:bg-amber-950/30 p-3.5 rounded-xl border border-amber-200 dark:border-amber-900 text-xs space-y-2">
-                                        <div className="font-bold text-amber-900 dark:text-amber-300">Bank Wire Details:</div>
-                                        <p className="text-amber-800 dark:text-amber-400">Account: Dynime Inc. | Bank of America</p>
-                                        <p className="text-amber-800 dark:text-amber-400">A/C: 48301928471 | SWIFT: BOFAUS3N</p>
-                                        <p className="text-slate-500 italic">Reference: #{invoice.invoice_number}</p>
+                                    <div className="flex items-center justify-between mt-3 pt-3 border-t border-indigo-100/60">
+                                        <span className="text-sm font-bold text-slate-700">Total Payable</span>
+                                        <span className="text-xl font-extrabold text-[#4F46E5]">
+                                            {formatCurrency(paymentMode === 'partial' && partialAmount ? Math.min(parseFloat(partialAmount) || 0, balanceDue) : balanceDue)}
+                                        </span>
                                     </div>
-                                )}
-
-                                <div className="pt-3">
-                                    <Button
-                                        type="submit"
-                                        disabled={paymentMode === 'partial' && (!partialAmount || parseFloat(partialAmount) <= 0 || parseFloat(partialAmount) > balanceDue)}
-                                        className="w-full bg-[#4F46E5] hover:bg-[#4338CA] disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-bold py-3 text-sm rounded-xl shadow-lg shadow-indigo-500/20 transition-all duration-200"
-                                    >
-                                        <CreditCard className="h-4 w-4 mr-2" />
-                                        {paymentMode === 'partial' ? `Pay ${partialAmount ? formatCurrency(Math.min(parseFloat(partialAmount) || 0, balanceDue)) : 'Partial Amount'}` : `Pay Full ${formatCurrency(balanceDue)}`}
-                                    </Button>
                                 </div>
-                            </form>
+
+                                {/* Gateway Form */}
+                                <form action={typeof window !== 'undefined' ? `${window.location.pathname.replace(/\/$/, '')}/pay` : `/invoice/${invoice.invoice_number}/pay`} method="POST" className="space-y-4">
+                                    <input type="hidden" name="_token" value={(document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || ''} />
+                                    <input type="hidden" name="gateway" value={selectedGateway} />
+                                    <input type="hidden" name="amount" value={paymentMode === 'partial' && partialAmount ? Math.min(parseFloat(partialAmount) || 0, balanceDue) : balanceDue} />
+
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">Select Payment Gateway</label>
+
+                                        {activeGatewaysList.length > 0 ? (
+                                            activeGatewaysList.map((gw) => (
+                                                <label
+                                                    key={gw.id}
+                                                    className={`flex items-center justify-between p-3.5 rounded-xl border cursor-pointer transition-all ${
+                                                        selectedGateway === gw.id
+                                                            ? 'border-[#4F46E5] bg-indigo-50/50 ring-2 ring-indigo-500/20'
+                                                            : 'border-slate-200 hover:bg-slate-50'
+                                                    }`}
+                                                >
+                                                    <div className="flex items-center gap-3">
+                                                        <input
+                                                            type="radio"
+                                                            name="gateway_radio"
+                                                            checked={selectedGateway === gw.id}
+                                                            onChange={() => setSelectedGateway(gw.id)}
+                                                            className="text-[#4F46E5] focus:ring-[#4F46E5]"
+                                                        />
+                                                        <div>
+                                                            <div className="font-bold text-sm text-slate-900">{gw.name}</div>
+                                                            <div className="text-xs text-slate-500">{gw.description}</div>
+                                                        </div>
+                                                    </div>
+                                                    <span className="text-xs font-bold px-2.5 py-1 bg-indigo-100/80 text-indigo-700 rounded-md">
+                                                        {gw.badge}
+                                                    </span>
+                                                </label>
+                                            ))
+                                        ) : (
+                                            <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 font-medium">
+                                                No active payment gateways are currently enabled by the merchant.
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {selectedGateway === 'bank_transfer' && (
+                                        <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs space-y-3">
+                                            <div className="font-extrabold text-slate-900 flex items-center justify-between">
+                                                <div className="flex items-center gap-2">
+                                                    <Landmark className="h-4 w-4 text-indigo-600" />
+                                                    <span>Deposit Bank Accounts:</span>
+                                                </div>
+                                                {paymentGateways?.bank_accounts && paymentGateways.bank_accounts.length > 1 && (
+                                                    <div className="flex items-center gap-1.5">
+                                                        <Globe className="h-3.5 w-3.5 text-indigo-600" />
+                                                        <select
+                                                            value={bankCountryFilter}
+                                                            onChange={(e) => setBankCountryFilter(e.target.value)}
+                                                            className="bg-white border border-slate-300 text-slate-900 rounded-lg px-2.5 py-1 text-xs font-extrabold outline-none cursor-pointer"
+                                                        >
+                                                            <option value="all">All ({paymentGateways.bank_accounts.length})</option>
+                                                            {Array.from(new Set(paymentGateways.bank_accounts.map((a: any) => a.country).filter(Boolean))).map((c: any) => (
+                                                                <option key={c} value={c}>{c}</option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {availableBankAccounts.length > 0 ? (
+                                                <div className="grid grid-cols-1 gap-2.5">
+                                                    {availableBankAccounts.map((acc: any, idx: number) => (
+                                                        <button
+                                                            key={idx}
+                                                            type="button"
+                                                            onClick={() => {
+                                                                setSelectedBankModalAccount(acc);
+                                                                setIsBankModalOpen(true);
+                                                            }}
+                                                            className="bg-white p-3.5 rounded-xl border border-slate-200 hover:border-indigo-500 hover:shadow-md text-left transition-all group flex flex-col justify-between space-y-2"
+                                                        >
+                                                            <div className="flex items-center justify-between w-full">
+                                                                <p className="font-black text-slate-900 text-xs flex items-center gap-1.5">
+                                                                    <span>{acc.bank_name}</span>
+                                                                    {acc.country && <span className="text-[10px] text-indigo-600 font-bold bg-indigo-50 px-1.5 py-0.5 rounded">({acc.country})</span>}
+                                                                </p>
+                                                                <span className="text-[10px] font-extrabold text-slate-400 group-hover:text-indigo-600">
+                                                                    {acc.currency || 'USD'}
+                                                                </span>
+                                                            </div>
+
+                                                            <div className="text-[11px] text-slate-500 font-medium truncate">
+                                                                <span>{acc.account_name_label || 'Recipient'}: </span>
+                                                                <strong className="text-slate-800">{acc.account_name}</strong>
+                                                            </div>
+
+                                                            <div className="pt-1.5 border-t border-slate-100 flex items-center justify-between text-[11px] font-bold text-indigo-600 group-hover:underline">
+                                                                <span>Click to View Bank Wire Info & Copy Details</span>
+                                                                <span>↗</span>
+                                                            </div>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <div className="p-3 bg-white border rounded-xl text-slate-600 font-medium">
+                                                    No local bank configured for this country. Defaulting to International USD SWIFT Transfer.
+                                                </div>
+                                            )}
+
+                                            <div className="pt-2 text-[11px] text-slate-500 space-y-1 italic border-t border-slate-200/80">
+                                                <p>• Include reference memo <strong>#{invoice.invoice_number}</strong> on transfer.</p>
+                                                <p>• Mail receipt to <strong>invoice@dynime.com</strong>.</p>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Operator Live Status Assurance Banner */}
+                                    <div className="flex items-center gap-2 p-3 bg-slate-50 rounded-xl border border-slate-100 text-[11px] text-slate-600 font-medium">
+                                        <ShieldCheck className="h-4 w-4 text-emerald-600 shrink-0" />
+                                        <span>Direct operator encrypted checkout with real-time status updates</span>
+                                    </div>
+
+                                    <div className="pt-2">
+                                        <Button
+                                            type="submit"
+                                            disabled={paymentMode === 'partial' && (!partialAmount || parseFloat(partialAmount) <= 0 || parseFloat(partialAmount) > balanceDue)}
+                                            className="w-full bg-[#4F46E5] hover:bg-[#4338CA] disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-bold py-3 text-sm rounded-xl shadow-lg shadow-indigo-500/20 transition-all duration-200"
+                                        >
+                                            <CreditCard className="h-4 w-4 mr-2" />
+                                            {paymentMode === 'partial' ? `Pay ${partialAmount ? formatCurrency(Math.min(parseFloat(partialAmount) || 0, balanceDue)) : 'Partial Amount'}` : `Proceed with Checkout (${formatCurrency(balanceDue)})`}
+                                        </Button>
+                                    </div>
+                                </form>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )}
+            </div>
 
             <style dangerouslySetInnerHTML={{__html: `
                 @media print {
@@ -926,7 +1081,18 @@ export default function PublicView({ invoice, companySettings, paymentGateways, 
                     }
                 }
             `}} />
+
+            {/* Bank Deposit Details Modal Popup (Screenshot 23 Inspired Design) */}
+            <BankDetailsModal
+                isOpen={isBankModalOpen}
+                onClose={() => setIsBankModalOpen(false)}
+                account={selectedBankModalAccount}
+                allAccounts={availableBankAccounts}
+                selectedCountry={bankCountryFilter}
+                onSelectAccount={(acc) => setSelectedBankModalAccount(acc)}
+                invoiceNumber={invoice.invoice_number}
+                supportEmail="invoice@dynime.com"
+            />
         </div>
     );
 }
-

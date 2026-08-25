@@ -24,6 +24,16 @@ export const hrmCompanyMenu = (t: (key: string) => string) => [
                 permission: 'manage-employees',
             },
             {
+                title: t('Time Tracker Apps'),
+                href: route('hrm.time-tracker.downloads'),
+                permission: 'manage-employees',
+            },
+            {
+                title: t('Official Emails'),
+                href: route('hrm.official-emails.index'),
+                permission: 'manage-employees',
+            },
+            {
                 title: t('Profile Change Requests'),
                 href: route('hrm.profile-change-requests.index'),
                 permission: 'manage-employees',
@@ -61,6 +71,11 @@ export const hrmCompanyMenu = (t: (key: string) => string) => [
                     {
                         title: t('Shifts'),
                         href: route('hrm.shifts.index'),
+                        permission: 'manage-shifts',
+                    },
+                    {
+                        title: t('Flexible Shift Requests'),
+                        href: route('hrm.flexible-shift.requests.index'),
                         permission: 'manage-shifts',
                     },
                     {
@@ -137,7 +152,7 @@ export const hrmCompanyMenu = (t: (key: string) => string) => [
                 permission: 'manage-hrm-documents',
             },
             {
-                title: t('Document Builder'),
+                title: t('Employee Document'),
                 href: route('hrm.document-builder.index'),
                 permission: 'manage-employees',
             },

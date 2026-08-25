@@ -21,6 +21,7 @@ import { getStatusBadgeClasses, getPaymentStatusBadgeClasses, getOperationalStat
 import { DateRangePicker } from '@/components/ui/date-range-picker';
 import NoRecordsFound from '@/components/no-records-found';
 import { SalesInvoice, SalesFilters } from './types';
+import { toast } from 'sonner';
 import PaymentModal from './components/PaymentModal';
 
 interface SalesIndexProps {
@@ -298,7 +299,7 @@ export default function Index() {
                                             onClick={() => {
                                                 const shareUrl = 'https://billing.dynime.com/' + invoice.invoice_number;
                                                 navigator.clipboard.writeText(shareUrl);
-                                                alert(t('Shareable link copied to clipboard!'));
+                                                toast.success(t('Shareable link copied to clipboard!'));
                                             }}
                                             className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700"
                                         >
@@ -636,7 +637,7 @@ export default function Index() {
                                                                         <Button variant="ghost" size="sm" onClick={() => {
                                                                             const shareUrl = 'https://billing.dynime.com/' + invoice.invoice_number;
                                                                             navigator.clipboard.writeText(shareUrl);
-                                                                            alert(t('Shareable link copied to clipboard!'));
+                                                                            toast.success(t('Shareable link copied to clipboard!'));
                                                                         }} className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700">
                                                                             <Share2 className="h-4 w-4" />
                                                                         </Button>

@@ -1,0 +1,98 @@
+#!/usr/bin/env python3
+import sys
+import os
+import time
+import random
+import urllib.request
+import urllib.parse
+import json
+import subprocess
+
+API_BASE_URL = "https://app.dynime.com/api/time-tracker"
+PAIRING_KEY_FILE = os.path.expanduser("~/.dynime_tracker_key")
+
+def notify(title, message):
+    try:
+        script = f'display notification "{message}" with title "{title}"'
+        subprocess.run(["osascript", "-e", script])
+    except Exception:
+        pass
+
+def open_dashboard():
+    try:
+        subprocess.run(["open", "https://app.dynime.com"])
+    except Exception:
+        pass
+
+def main():
+    notify("Dynime Time Tracker", "Dynime Background Time Tracker & Auto-Sync Engine is active.")
+    open_dashboard()
+
+    token = None
+    if os.path.exists(PAIRING_KEY_FILE):
+        with open(PAIRING_KEY_FILE, "r") as f:
+            token = f.read().strip()
+
+    elapsed = 0
+    next_screenshot_in = random.randint(5, 12) * 60
+
+    while True:
+        time.sleep(60)
+        elapsed += 60
+
+        # Heartbeat ping
+        if token:
+            try:
+                data = json.dumps({"elapsed_seconds": elapsed, "platform": "mac"}).encode("utf-8")
+                req = urllib.request.Request(f"{API_BASE_URL}/sync-heartbeat", data=data, headers={
+                    "Content-Type": "application/json",
+                    "Authorization": f"Bearer {token}"
+                })
+                urllib.request.urlopen(req, timeout=10)
+            except Exception:
+                pass
+
+        # Random Screenshot Capture
+        next_screenshot_in -= 60
+        if next_screenshot_in <= 0:
+            next_screenshot_in = random.randint(5, 12) * 60
+            tmp_img = f"/tmp/dynime_screen_{int(time.time())}.jpg"
+            try:
+                res = subprocess.run(["screencapture", "-x", tmp_img])
+                if res.returncode == 0 and os.path.exists(tmp_img) and token:
+                    # Upload screenshot
+                    with open(tmp_img, "rb") as img_file:
+                        img_bytes = img_file.read()
+                    
+                    boundary = '----WebKitFormBoundary7MA4YWxkTrZu0gW'
+                    body = []
+                    body.append(f'--{boundary}'.encode())
+                    body.append(b'Content-Disposition: form-data; name="active_window"
+')
+                    body.append(b'macOS Desktop Workspace
+')
+                    body.append(f'--{boundary}'.encode())
+                    body.append(b'Content-Disposition: form-data; name="screenshot"; filename="screenshot.jpg"
+')
+                    body.append(b'Content-Type: image/jpeg
+
+')
+                    body.append(img_bytes)
+                    body.append(f'
+--{boundary}--
+'.encode())
+                    payload = b'
+'.join(body)
+
+                    req = urllib.request.Request(f"{API_BASE_URL}/upload-screenshot", data=payload, headers={
+                        "Content-Type": f"multipart/form-data; boundary={boundary}",
+                        "Authorization": f"Bearer {token}"
+                    })
+                    urllib.request.urlopen(req, timeout=15)
+                if os.path.exists(tmp_img):
+                    os.remove(tmp_img)
+            except Exception as e:
+                pass
+
+if __name__ == "__main__":
+    main()

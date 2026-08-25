@@ -15,7 +15,9 @@ use Workdo\Hrm\Models\Department;
 use Workdo\Hrm\Models\Designation;
 use Workdo\Hrm\Models\EmployeeDocumentType;
 use Workdo\Hrm\Models\EmployeeDocument;
+use Workdo\Hrm\Models\EmployeeShiftHistory;
 use Workdo\Hrm\Models\Shift;
+use Workdo\Hrm\Models\ShiftAssignment;
 use Workdo\Hrm\Models\AllowanceType;
 use Workdo\Hrm\Models\DeductionType;
 use Workdo\Hrm\Models\Allowance;
@@ -24,31 +26,29 @@ use Workdo\Hrm\Events\CreateEmployee;
 use Workdo\Hrm\Events\DestroyEmployee;
 use Workdo\Hrm\Events\UpdateEmployee;
 
+use Workdo\Hrm\Services\EmployeeScopeService;
+use Workdo\Hrm\Services\OnboardingService;
+
 class EmployeeController extends Controller
 {
     private function checkEmployeeAccess(Employee $employee)
     {
-        if(Auth::user()->can('manage-any-employees')) {
+        $accessibleIds = EmployeeScopeService::getAccessibleEmployeeIds(Auth::user());
+        if ($accessibleIds === null) {
             return $employee->created_by == creatorId();
-        } elseif(Auth::user()->can('manage-own-employees')) {
-            return ($employee->creator_id == Auth::id() || $employee->user_id == Auth::id());
         }
-        return false;
+        return in_array($employee->id, $accessibleIds);
     }
+
     public function index()
     {
         if (Auth::user()->can('manage-employees')) {
-            $employees = Employee::query()
-                ->with(['user:id,name,email,avatar,is_disable', 'branch', 'department', 'designation', 'shift'])
-                ->where(function ($q) {
-                    if (Auth::user()->can('manage-any-employees')) {
-                        $q->where('created_by', creatorId());
-                    } elseif (Auth::user()->can('manage-own-employees')) {
-                        $q->where('creator_id',Auth::id())->orWhere('user_id', Auth::id());
-                    } else {
-                        $q->whereRaw('1 = 0');
-                    }
-                })
+            $query = Employee::query()
+                ->with(['user:id,name,email,avatar,is_disable', 'user.roles', 'branch', 'department', 'designation', 'shift', 'manager.user:id,name', 'onboardingStatus']);
+
+            $query = EmployeeScopeService::applyEmployeeScope($query, Auth::user());
+
+            $employees = $query
                 ->when(request('employee_id'), function ($q) {
                     $q->where(function ($query) {
                         $query->where('employee_id', 'like', '%' . request('employee_id') . '%');
@@ -83,9 +83,27 @@ class EmployeeController extends Controller
     public function create()
     {
         if (Auth::user()->can('create-employees')) {
+            $managers = Employee::where('created_by', creatorId())
+                ->with('user:id,name')
+                ->get()
+                ->map(fn($e) => [
+                    'id' => $e->id,
+                    'name' => $e->user->name ?? $e->employee_id,
+                ]);
+
+            $allRoles = \Spatie\Permission\Models\Role::where('created_by', creatorId())
+                ->get()
+                ->map(fn($r) => [
+                    'id' => $r->id,
+                    'name' => $r->name,
+                    'label' => $r->label ?? $r->name,
+                ]);
+
             return Inertia::render('Hrm/Employees/Create', [
                 'users' => User::emp()->where('created_by', creatorId())->whereNotIn('id', Employee::where('created_by', creatorId())->pluck('user_id'))->select('id', 'name', 'mobile_no')->get(),
                 'roles' => \Spatie\Permission\Models\Role::where('created_by', creatorId())->pluck('label', 'id'),
+                'allRoles' => $allRoles,
+                'managers' => $managers,
                 'branches' => Branch::where('created_by', creatorId())->orderBy('priority', 'asc')->orderBy('id', 'desc')->select('id', 'branch_name')->get(),
                 'departments' => Department::where('created_by', creatorId())->select('id', 'department_name', 'branch_id')->get(),
                 'designations' => Designation::where('created_by', creatorId())->select('id', 'designation_name', 'branch_id', 'department_id')->get(),
@@ -107,8 +125,11 @@ class EmployeeController extends Controller
             $employee = new Employee();
             $employee->employee_id = $validated['employee_id'];
             $employee->official_email = $validated['official_email'] ?? null;
+            $employee->whatsapp = $validated['whatsapp'] ?? null;
+            $employee->roles_responsibilities = $validated['roles_responsibilities'] ?? null;
             $employee->date_of_birth = $validated['date_of_birth'];
             $employee->gender = $validated['gender'];
+            $employee->shift_id = $validated['shift_id'];
             $employee->shift = $validated['shift_id'];
             $employee->date_of_joining = $validated['date_of_joining'];
             $employee->employment_type = $validated['employment_type'];
@@ -146,13 +167,37 @@ class EmployeeController extends Controller
             $employee->days_per_week = $validated['days_per_week'];
             $employee->rate_per_hour = $validated['rate_per_hour'];
             $employee->user_id = $validated['user_id'];
+            $employee->manager_id = $validated['manager_id'] ?? null;
             $employee->branch_id = $validated['branch_id'];
+            $employee->additional_branch_ids = $validated['additional_branch_ids'] ?? null;
             $employee->department_id = $validated['department_id'];
             $employee->designation_id = $validated['designation_id'];
 
             $employee->creator_id = Auth::id();
             $employee->created_by = creatorId();
             $employee->save();
+
+            // Initialize Employee Self-Onboarding Status & Send Welcome Email
+            OnboardingService::initializeOnboarding($employee);
+
+            if (!empty($employee->shift)) {
+                ShiftAssignment::updateOrCreate(
+                    [
+                        'shift_id' => $employee->shift,
+                        'assignee_type' => 'employee',
+                        'assignee_id' => (string)$employee->id,
+                    ],
+                    [
+                        'created_by' => creatorId(),
+                    ]
+                );
+            }
+
+            // Sync multi-roles on User model
+            $user = User::find($employee->user_id);
+            if ($user && $request->has('roles')) {
+                $user->syncRoles($request->input('roles', []));
+            }
 
             // Store avatar if provided
             $user = User::find($employee->user_id);
@@ -180,7 +225,11 @@ class EmployeeController extends Controller
                 }
             }
 
-            CreateEmployee::dispatch($request, $employee);
+            try {
+                CreateEmployee::dispatch($request, $employee);
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::error("CreateEmployee event dispatch error: " . $e->getMessage());
+            }
 
             // Store documents
             if ($request->has('documents')) {
@@ -259,7 +308,8 @@ class EmployeeController extends Controller
             if(!$this->checkEmployeeAccess($employee)) {
                 return redirect()->route('hrm.employees.index')->with('error', __('Permission denied'));
             }
-            $employee->load('user');
+            $employee->load(['user', 'user.roles', 'manager.user']);
+
             $existingDocuments = EmployeeDocument::where('user_id', $employee->id)
                 ->with('documentType')
                 ->get()
@@ -272,9 +322,29 @@ class EmployeeController extends Controller
                     ];
                 });
 
+            $managers = Employee::where('created_by', creatorId())
+                ->where('id', '!=', $employee->id)
+                ->with('user:id,name')
+                ->get()
+                ->map(fn($e) => [
+                    'id' => $e->id,
+                    'name' => $e->user->name ?? $e->employee_id,
+                ]);
+
+            $allRoles = \Spatie\Permission\Models\Role::where('created_by', creatorId())
+                ->get()
+                ->map(fn($r) => [
+                    'id' => $r->id,
+                    'name' => $r->name,
+                    'label' => $r->label ?? $r->name,
+                ]);
+
             return Inertia::render('Hrm/Employees/Edit', [
                 'employee' => $employee,
                 'users' => User::emp()->where('created_by', creatorId())->select('id', 'name', 'mobile_no')->get(),
+                'roles' => \Spatie\Permission\Models\Role::where('created_by', creatorId())->pluck('label', 'id'),
+                'allRoles' => $allRoles,
+                'managers' => $managers,
                 'branches' => Branch::where('created_by', creatorId())->orderBy('priority', 'asc')->orderBy('id', 'desc')->select('id', 'branch_name')->get(),
                 'departments' => Department::where('created_by', creatorId())->select('id', 'department_name', 'branch_id')->get(),
                 'designations' => Designation::where('created_by', creatorId())->select('id', 'designation_name', 'branch_id', 'department_id')->get(),
@@ -285,6 +355,10 @@ class EmployeeController extends Controller
                 'deductionTypes' => DeductionType::where('created_by', creatorId())->select('id', 'name')->get(),
                 'existingAllowances' => Allowance::where('employee_id', $employee->user_id)->get(),
                 'existingDeductions' => Deduction::where('employee_id', $employee->user_id)->get(),
+                'shiftHistory' => EmployeeShiftHistory::where('employee_id', $employee->id)
+                    ->with(['shift', 'assignedBy'])
+                    ->orderBy('effective_from', 'desc')
+                    ->get(),
             ]);
         } else {
             return redirect()->route('hrm.employees.index')->with('error', __('Permission denied'));
@@ -296,9 +370,34 @@ class EmployeeController extends Controller
         if (Auth::user()->can('edit-employees')) {
             $validated = $request->validated();
             $employee->official_email = $validated['official_email'] ?? null;
+            $employee->whatsapp = $validated['whatsapp'] ?? null;
+            $employee->roles_responsibilities = $validated['roles_responsibilities'] ?? null;
             $employee->date_of_birth = $validated['date_of_birth'];
             $employee->gender = $validated['gender'];
+            $oldShiftId = $employee->shift_id ?: $employee->shift;
+            $newShiftId = $validated['shift_id'] ?? null;
+
+            if ($newShiftId && $oldShiftId != $newShiftId) {
+                EmployeeShiftHistory::where('employee_id', $employee->id)
+                    ->whereNull('effective_to')
+                    ->update(['effective_to' => now()->toDateString()]);
+
+                $shiftModel = Shift::find($newShiftId);
+                EmployeeShiftHistory::create([
+                    'employee_id' => $employee->id,
+                    'shift_id' => $newShiftId,
+                    'shift_version' => $shiftModel ? $shiftModel->version : 1,
+                    'effective_from' => $request->input('shift_effective_from') ?: now()->toDateString(),
+                    'effective_to' => null,
+                    'notes' => 'Shift assigned via Employee Profile',
+                    'assigned_by' => Auth::id(),
+                    'created_by' => creatorId(),
+                ]);
+            }
+
             $employee->shift = $validated['shift_id'];
+            $employee->shift_id = $validated['shift_id'];
+            $employee->is_flexible_shift_allowed = $request->boolean('is_flexible_shift_allowed');
             $employee->date_of_joining = $validated['date_of_joining'];
             $employee->employment_type = $validated['employment_type'];
             $employee->employment_status = $validated['employment_status'];
@@ -334,11 +433,32 @@ class EmployeeController extends Controller
             $employee->hours_per_day = $validated['hours_per_day'];
             $employee->days_per_week = $validated['days_per_week'];
             $employee->rate_per_hour = $validated['rate_per_hour'];
+            $employee->manager_id = $validated['manager_id'] ?? null;
             $employee->branch_id = $validated['branch_id'];
+            $employee->additional_branch_ids = $validated['additional_branch_ids'] ?? null;
             $employee->department_id = $validated['department_id'];
             $employee->designation_id = $validated['designation_id'];
 
             $employee->save();
+
+            if (!empty($employee->shift)) {
+                ShiftAssignment::updateOrCreate(
+                    [
+                        'shift_id' => $employee->shift,
+                        'assignee_type' => 'employee',
+                        'assignee_id' => (string)$employee->id,
+                    ],
+                    [
+                        'created_by' => creatorId(),
+                    ]
+                );
+            }
+
+            // Sync multi-roles on User model
+            $user = User::find($employee->user_id);
+            if ($user && $request->has('roles')) {
+                $user->syncRoles($request->input('roles', []));
+            }
 
             // Update avatar if provided
             $user = User::find($employee->user_id);
@@ -469,7 +589,7 @@ class EmployeeController extends Controller
             if(!$this->checkEmployeeAccess($employee)) {
                 return redirect()->route('hrm.employees.index')->with('error', __('Permission denied'));
             }
-            $employee->load(['user:id,name,email,avatar', 'branch', 'department', 'designation', 'shift']);
+            $employee->load(['user:id,name,email,avatar', 'branch', 'department', 'designation', 'shift', 'devices', 'onboardingStatus']);
             
             $documents = EmployeeDocument::where('user_id', $employee->id)
                 ->with('documentType')
@@ -808,6 +928,61 @@ class EmployeeController extends Controller
         } else {
             return redirect()->back()->with('error', __('Permission denied.'));
         }
+    }
+
+    public function toggleVerification(\Illuminate\Http\Request $request, Employee $employee)
+    {
+        if (Auth::user()->can('edit-employees') || Auth::user()->type === 'company' || Auth::user()->type === 'hr') {
+            $employee->is_verified = !$employee->is_verified;
+            $employee->save();
+
+            if ($employee->user_id) {
+                $user = \App\Models\User::find($employee->user_id);
+                if ($user) {
+                    $user->is_verified = $employee->is_verified;
+                    $user->save();
+                }
+            }
+
+            return redirect()->back()->with('success', $employee->is_verified ? __('Employee verified successfully!') : __('Employee verification badge removed.'));
+        } else {
+            return redirect()->back()->with('error', __('Permission denied.'));
+        }
+    }
+
+    public function saveProbationPaymentAccount(\Illuminate\Http\Request $request, Employee $employee)
+    {
+        $validated = $request->validate([
+            'redotpay_user_id' => 'nullable|string|max:255',
+            'redotpay_card_number' => 'nullable|string|max:255',
+            'kast_user_id' => 'nullable|string|max:255',
+            'kast_card_number' => 'nullable|string|max:255',
+        ]);
+
+        $details = $employee->payment_details ?? [];
+        if (is_string($details)) {
+            $details = json_decode($details, true) ?? [];
+        }
+
+        if ($request->has('redotpay_user_id')) {
+            $details['redotpay_user_id'] = $validated['redotpay_user_id'];
+            $details['redotpay_id'] = $validated['redotpay_user_id'];
+        }
+        if ($request->has('redotpay_card_number')) {
+            $details['redotpay_card_number'] = $validated['redotpay_card_number'];
+        }
+        if ($request->has('kast_user_id')) {
+            $details['kast_user_id'] = $validated['kast_user_id'];
+            $details['kast_username'] = $validated['kast_user_id'];
+        }
+        if ($request->has('kast_card_number')) {
+            $details['kast_card_number'] = $validated['kast_card_number'];
+        }
+
+        $employee->payment_details = $details;
+        $employee->save();
+
+        return redirect()->back()->with('success', __('Probation payment gateway details saved successfully!'));
     }
 }
 

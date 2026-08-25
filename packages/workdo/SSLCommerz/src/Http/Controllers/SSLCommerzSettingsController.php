@@ -27,6 +27,10 @@ class SSLCommerzSettingsController extends Controller
                 'sslcommerz_store_password' => $request->sslcommerz_store_password ?? '',
                 'sslcommerz_test_store_id' => $request->sslcommerz_test_store_id ?? '',
                 'sslcommerz_test_store_password' => $request->sslcommerz_test_store_password ?? '',
+                'sslcommerz_display_name' => $request->sslcommerz_display_name ?? 'SSLCommerz (Bangladesh)',
+                'sslcommerz_description' => $request->sslcommerz_description ?? 'Cards, Mobile Banking & Net Banking',
+                'sslcommerz_icon_url' => $request->sslcommerz_icon_url ?? '',
+                'sslcommerz_badge' => $request->sslcommerz_badge ?? 'SSLCommerz',
             ];
 
             foreach ($post as $key => $data) {

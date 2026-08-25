@@ -10,8 +10,10 @@ export interface User {
     is_enable_login: boolean;
     is_disable?: number;
     avatar?: string;
+    is_verified?: boolean;
     official_email?: string;
     created_at: string;
+    roles?: Array<{ id: number; name: string; label?: string }>;
 }
 
 export interface CreateUserFormData {
@@ -21,6 +23,7 @@ export interface CreateUserFormData {
     password_confirmation: string;
     mobile_no: string;
     type: string;
+    roles?: string[];
     is_enable_login: boolean;
     avatar?: string | null;
 }
@@ -29,6 +32,8 @@ export interface EditUserFormData {
     name: string;
     email: string;
     mobile_no: string;
+    type?: string;
+    roles?: string[];
     is_enable_login: boolean;
     avatar?: string | null;
 }
@@ -40,12 +45,14 @@ export interface ChangePasswordFormData {
 
 export interface CreateUserProps extends CreateProps {
     roles?: Record<string, string>;
+    allRoles?: Array<{ id: number; name: string; label?: string }>;
 }
 
 export interface EditUserProps {
     user: User;
     onSuccess: () => void;
     roles?: Record<string, string>;
+    allRoles?: Array<{ id: number; name: string; label?: string }>;
 }
 
 export interface ChangePasswordProps {

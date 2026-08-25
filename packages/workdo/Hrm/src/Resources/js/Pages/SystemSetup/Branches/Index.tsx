@@ -47,7 +47,22 @@ export default function Index() {
         {
             key: 'branch_name',
             header: t('Branch Name'),
-            sortable: false
+            sortable: false,
+            render: (value: string, branch: Branch) => (
+                <div className="flex flex-col">
+                    <span className="font-semibold text-slate-900 dark:text-slate-100">{value}</span>
+                </div>
+            )
+        },
+        {
+            key: 'branch_address',
+            header: t('Official Address'),
+            sortable: false,
+            render: (value: string) => (
+                <span className="text-xs text-slate-600 dark:text-slate-400 max-w-[280px] inline-block truncate" title={value}>
+                    {value || <span className="text-slate-400 italic">{t('No address provided')}</span>}
+                </span>
+            )
         },
         {
             key: 'priority',

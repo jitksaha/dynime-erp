@@ -4,6 +4,8 @@ import InputError from './input-error';
 import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useRef } from 'react';
 
+import { MessageSquare, ExternalLink } from 'lucide-react';
+
 interface PhoneInputProps {
     label?: string;
     value: string;
@@ -15,6 +17,7 @@ interface PhoneInputProps {
     required?: boolean;
     readOnly?: boolean;
     style?: React.CSSProperties;
+    showWhatsAppButton?: boolean;
 }
 
 // Comprehensive list of countries globally with their flags and dial codes
@@ -229,7 +232,8 @@ export function PhoneInputComponent({
     id,
     required,
     readOnly,
-    style
+    style,
+    showWhatsAppButton = false
 }: PhoneInputProps) {
     const { t } = useTranslation();
     const [selectedCountry, setSelectedCountry] = useState(countries[2]); // Default Bangladesh (+880)
@@ -282,9 +286,28 @@ export function PhoneInputComponent({
         c.code.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
+    const isWhatsApp = showWhatsAppButton || (label && label.toLowerCase().includes('whatsapp'));
+    const cleanNumber = value ? value.replace(/[^0-9]/g, '') : '';
+    const whatsappUrl = cleanNumber ? `https://wa.me/${cleanNumber}` : '';
+
     return (
         <div className="relative">
-            {label && <Label htmlFor={id} required={required}>{label}</Label>}
+            <div className="flex items-center justify-between mb-1">
+                {label && <Label htmlFor={id} required={required}>{label}</Label>}
+                {isWhatsApp && whatsappUrl && (
+                    <a
+                        href={whatsappUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 rounded transition-colors shadow-2xs"
+                        title={t('Open WhatsApp Chat')}
+                    >
+                        <MessageSquare className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                        <span>{t('Open Chat')}</span>
+                        <ExternalLink className="w-3 h-3 text-emerald-500" />
+                    </a>
+                )}
+            </div>
             
             <div className={`relative flex h-10 w-full items-center rounded-md border border-input bg-background text-sm ring-offset-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 ${className}`}>
                 {/* Clickable country code trigger (NO gap, NO inner border) */}
@@ -292,7 +315,7 @@ export function PhoneInputComponent({
                     type="button"
                     disabled={readOnly}
                     onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                    className="flex h-full items-center gap-1 px-3 text-sm font-medium hover:bg-slate-50 border-r border-input transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                    className="flex h-full items-center gap-1 px-3 text-sm font-medium hover:bg-slate-50 border-r border-input transition-colors disabled:cursor-not-allowed disabled:opacity-50 shrink-0"
                 >
                     <span className="text-base leading-none">{selectedCountry.flag}</span>
                     <span className="text-slate-600 text-xs font-semibold">{selectedCountry.dial}</span>
@@ -311,6 +334,20 @@ export function PhoneInputComponent({
                     style={style}
                     className="flex-1 h-full border-0 bg-transparent py-2 pl-3 pr-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-0 w-full"
                 />
+
+                {isWhatsApp && whatsappUrl && (
+                    <a
+                        href={whatsappUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex h-full items-center gap-1.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-r-md transition-colors border-l border-emerald-700 shrink-0 shadow-2xs"
+                        title={t('Click to open WhatsApp Chat in new tab')}
+                    >
+                        <MessageSquare className="w-4 h-4 fill-white/20" />
+                        <span>{t('Chat')}</span>
+                        <ExternalLink className="w-3 h-3 opacity-80" />
+                    </a>
+                )}
             </div>
 
             {/* Custom Searchable Country List Dropdown */}
@@ -373,3 +410,5 @@ export function PhoneInputComponent({
         </div>
     );
 }
+
+export default PhoneInputComponent;

@@ -35,6 +35,10 @@ class BkashSettingsController extends Controller
                 'bkash_test_app_secret' => $request->bkash_test_app_secret ?? '',
                 'bkash_test_username' => $request->bkash_test_username ?? '',
                 'bkash_test_password' => $request->bkash_test_password ?? '',
+                'bkash_display_name' => $request->bkash_display_name ?? 'bKash Tokenized Checkout',
+                'bkash_description' => $request->bkash_description ?? 'Pay directly in BDT with instant OTP & PIN',
+                'bkash_icon_url' => $request->bkash_icon_url ?? '',
+                'bkash_badge' => $request->bkash_badge ?? 'bKash ৳',
             ];
 
             foreach ($post as $key => $data) {

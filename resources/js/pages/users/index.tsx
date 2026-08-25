@@ -12,7 +12,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/data-table";
 import { Dialog } from "@/components/ui/dialog";
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
-import { Plus, Edit, Trash2, Key, Users as UsersIcon, User as UserIcon, UserCheck, History, Lock } from "lucide-react";
+import { Plus, Edit, Trash2, Key, Users as UsersIcon, User as UserIcon, UserCheck, History, Lock, ShieldCheck } from "lucide-react";
 import { getImagePath } from '@/utils/helpers';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { FilterButton } from '@/components/ui/filter-button';
@@ -23,6 +23,7 @@ import Create from './create';
 import EditUser from './edit';
 import ChangePassword from './change-password';
 import NoRecordsFound from '@/components/no-records-found';
+import { VerifiedBadge } from '@/components/ui/verified-badge';
 import { User, UsersIndexProps, UserFilters, UserModalState } from './types';
 
 export default function Index() {
@@ -47,7 +48,7 @@ export default function Index() {
         mode: '',
         data: null
     });
-    const [showFilters, setShowFilters] = useState(false);
+    const [showFilters, setShowFilters] = useState(true);
 
     // Add hook here
     const pageButtons = usePageButtons('userBtn','Test data');
@@ -59,6 +60,22 @@ export default function Index() {
 
     const handleFilter = () => {
         router.get(route('users.index'), {...filters, per_page: perPage, sort: sortField, direction: sortDirection, view: viewMode}, {
+            preserveState: true,
+            replace: true
+        });
+    };
+
+    const handleRoleSelect = (selectedRole: string) => {
+        const roleValue = selectedRole === 'all' ? '' : selectedRole;
+        const updatedFilters = { ...filters, role: roleValue };
+        setFilters(updatedFilters);
+        router.get(route('users.index'), {
+            ...updatedFilters,
+            per_page: perPage,
+            sort: sortField,
+            direction: sortDirection,
+            view: viewMode
+        }, {
             preserveState: true,
             replace: true
         });
@@ -123,7 +140,13 @@ export default function Index() {
         {
             key: 'name',
             header: t('Name'),
-            sortable: true
+            sortable: true,
+            render: (value: string, user: User) => (
+                <div className="flex items-center gap-1.5 font-semibold text-slate-900 dark:text-slate-100">
+                    <span>{value}</span>
+                    {Boolean(user.is_verified) && <VerifiedBadge size="xs" />}
+                </div>
+            )
         },
         {
             key: 'email',
@@ -148,11 +171,20 @@ export default function Index() {
             key: 'type',
             header: t('Role'),
             sortable: true,
-            render: (value: string) => (
-                <span className="capitalize px-2 py-1 bg-gray-100 rounded-full text-sm">
-                    {formatRole(value)}
-                </span>
-            )
+            render: (value: string, user: User) => {
+                const userRoles = user.roles && user.roles.length > 0
+                    ? user.roles.map((r: any) => r.label || r.name)
+                    : [formatRole(value)];
+                return (
+                    <div className="flex flex-wrap gap-1">
+                        {userRoles.map((rName: string, idx: number) => (
+                            <span key={idx} className="capitalize px-2 py-0.5 bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 rounded-md text-xs font-bold shadow-2xs">
+                                {formatRole(rName)}
+                            </span>
+                        ))}
+                    </div>
+                );
+            }
         },
         {
             key: 'is_enable_login',
@@ -212,6 +244,42 @@ export default function Index() {
                                         <p>{t('Change Password')}</p>
                                     </TooltipContent>
                                 </Tooltip>
+                            )}
+                            {(auth.user?.type === 'company' || auth.user?.type === 'hr' || auth.user?.type === 'superadmin' || auth.user?.permissions?.includes('edit-users')) && (
+                                Boolean(user.is_verified) ? (
+                                    <Tooltip delayDuration={0}>
+                                        <TooltipTrigger asChild>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => router.post(route('users.toggle-verification', user.id))}
+                                                className="h-8 w-8 p-0 text-indigo-600 hover:bg-indigo-50 hover:text-indigo-700"
+                                            >
+                                                <VerifiedBadge size="xs" />
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p>{t('Official Verified (Click to unverify)')}</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                ) : (
+                                    <Tooltip delayDuration={0}>
+                                        <TooltipTrigger asChild>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => router.post(route('users.toggle-verification', user.id))}
+                                                className="h-8 px-2 text-[11px] font-semibold text-slate-500 hover:text-indigo-700 bg-slate-100/80 hover:bg-indigo-50 border border-slate-200/80 hover:border-indigo-300 rounded-lg flex items-center gap-1 transition-all"
+                                            >
+                                                <ShieldCheck className="h-3.5 w-3.5 text-slate-400" />
+                                                <span>{t('Verify')}</span>
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p>{t('Mark as Verified User')}</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                )
                             )}
                             {auth.user?.permissions?.includes('edit-users') && (
                                 <Tooltip delayDuration={0}>
@@ -292,7 +360,7 @@ export default function Index() {
             {/* Main Content Card */}
             <Card className="shadow-sm">
                 {/* Search & Controls Header */}
-                <CardContent className="p-6 border-b bg-gray-50/50">
+                <CardContent className="p-6 border-b bg-gray-50/50 space-y-4">
                     <div className="flex items-center justify-between gap-4">
                         <div className="flex-1 max-w-md">
                             <SearchInput
@@ -328,9 +396,47 @@ export default function Index() {
                             </div>
                         </div>
                     </div>
+
+                    {/* Dynamic Role-Wise Filter Pills / Tabs */}
+                    {roles && Object.keys(roles).length > 0 && (
+                        <div className="flex items-center gap-2 overflow-x-auto pt-2 pb-1 scrollbar-thin">
+                            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider shrink-0 mr-1 flex items-center gap-1.5">
+                                <UsersIcon className="w-3.5 h-3.5 text-indigo-600" />
+                                {t('Role Filter')}:
+                            </span>
+                            <button
+                                type="button"
+                                onClick={() => handleRoleSelect('all')}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 border ${
+                                    !filters.role || filters.role === 'all'
+                                        ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs font-extrabold'
+                                        : 'bg-white text-slate-700 hover:bg-slate-100 border-slate-200'
+                                }`}
+                            >
+                                <span>{t('All Roles')}</span>
+                            </button>
+                            {Object.entries(roles).map(([roleId, roleLabel]) => {
+                                const isSelected = filters.role === roleId || filters.role === roleLabel;
+                                return (
+                                    <button
+                                        key={roleId}
+                                        type="button"
+                                        onClick={() => handleRoleSelect(roleId)}
+                                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 border ${
+                                            isSelected
+                                                ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs font-extrabold'
+                                                : 'bg-white text-slate-700 hover:bg-slate-100 border-slate-200'
+                                        }`}
+                                    >
+                                        <span>{formatRole(roleLabel)}</span>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    )}
                 </CardContent>
 
-                {/* Advanced Filters */}
+                {/* Advanced Filters (Open by default) */}
                 {showFilters && (
                     <CardContent className="p-6 bg-blue-50/30 border-b">
                         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -342,30 +448,30 @@ export default function Index() {
                                     onChange={(e) => setFilters({...filters, email: e.target.value})}
                                 />
                             </div>
-                            {auth.user?.permissions?.includes('manage-roles') && (
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">{t('Role')}</label>
-                                    <Select value={filters.role} onValueChange={(value) => setFilters({...filters, role: value})}>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder={t('Filter by role')} />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {Object.entries(roles).map(([name, label]) => (
-                                                <SelectItem key={name} value={name}>
-                                                    {label}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            )}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">{t('Role')}</label>
+                                <Select value={filters.role || 'all'} onValueChange={(value) => handleRoleSelect(value)}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder={t('Filter by role')} />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">{t('All Roles')}</SelectItem>
+                                        {Object.entries(roles || {}).map(([id, label]) => (
+                                            <SelectItem key={id} value={id}>
+                                                {formatRole(label)}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">{t('Login Status')}</label>
-                                <Select value={filters.is_enable_login} onValueChange={(value) => setFilters({...filters, is_enable_login: value})}>
+                                <Select value={filters.is_enable_login || 'all'} onValueChange={(value) => setFilters({...filters, is_enable_login: value === 'all' ? '' : value})}>
                                     <SelectTrigger>
                                         <SelectValue placeholder={t('Filter by login status')} />
                                     </SelectTrigger>
                                     <SelectContent>
+                                        <SelectItem value="all">{t('All Statuses')}</SelectItem>
                                         <SelectItem value="1">{t('Enabled')}</SelectItem>
                                         <SelectItem value="0">{t('Disabled')}</SelectItem>
                                     </SelectContent>

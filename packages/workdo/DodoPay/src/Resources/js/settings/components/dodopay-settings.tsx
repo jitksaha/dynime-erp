@@ -33,7 +33,11 @@ export default function DodoPaySettings({ userSettings, auth }: DodoPaySettingsP
     dodopay_api_key: userSettings?.dodopay_api_key || '',
     dodopay_product_id: userSettings?.dodopay_product_id || '',
     dodopay_mode: userSettings?.dodopay_mode || 'test',
-    dodopay_enabled: userSettings?.dodopay_enabled || 'off',
+    dodopay_enabled: userSettings?.dodopay_enabled || userSettings?.dodopay_is_on || 'off',
+    dodopay_display_name: userSettings?.dodopay_display_name || 'Dodo Payments',
+    dodopay_description: userSettings?.dodopay_description || 'Credit Cards, Apple Pay, Google Pay & Global Checkout',
+    dodopay_badge: userSettings?.dodopay_badge || 'Card / Apple Pay',
+    dodopay_icon_url: userSettings?.dodopay_icon_url || '',
   });
 
   useEffect(() => {
@@ -42,7 +46,11 @@ export default function DodoPaySettings({ userSettings, auth }: DodoPaySettingsP
         dodopay_api_key: userSettings?.dodopay_api_key || '',
         dodopay_product_id: userSettings?.dodopay_product_id || '',
         dodopay_mode: userSettings?.dodopay_mode || 'test',
-        dodopay_enabled: userSettings?.dodopay_enabled || 'off',
+        dodopay_enabled: userSettings?.dodopay_enabled || userSettings?.dodopay_is_on || 'off',
+        dodopay_display_name: userSettings?.dodopay_display_name || 'Dodo Payments',
+        dodopay_description: userSettings?.dodopay_description || 'Credit Cards, Apple Pay, Google Pay & Global Checkout',
+        dodopay_badge: userSettings?.dodopay_badge || 'Card / Apple Pay',
+        dodopay_icon_url: userSettings?.dodopay_icon_url || '',
       });
     }
   }, [userSettings]);
@@ -157,17 +165,77 @@ export default function DodoPaySettings({ userSettings, auth }: DodoPaySettingsP
                 </div>
               </div>
 
+              {/* Custom Display Name & Badge */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="dodopay_display_name">{t('Checkout Display Name')}</Label>
+                  <Input
+                    id="dodopay_display_name"
+                    name="dodopay_display_name"
+                    value={settings.dodopay_display_name}
+                    onChange={handleInputChange}
+                    placeholder={t('e.g., Credit Card / Apple Pay')}
+                    disabled={!canEdit}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="dodopay_badge">{t('Category Badge')}</Label>
+                  <Input
+                    id="dodopay_badge"
+                    name="dodopay_badge"
+                    value={settings.dodopay_badge}
+                    onChange={handleInputChange}
+                    placeholder={t('e.g., Card / Apple Pay')}
+                    disabled={!canEdit}
+                  />
+                </div>
+              </div>
+
+              {/* Custom Description & Icon URL */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="dodopay_description">{t('Checkout Short Description')}</Label>
+                  <Input
+                    id="dodopay_description"
+                    name="dodopay_description"
+                    value={settings.dodopay_description}
+                    onChange={handleInputChange}
+                    placeholder={t('e.g., Pay securely with Cards, Apple Pay & Google Pay')}
+                    disabled={!canEdit}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="dodopay_icon_url">{t('Custom Provider Icon / Logo URL')}</Label>
+                  <Input
+                    id="dodopay_icon_url"
+                    name="dodopay_icon_url"
+                    value={settings.dodopay_icon_url}
+                    onChange={handleInputChange}
+                    placeholder={t('https://cdn.dynime.com/media/dodopay.png')}
+                    disabled={!canEdit}
+                  />
+                </div>
+              </div>
+
               {/* DodoPay Product ID */}
               <div className="space-y-3">
-                <Label htmlFor="dodopay_product_id">{t('DodoPay Product ID')}</Label>
+                <Label htmlFor="dodopay_product_id" className="flex items-center gap-1.5">
+                  {t('DodoPay Product ID')}
+                  <span className="text-xs font-normal text-muted-foreground bg-muted px-2 py-0.5 rounded-full border">
+                    {t('Optional')}
+                  </span>
+                </Label>
                 <Input
                   id="dodopay_product_id"
                   name="dodopay_product_id"
                   value={settings.dodopay_product_id}
                   onChange={handleInputChange}
-                  placeholder={t('Enter DodoPay product ID')}
+                  placeholder={t('Optional: Enter DodoPay Product ID if using catalog items')}
                   disabled={!canEdit}
                 />
+                <p className="text-xs text-muted-foreground">
+                  {t('Optional for Invoice payments. Invoice amounts and currencies are created dynamically via Dodo Payments API.')}
+                </p>
               </div>
 
               {/* DodoPay Mode */}

@@ -28,6 +28,7 @@ import {
     User as UserIcon
 } from 'lucide-react';
 import { getImagePath,formatDate, formatTime,formatDateTime } from '@/utils/helpers';
+import TimezoneDutyWidget from '../../Components/TimezoneDutyWidget';
 
 interface HrmProps {
     message: string;
@@ -97,6 +98,9 @@ export default function HrmIndex({ message, stats }: HrmProps) {
             <Head title={t('HRM Dashboard')} />
             
             <div className="space-y-6">
+                {/* Timezone Calculation & Employee Duty Control Card for HR */}
+                <TimezoneDutyWidget stats={stats} />
+
                 {/* Key Metrics Row */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     <div onClick={() => window.location.href = route('hrm.employees.index')} className="cursor-pointer">

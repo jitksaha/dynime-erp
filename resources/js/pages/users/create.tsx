@@ -10,11 +10,12 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import InputError from "@/components/ui/input-error";
 import { PhoneInputComponent } from "@/components/ui/phone-input";
+import { ShieldCheck, Check } from "lucide-react";
 import { CreateUserProps, CreateUserFormData } from './types';
 
 export default function Create({ onSuccess, roles = {} }: CreateUserProps) {
     const { t } = useTranslation();
-    const { auth } = usePage().props as any;
+    const { auth, allRoles: pageAllRoles } = usePage<any>().props;
     const [isMediaModalOpen, setIsMediaModalOpen] = useState(false);
     const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
 
@@ -25,6 +26,7 @@ export default function Create({ onSuccess, roles = {} }: CreateUserProps) {
         password_confirmation: '',
         mobile_no: '',
         type: '',
+        roles: [],
         is_enable_login: true,
         avatar: null,
     });
@@ -152,30 +154,76 @@ export default function Create({ onSuccess, roles = {} }: CreateUserProps) {
                         <InputError message={errors.password_confirmation} />
                     </div>
                 </div>
-                <div className={`grid ${isSuperAdmin ? 'grid-cols-1' : 'grid-cols-2'} gap-4`}>
-                    {!isSuperAdmin && (
+                {!isSuperAdmin && (
+                    <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-2.5">
                         <div>
-                            <Label htmlFor="type">{t('Role')}</Label>
-                            <Select value={data.type} onValueChange={(value) => setData('type', value)}>
-                                <SelectTrigger>
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {Object.entries(roles).map(([id, label]) => (
-                                        <SelectItem key={id} value={id}>
-                                            {label}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                            {Object.keys(roles).length === 0 && auth.user?.permissions?.includes('create-roles') && (
-                                <p className="text-xs text-gray-500 mb-1">
-                                    {t('Create role here.')} <button onClick={() => router.get(route('roles.create'))} className="text-blue-600 hover:underline">{t('Create role')}</button>
-                                </p>
-                            )}
-                            <InputError message={errors.type} />
+                            <Label className="font-bold text-xs text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+                                <ShieldCheck className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                                {t('Assign System Roles (Multi-Role Support)')}
+                            </Label>
+                            <p className="text-[11px] text-slate-500 mt-0.5">
+                                {t('Permissions are dynamically combined from all selected roles.')}
+                            </p>
                         </div>
-                    )}
+
+                        <div className="flex flex-wrap gap-1.5 pt-1">
+                            {pageAllRoles && pageAllRoles.length > 0 ? (
+                                pageAllRoles.map((roleItem: any) => {
+                                    const isSelected = (data.roles || []).includes(roleItem.name);
+                                    return (
+                                        <button
+                                            key={roleItem.id}
+                                            type="button"
+                                            onClick={() => {
+                                                const currentRoles = data.roles || [];
+                                                if (isSelected) {
+                                                    const updated = currentRoles.filter((r: string) => r !== roleItem.name);
+                                                    setData('roles', updated);
+                                                    if (updated.length > 0) setData('type', updated[0]);
+                                                } else {
+                                                    const updated = [...currentRoles, roleItem.name];
+                                                    setData('roles', updated);
+                                                    setData('type', updated[0]);
+                                                }
+                                            }}
+                                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition-all border ${
+                                                isSelected
+                                                    ? 'bg-indigo-600 text-white border-indigo-700 shadow-2xs'
+                                                    : 'bg-white dark:bg-slate-950 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:border-indigo-300'
+                                            }`}
+                                        >
+                                            <span className={`w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-white' : 'bg-slate-300 dark:bg-slate-700'}`} />
+                                            {roleItem.label || roleItem.name}
+                                            {isSelected && <Check className="w-3 h-3 ml-0.5" />}
+                                        </button>
+                                    );
+                                })
+                            ) : (
+                                Object.entries(roles).map(([id, label]) => {
+                                    const isSelected = data.type === id || (data.roles || []).includes(label as string);
+                                    return (
+                                        <button
+                                            key={id}
+                                            type="button"
+                                            onClick={() => {
+                                                setData('type', id);
+                                                setData('roles', [label as string]);
+                                            }}
+                                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition-all border ${
+                                                isSelected
+                                                    ? 'bg-indigo-600 text-white border-indigo-700 shadow-2xs'
+                                                    : 'bg-white dark:bg-slate-950 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800'
+                                            }`}
+                                        >
+                                            {label}
+                                        </button>
+                                    );
+                                })
+                            )}
+                        </div>
+                        <InputError message={errors.roles || errors.type} />
+                    </div>
+                )}
                     <div>
                         <Label htmlFor="is_enable_login">{t('Login Status')}</Label>
                         <Select value={data.is_enable_login ? "1" : "0"} onValueChange={(value) => setData('is_enable_login', value === "1")}>
@@ -189,7 +237,6 @@ export default function Create({ onSuccess, roles = {} }: CreateUserProps) {
                         </Select>
                         <InputError message={errors.is_enable_login} />
                     </div>
-                </div>
                 <div className="flex justify-end gap-2">
                     <Button type="button" variant="outline" onClick={onSuccess}>
                         {t('Cancel')}

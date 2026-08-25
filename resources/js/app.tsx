@@ -38,23 +38,23 @@ class GlobalErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySta
         if (this.state.hasError) {
             return (
                 <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900 p-6">
-                    <div className="max-w-md w-full bg-white dark:bg-slate-800 rounded-xl shadow-xl p-6 border border-slate-200 dark:border-slate-700 text-center space-y-4">
+                    <div className="max-w-2xl w-full bg-white dark:bg-slate-800 rounded-xl shadow-xl p-6 border border-slate-200 dark:border-slate-700 text-center space-y-4">
                         <div className="w-12 h-12 rounded-full bg-rose-100 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 flex items-center justify-center mx-auto text-xl font-bold">!</div>
                         <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">Application Error</h2>
-                        <p className="text-xs text-rose-600 dark:text-rose-400 font-mono bg-slate-100 dark:bg-slate-950 p-3 rounded border border-slate-200 dark:border-slate-800 text-left overflow-auto max-h-44 break-words">
-                            {this.state.error?.toString()}
-                        </p>
+                        <pre className="text-xs text-rose-600 dark:text-rose-400 font-mono bg-slate-100 dark:bg-slate-950 p-4 rounded border border-slate-200 dark:border-slate-800 text-left overflow-auto max-h-96 whitespace-pre-wrap break-all">
+                            {this.state.error?.stack || this.state.error?.toString()}
+                        </pre>
                         <button
                             onClick={() => {
                                 try {
                                     localStorage.clear();
                                     sessionStorage.clear();
                                 } catch(e) {}
-                                window.location.reload();
+                                window.location.href = window.location.pathname + '?v=' + Date.now();
                             }}
                             className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-semibold transition-colors shadow-sm"
                         >
-                            Reset Cache & Reload
+                            Reset Cache & Reload Page
                         </button>
                     </div>
                 </div>

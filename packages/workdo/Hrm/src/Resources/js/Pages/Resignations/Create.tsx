@@ -17,15 +17,32 @@ import axios from 'axios';
 
 export default function Create({ onSuccess }: CreateResignationProps) {
     const { employees, users, auth } = usePage<any>().props;
-
     const { t } = useTranslation();
+
+    const isEmployeeOnly = auth?.user?.type !== 'company' && auth?.user?.type !== 'superadmin' && !auth?.user?.can?.('manage-any-resignations');
+
+    const getDefaultEmployeeId = () => {
+        if (employees?.length === 1) return employees[0].id.toString();
+        const foundSelf = employees?.find((e: any) => Number(e.id) === Number(auth?.user?.id));
+        if (foundSelf) return foundSelf.id.toString();
+        if (auth?.user?.id && isEmployeeOnly) return auth.user.id.toString();
+        return '';
+    };
+
     const { data, setData, post, processing, errors } = useForm<CreateResignationFormData>({
-        employee_id: employees?.length === 1 ? employees[0].id.toString() : '',
+        employee_id: getDefaultEmployeeId(),
         last_working_date: '',
         reason: '',
         description: '',
         document: '',
     });
+
+    useEffect(() => {
+        if (!data.employee_id) {
+            const defId = getDefaultEmployeeId();
+            if (defId) setData('employee_id', defId);
+        }
+    }, [employees, auth]);
 
     // AI hooks for description field
     const descriptionAI = useFormFields('aiField', data, setData, errors, 'create', 'description', 'Description', 'hrm', 'resignation');
@@ -49,7 +66,7 @@ export default function Create({ onSuccess }: CreateResignationProps) {
             <form onSubmit={submit} className="space-y-4">
                 <div>
                     <Label htmlFor="employee_id" required>{t('Employee')}</Label>
-                    <Select value={data.employee_id} onValueChange={(value) => setData('employee_id', value)} required>
+                    <Select value={data.employee_id} onValueChange={(value) => setData('employee_id', value)} disabled={isEmployeeOnly} required>
                         <SelectTrigger>
                             <SelectValue placeholder={t('Select Employee')} />
                         </SelectTrigger>

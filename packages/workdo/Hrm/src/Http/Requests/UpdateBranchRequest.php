@@ -15,6 +15,7 @@ class UpdateBranchRequest extends FormRequest
     {
         return [
             'branch_name' => 'required|max:100',
+            'branch_address' => 'nullable|string|max:1000',
             'priority' => 'nullable|integer|min:1'
         ];
     }

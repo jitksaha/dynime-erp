@@ -31,6 +31,10 @@ export default function StripeSettings({ userSettings, auth }: StripeSettingsPro
     stripe_key: userSettings?.stripe_key || '',
     stripe_secret: userSettings?.stripe_secret || '',
     stripe_enabled: userSettings?.stripe_enabled || 'off',
+    stripe_display_name: userSettings?.stripe_display_name || 'Stripe Checkout',
+    stripe_description: userSettings?.stripe_description || 'Cards, Apple Pay & International Cards',
+    stripe_badge: userSettings?.stripe_badge || 'Stripe',
+    stripe_icon_url: userSettings?.stripe_icon_url || '',
   });
 
   useEffect(() => {
@@ -39,6 +43,10 @@ export default function StripeSettings({ userSettings, auth }: StripeSettingsPro
         stripe_key: userSettings?.stripe_key || '',
         stripe_secret: userSettings?.stripe_secret || '',
         stripe_enabled: userSettings?.stripe_enabled || 'off',
+        stripe_display_name: userSettings?.stripe_display_name || 'Stripe Checkout',
+        stripe_description: userSettings?.stripe_description || 'Cards, Apple Pay & International Cards',
+        stripe_badge: userSettings?.stripe_badge || 'Stripe',
+        stripe_icon_url: userSettings?.stripe_icon_url || '',
       });
     }
   }, [userSettings]);
@@ -175,6 +183,57 @@ export default function StripeSettings({ userSettings, auth }: StripeSettingsPro
                     <p className="text-xs text-muted-foreground">
                       {t('Stripe secret key for server-side integration')}
                     </p>
+                  </div>
+
+                  {/* Checkout Branding & Custom Icon */}
+                  <div className="space-y-4 pt-4 border-t">
+                    <h4 className="font-semibold text-sm text-slate-800 dark:text-slate-200">{t('Checkout Display Branding & Custom Icon')}</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <Label htmlFor="stripe_display_name">{t('Checkout Display Name')}</Label>
+                        <Input
+                          id="stripe_display_name"
+                          name="stripe_display_name"
+                          value={settings.stripe_display_name}
+                          onChange={handleInputChange}
+                          placeholder="Stripe Checkout"
+                          disabled={!canEdit}
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="stripe_description">{t('Short Description')}</Label>
+                        <Input
+                          id="stripe_description"
+                          name="stripe_description"
+                          value={settings.stripe_description}
+                          onChange={handleInputChange}
+                          placeholder="Cards, Apple Pay & International Cards"
+                          disabled={!canEdit}
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="stripe_badge">{t('Category Badge')}</Label>
+                        <Input
+                          id="stripe_badge"
+                          name="stripe_badge"
+                          value={settings.stripe_badge}
+                          onChange={handleInputChange}
+                          placeholder="Stripe"
+                          disabled={!canEdit}
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="stripe_icon_url">{t('Custom Provider Icon / Logo URL')}</Label>
+                        <Input
+                          id="stripe_icon_url"
+                          name="stripe_icon_url"
+                          value={settings.stripe_icon_url}
+                          onChange={handleInputChange}
+                          placeholder="https://cdn.dynime.com/media/stripe.png"
+                          disabled={!canEdit}
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
 

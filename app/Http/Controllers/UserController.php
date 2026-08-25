@@ -21,6 +21,7 @@ class UserController extends Controller
     {
         if(Auth::user()->can('manage-users')){
             $users = User::query()
+                ->with('roles')
                 ->leftJoin('employees', 'users.id', '=', 'employees.user_id')
                 ->where(function($q) {
                     if(Auth::user()->can('manage-any-users')) {
@@ -36,11 +37,39 @@ class UserController extends Controller
                     $sub->where('users.email', 'like', '%' . request('email') . '%')
                         ->orWhere('employees.official_email', 'like', '%' . request('email') . '%');
                 }))
-                ->when(request('role'), fn($q) => $q->join('model_has_roles', 'users.id', '=', 'model_has_roles.model_id')
-                    ->where('model_has_roles.role_id', request('role'))
-                    ->where('model_has_roles.model_type', User::class))
+                ->when(request('role'), function($q) {
+                    $roleVal = request('role');
+                    return $q->where(function($sub) use ($roleVal) {
+                        $sub->whereHas('roles', function($rQ) use ($roleVal) {
+                            if (is_numeric($roleVal)) {
+                                $rQ->where('roles.id', $roleVal);
+                            } else {
+                                $rQ->where('roles.name', $roleVal)->orWhere('roles.label', $roleVal);
+                            }
+                        });
+                        if (is_numeric($roleVal)) {
+                            $roleObj = \Spatie\Permission\Models\Role::find($roleVal);
+                            if ($roleObj) {
+                                $sub->orWhere('users.type', $roleObj->name);
+                                if ($roleObj->name === 'staff') {
+                                    $sub->orWhere('users.type', 'employee');
+                                }
+                            }
+                        } else {
+                            $sub->orWhere('users.type', $roleVal);
+                            if (in_array(strtolower($roleVal), ['employee', 'staff'])) {
+                                $sub->orWhereIn('users.type', ['staff', 'employee']);
+                            }
+                        }
+                    });
+                })
                 ->when(request('is_enable_login') !== null, fn($q) => $q->where('users.is_enable_login', request('is_enable_login')))
-                ->when(request('sort'), fn($q) => $q->orderBy('users.' . request('sort'), request('direction', 'asc')), function($q) {
+                ->when(request('sort'), function($q) {
+                    $allowedSorts = ['id', 'name', 'email', 'created_at', 'is_enable_login'];
+                    $sort = in_array(request('sort'), $allowedSorts, true) ? request('sort') : 'id';
+                    $direction = in_array(strtolower(request('direction', 'asc')), ['asc', 'desc'], true) ? strtolower(request('direction', 'asc')) : 'asc';
+                    return $q->orderBy('users.' . $sort, $direction);
+                }, function($q) {
                     if (config('app.is_demo', false) && Auth::user()->type === 'superadmin') {
                         return $q->orderBy('users.id', 'asc');
                     }
@@ -51,10 +80,18 @@ class UserController extends Controller
                 ->withQueryString();
 
             $roles = Role::where('created_by', creatorId())->pluck('label', 'id');
+            $allRoles = Role::where('created_by', creatorId())
+                ->get()
+                ->map(fn($r) => [
+                    'id' => $r->id,
+                    'name' => $r->name,
+                    'label' => $r->label ?? $r->name,
+                ]);
 
             return Inertia::render('users/index', [
                 'users' => $users,
                 'roles' => $roles,
+                'allRoles' => $allRoles,
             ]);
         }
         else{
@@ -122,7 +159,17 @@ class UserController extends Controller
                 $role = Role::findByName('company');
             }
 
-            $user->assignRole($role);
+            if ($request->has('roles') && is_array($request->input('roles')) && count($request->input('roles')) > 0) {
+                $roleNames = $request->input('roles');
+                $rolesToSync = Role::whereIn('name', $roleNames)->orWhereIn('id', $roleNames)->get();
+                $user->syncRoles($rolesToSync);
+                if ($rolesToSync->isNotEmpty() && Auth::user()->type != 'superadmin') {
+                    $user->type = $rolesToSync->first()->name;
+                    $user->save();
+                }
+            } elseif (isset($role) && $role) {
+                $user->assignRole($role);
+            }
 
             // Dispatch event for packages to handle their fields
             CreateUser::dispatch($request, $user);
@@ -153,7 +200,11 @@ class UserController extends Controller
 
     public function update(UpdateUserRequest $request, User $user)
     {
-        if(Auth::user()->can('edit-users')){
+        if (Auth::user()->can('edit-users')) {
+            if ($user->created_by != creatorId() && Auth::user()->type !== 'superadmin' && $user->id !== Auth::id()) {
+                return redirect()->route('users.index')->with('error', __('Permission denied'));
+            }
+
             $validated = $request->validated();
             $validated['is_enable_login'] = $request->boolean('is_enable_login', true);
 
@@ -202,6 +253,25 @@ class UserController extends Controller
                 }
             }
 
+            if ($request->has('roles') && is_array($request->input('roles'))) {
+                $roleNames = $request->input('roles');
+                $rolesToSync = Role::whereIn('name', $roleNames)->orWhereIn('id', $roleNames)->get();
+                $user->syncRoles($rolesToSync);
+                if ($rolesToSync->isNotEmpty() && $user->type !== 'superadmin' && $user->type !== 'company') {
+                    $user->type = $rolesToSync->first()->name;
+                    $user->save();
+                }
+            } elseif ($request->has('type') && !empty($request->input('type'))) {
+                $role = Role::find($request->input('type'));
+                if ($role) {
+                    $user->syncRoles([$role]);
+                    if ($user->type !== 'superadmin' && $user->type !== 'company') {
+                        $user->type = $role->name;
+                        $user->save();
+                    }
+                }
+            }
+
             return back()->with('success', __('The user details are updated successfully.'));
         }
         else{
@@ -225,7 +295,14 @@ class UserController extends Controller
 
     public function destroy(User $user)
     {
-        if(Auth::user()->can('delete-users')){
+        if (Auth::user()->can('delete-users')) {
+            if ($user->created_by != creatorId() && Auth::user()->type !== 'superadmin') {
+                return redirect()->route('users.index')->with('error', __('Permission denied'));
+            }
+            if ($user->id === Auth::id()) {
+                return redirect()->route('users.index')->with('error', __('You cannot delete yourself.'));
+            }
+
             $user->delete();
 
             return back()->with('success', __('The user has been deleted.'));
@@ -302,6 +379,24 @@ class UserController extends Controller
         }
         else{
             return back()->with('error', __('Permission denied'));
+        }
+    }
+
+    public function toggleVerification(\Illuminate\Http\Request $request, User $user)
+    {
+        if (Auth::user()->can('edit-users') || Auth::user()->type === 'company' || Auth::user()->type === 'hr' || Auth::user()->type === 'superadmin') {
+            $user->is_verified = !$user->is_verified;
+            $user->save();
+
+            $employee = \Workdo\Hrm\Models\Employee::where('user_id', $user->id)->first();
+            if ($employee) {
+                $employee->is_verified = $user->is_verified;
+                $employee->save();
+            }
+
+            return redirect()->back()->with('success', $user->is_verified ? __('User verified successfully!') : __('User verification status removed.'));
+        } else {
+            return redirect()->back()->with('error', __('Permission denied'));
         }
     }
 }

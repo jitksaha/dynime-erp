@@ -70,9 +70,16 @@ class ExpenseController extends Controller
 
             $expenses = $query->paginate($request->per_page ?? 10)->withQueryString();
 
-            $categories = ExpenseCategories::where('created_by', creatorId())
+            $creatorId = creatorId();
+            if (ExpenseCategories::where('created_by', $creatorId)->count() < 5) {
+                \App\Console\Commands\SeedFinancialCategories::seedForCreator($creatorId);
+            }
+
+            $categories = ExpenseCategories::where('created_by', $creatorId)
                 ->where('is_active', true)
-                ->select('id', 'category_name')
+                ->select('id', 'category_name', 'description')
+                ->orderBy('description', 'asc')
+                ->orderBy('category_name', 'asc')
                 ->get();
 
             $bankAccounts = BankAccount::where('created_by', creatorId())

@@ -12,8 +12,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        $middleware->trustProxies(at: '*');
         $middleware->web(append: [
             \App\Http\Middleware\CheckInstallation::class,
+            \App\Http\Middleware\CheckMaintenanceMode::class,
             \App\Http\Middleware\HandleInertiaRequests::class,
             \App\Http\Middleware\DemoModeMiddleware::class,
             \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,

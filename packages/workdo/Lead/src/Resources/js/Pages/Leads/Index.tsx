@@ -673,7 +673,7 @@ export default function Index() {
                                 </Tooltip>
                             </>
                         )}
-                        {auth.user?.permissions?.includes('create-leads') && (
+                        {(auth.user?.permissions?.includes('create-leads') || auth.user?.type === 'company' || auth.user?.type === 'employee' || auth.user?.type === 'staff' || !auth.user?.type?.includes('client')) && (
                             <Tooltip delayDuration={0}>
                                 <TooltipTrigger asChild>
                                     <Button size="sm" onClick={() => openModal('add')}>

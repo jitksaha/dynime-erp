@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from '@/components/ui/label';
 import InputError from '@/components/ui/input-error';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 
 import { EditBranchProps, BranchFormData } from './types';
 
@@ -12,6 +13,7 @@ export default function Edit({ branch, onSuccess }: EditBranchProps) {
     const { t } = useTranslation();
     const { data, setData, put, processing, errors } = useForm<BranchFormData>({
         branch_name: branch.branch_name ?? '',
+        branch_address: branch.branch_address ?? '',
         priority: branch.priority?.toString() || '',
     });
 
@@ -41,6 +43,18 @@ export default function Edit({ branch, onSuccess }: EditBranchProps) {
                         required
                     />
                     <InputError message={errors.branch_name} />
+                </div>
+
+                <div>
+                    <Label htmlFor="branch_address">{t('Branch Official Address')}</Label>
+                    <Textarea
+                        id="branch_address"
+                        value={data.branch_address}
+                        onChange={(e) => setData('branch_address', e.target.value)}
+                        placeholder={t('Enter full physical address of this branch')}
+                        rows={3}
+                    />
+                    <InputError message={errors.branch_address} />
                 </div>
 
                 <div>

@@ -17,7 +17,7 @@ use Workdo\Hrm\Events\UpdateAttendance;
 use Workdo\Hrm\Events\DestroyAttendance;
 use Workdo\Hrm\Models\LeaveApplication;
 use Workdo\Hrm\Models\Holiday;
-use Workdo\Hrm\Models\IpRestrict;
+use Workdo\Hrm\Services\EmployeeScopeService;
 
 class AttendanceController extends Controller
 {
@@ -39,12 +39,7 @@ class AttendanceController extends Controller
             $today = Carbon::today();
 
             $employeeQuery = Employee::where('created_by', creatorId());
-
-            if (Auth::user()->can('manage-own-attendances') && !Auth::user()->can('manage-any-attendances')) {
-                $employeeQuery->where(function ($q) {
-                    $q->where('creator_id', Auth::id())->orWhere('user_id', Auth::id());
-                });
-            }
+            $employeeQuery = EmployeeScopeService::applyEmployeeScope($employeeQuery, Auth::user());
 
             if (request('employee_id') && request('employee_id') !== 'all') {
                 $employeeId = request('employee_id');
@@ -152,7 +147,9 @@ class AttendanceController extends Controller
 
                         $isLate = false;
                         $isEarly = false;
-                        if ($empModel && $empModel->getRelation('shift')) {
+                        $isFlexible = $empModel && ($empModel->current_shift_type === 'flexible');
+
+                        if (!$isFlexible && $empModel && $empModel->getRelation('shift')) {
                             $shiftRel = $empModel->getRelation('shift'); // This uses the relationship
                             $shiftStartTime = Carbon::parse($shiftRel->start_time)->setDate($record->date->year, $record->date->month, $record->date->day);
                             $shiftEndTime = Carbon::parse($shiftRel->end_time)->setDate($record->date->year, $record->date->month, $record->date->day);
@@ -540,14 +537,13 @@ class AttendanceController extends Controller
 
     private function calculateAttendanceData($clockIn, $clockOut, $breakHour, $shift, $employee)
     {
-        $shift = Shift::where('id', $shift)->where('created_by', creatorId())->first();
+        $shiftObj = Shift::where('id', $shift)->where('created_by', creatorId())->first();
         // Step 1: Calculate total working hours
-        $totalHourData = $this->calculateTotalHours($clockIn, $clockOut, $shift);
-        $totalHour = $totalHourData['total_working_hours'];
-
+        $totalHourData = $this->calculateTotalHours($clockIn, $clockOut, $shiftObj);
+        $totalHour = is_array($totalHourData) ? ($totalHourData['total_working_hours'] ?? 0) : (float)$totalHourData;
 
         // Step 2: Calculate overtime
-        $standardHours = ($shift && $this->getWorkingHour($shift) > 0) ? $this->getWorkingHour($shift) : 8;
+        $standardHours = ($shiftObj && $this->getWorkingHour($shiftObj) > 0) ? $this->getWorkingHour($shiftObj) : 8;
         $overtimeHours = max(0, round($totalHour - $standardHours, 2));
 
         // Step 3: Calculate overtime amount
@@ -556,7 +552,34 @@ class AttendanceController extends Controller
             $overtimeAmount = round($overtimeHours * ($employee->rate_per_hour), 2);
         }
 
-        // Step 4: Determine status
+        // Step 4: Late & Early Leaving Calculation (Skipped for Flexible Shift)
+        $lateMins = 0;
+        $earlyMins = 0;
+        $isFlexible = $employee && ($employee->current_shift_type === 'flexible');
+
+        if (!$isFlexible) {
+            if ($clockIn && $shiftObj && !empty($shiftObj->start_time)) {
+                try {
+                    $cIn = \Carbon\Carbon::parse($clockIn);
+                    $sStart = \Carbon\Carbon::parse($cIn->format('Y-m-d') . ' ' . $shiftObj->start_time);
+                    if ($cIn->gt($sStart->copy()->addMinutes(15))) {
+                        $lateMins = $cIn->diffInMinutes($sStart);
+                    }
+                } catch (\Throwable $th) {}
+            }
+
+            if ($clockOut && $shiftObj && !empty($shiftObj->end_time)) {
+                try {
+                    $cOut = \Carbon\Carbon::parse($clockOut);
+                    $sEnd = \Carbon\Carbon::parse($cOut->format('Y-m-d') . ' ' . $shiftObj->end_time);
+                    if ($cOut->lt($sEnd)) {
+                        $earlyMins = $sEnd->diffInMinutes($cOut);
+                    }
+                } catch (\Throwable $th) {}
+            }
+        }
+
+        // Step 5: Determine status
         $status = 'absent';
         if ($totalHour > 0) {
             $halfDayThreshold = $standardHours / 2;
@@ -573,6 +596,8 @@ class AttendanceController extends Controller
             'total_hour' => $totalHourData,
             'overtime_hours' => $overtimeHours,
             'overtime_amount' => $overtimeAmount,
+            'late_minutes' => $lateMins,
+            'early_leaving_minutes' => $earlyMins,
             'status' => $status,
         ];
     }
@@ -652,27 +677,53 @@ class AttendanceController extends Controller
                 ->where('created_by', creatorId())
                 ->first();
 
-
-            if ($existingAttendance && $existingAttendance->clock_in) {
-                return redirect()->back()->with('error', __('You have already clocked in today.'));
+            if ($existingAttendance && $existingAttendance->clock_in && !$existingAttendance->clock_out) {
+                return redirect()->back()->with('error', __('You are currently clocked in.'));
             }
 
-
-
-            // $clockInTime = now()->format('H:i:s');
             $clockInTime = now();
+            $nowStr = $clockInTime->format('h:i A');
 
             if ($existingAttendance) {
-                $existingAttendance->update(['clock_in' => $clockInTime]);
+                $sessions = [];
+                if (!empty($existingAttendance->notes)) {
+                    $trimmed = trim($existingAttendance->notes);
+                    if (str_starts_with($trimmed, '{')) {
+                        $decoded = json_decode($trimmed, true);
+                        if (isset($decoded['sessions']) && is_array($decoded['sessions'])) {
+                            $sessions = $decoded['sessions'];
+                        }
+                    }
+                }
+                $sessions[] = [
+                    'in' => $nowStr,
+                    'out' => null,
+                    'platform' => 'Web'
+                ];
+
+                $existingAttendance->update([
+                    'clock_in' => $clockInTime,
+                    'clock_out' => null,
+                    'notes' => json_encode(['text' => 'Clocked in via Web', 'sessions' => $sessions]),
+                ]);
             } else {
                 $employee = Employee::where('user_id', $employeeId)->where('created_by', creatorId())->first();
                 $shift = $employee ? $employee->shift : null;
+
+                $sessions = [
+                    [
+                        'in' => $nowStr,
+                        'out' => null,
+                        'platform' => 'Web'
+                    ]
+                ];
 
                 Attendance::create([
                     'employee_id' => $employeeId,
                     'shift_id' => $shift,
                     'date' => $today,
                     'clock_in' => $clockInTime,
+                    'notes' => json_encode(['text' => 'Clocked in via Web', 'sessions' => $sessions]),
                     'creator_id' => Auth::id(),
                     'created_by' => creatorId(),
                 ]);
@@ -711,7 +762,6 @@ class AttendanceController extends Controller
                 ->where('created_by', creatorId())
                 ->first();
 
-            // If no today's attendance, check for pending attendance from previous days
             if (!$attendance || !$attendance->clock_in) {
                 $attendance = Attendance::where('employee_id', $employeeId)
                     ->whereNull('clock_out')
@@ -720,35 +770,70 @@ class AttendanceController extends Controller
                     ->first();
             }
 
-            if (!$attendance || !$attendance->clock_in) {
+            if (!$attendance || !$attendance->clock_in || $attendance->clock_out) {
                 return redirect()->back()->with('error', __('You must clock in first.'));
             }
 
-            if ($attendance->clock_out) {
-                return redirect()->back()->with('error', __('You have already clocked out today.'));
+            $clockOutTime = now();
+            $outStr = $clockOutTime->format('h:i A');
+
+            $sessions = [];
+            if (!empty($attendance->notes)) {
+                $trimmed = trim($attendance->notes);
+                if (str_starts_with($trimmed, '{')) {
+                    $decoded = json_decode($trimmed, true);
+                    if (isset($decoded['sessions']) && is_array($decoded['sessions'])) {
+                        $sessions = $decoded['sessions'];
+                    }
+                }
             }
 
-            // $clockOutTime = now()->format('H:i:s');
-            $clockOutTime = now();
-            $employee = Employee::with('shift')->where('user_id', $employeeId)->where('created_by', creatorId())->first();
-            $shift = $employee ? $employee->shift : null;
+            if (empty($sessions)) {
+                $inStr = \Carbon\Carbon::parse($attendance->clock_in)->format('h:i A');
+                $sessions[] = [
+                    'in' => $inStr,
+                    'out' => $outStr,
+                    'platform' => 'Web'
+                ];
+            } else {
+                $updated = false;
+                for ($i = count($sessions) - 1; $i >= 0; $i--) {
+                    if (empty($sessions[$i]['out'])) {
+                        $sessions[$i]['out'] = $outStr;
+                        $updated = true;
+                        break;
+                    }
+                }
+                if (!$updated) {
+                    $inStr = \Carbon\Carbon::parse($attendance->clock_in)->format('h:i A');
+                    $sessions[] = [
+                        'in' => $inStr,
+                        'out' => $outStr,
+                        'platform' => 'Web'
+                    ];
+                }
+            }
 
-            // Calculate attendance data using existing logic
-            $calculatedData = $this->calculateAttendanceData(
-                $attendance->clock_in,
-                $clockOutTime,
-                0, // break_hour
-                $shift,
-                $employee
-            );
+            $totalSecs = 0;
+            foreach ($sessions as $s) {
+                if (!empty($s['in'])) {
+                    try {
+                        $sIn = \Carbon\Carbon::parse($attendance->date . ' ' . $s['in']);
+                        $sOut = !empty($s['out']) ? \Carbon\Carbon::parse($attendance->date . ' ' . $s['out']) : now();
+                        if ($sOut->lt($sIn)) {
+                            $sOut->addDay();
+                        }
+                        $totalSecs += max(0, $sOut->diffInSeconds($sIn));
+                    } catch (\Throwable $th) {}
+                }
+            }
+            $newTotalHours = round($totalSecs / 3600, 2);
 
             $attendance->update([
                 'clock_out' => $clockOutTime,
-                'total_hour' => $calculatedData['total_hour']['total_working_hours'],
-                'break_hour' => $calculatedData['total_hour']['total_break_hours'],
-                'overtime_hours' => $calculatedData['overtime_hours'],
-                'overtime_amount' => $calculatedData['overtime_amount'],
-                'status' => $calculatedData['status'],
+                'total_hour' => $newTotalHours,
+                'status' => 'Present',
+                'notes' => json_encode(['text' => 'Clocked out via Web', 'sessions' => $sessions]),
             ]);
 
             return redirect()->back()->with('success', __('Clocked out successfully.'));
@@ -767,11 +852,114 @@ class AttendanceController extends Controller
             ->where('created_by', creatorId())
             ->first();
 
+        $isClockedIn = $attendance && $attendance->clock_in && !$attendance->clock_out;
+        $totalHoursVal = (float)($attendance ? $attendance->total_hour : 0);
+
+        if ($isClockedIn && $attendance->clock_in) {
+            $clockInCarbon = \Carbon\Carbon::parse($attendance->clock_in);
+            $sessionSecs = max(0, now()->diffInSeconds($clockInCarbon));
+            $totalHoursVal += ($sessionSecs / 3600);
+        }
+
+        $hrs = floor($totalHoursVal);
+        $mins = round(($totalHoursVal - $hrs) * 60);
+        $formattedHours = "{$hrs} hrs {$mins} mins";
+
         return response()->json([
-            'is_clocked_in' => $attendance && $attendance->clock_in && !$attendance->clock_out,
+            'is_clocked_in' => $isClockedIn,
             'clock_in_time' => $attendance ? $attendance->clock_in : null,
             'clock_out_time' => $attendance ? $attendance->clock_out : null,
-            'total_working_hours' => $attendance && $attendance->total_hour ? $attendance->total_hour . ' hours' : null,
+            'total_working_hours' => $formattedHours,
+            'attendance_id' => $attendance ? $attendance->id : null,
+        ]);
+    }
+
+    public function storeScreenshot(Request $request)
+    {
+        $request->validate([
+            'attendance_id' => 'nullable|integer',
+            'screenshot' => 'required',
+            'activity_percentage' => 'nullable|integer',
+        ]);
+
+        $employeeId = Auth::id();
+        $today = now()->toDateString();
+
+        $attendanceId = $request->input('attendance_id');
+        if (!$attendanceId) {
+            $attendance = Attendance::where('employee_id', $employeeId)
+                ->where('date', $today)
+                ->first();
+            $attendanceId = $attendance ? $attendance->id : null;
+        }
+
+        if (!$attendanceId) {
+            return response()->json(['error' => 'No active attendance found for clock-in session'], 422);
+        }
+
+        $imagePath = '';
+        if ($request->hasFile('screenshot')) {
+            $file = $request->file('screenshot');
+            $fileName = 'snap_' . time() . '_' . rand(1000, 9999) . '.' . $file->getClientOriginalExtension();
+            $imagePath = $file->storeAs("attendance_screenshots/{$employeeId}/{$today}", $fileName, 'public');
+        } else if (is_string($request->input('screenshot'))) {
+            $base64Data = $request->input('screenshot');
+            if (preg_match('/^data:image\/(\w+);base64,/', $base64Data, $type)) {
+                $data = substr($base64Data, strpos($base64Data, ',') + 1);
+                $data = base64_decode($data);
+                $ext = strtolower($type[1]);
+                $fileName = 'snap_' . time() . '_' . rand(1000, 9999) . '.' . $ext;
+                $relativePath = "attendance_screenshots/{$employeeId}/{$today}/{$fileName}";
+                \Illuminate\Support\Facades\Storage::disk('public')->put($relativePath, $data);
+                $imagePath = $relativePath;
+            }
+        }
+
+        if (!$imagePath) {
+            return response()->json(['error' => 'Failed to process screenshot image data'], 400);
+        }
+
+        $screenshotRecord = \Workdo\Hrm\Models\AttendanceScreenshot::create([
+            'attendance_id' => $attendanceId,
+            'employee_id' => $employeeId,
+            'image_path' => '/storage/' . $imagePath,
+            'captured_at' => now(),
+            'activity_percentage' => $request->input('activity_percentage', 100),
+            'status' => 'active',
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => __('Screenshot captured and uploaded successfully'),
+            'data' => $screenshotRecord,
+        ]);
+    }
+
+    public function getScreenshots($attendance_id)
+    {
+        $screenshots = \Workdo\Hrm\Models\AttendanceScreenshot::where('attendance_id', $attendance_id)
+            ->orderBy('captured_at', 'desc')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'screenshots' => $screenshots,
+        ]);
+    }
+
+    public function deleteScreenshot($id)
+    {
+        $screenshot = \Workdo\Hrm\Models\AttendanceScreenshot::findOrFail($id);
+        
+        if ($screenshot->employee_id !== Auth::id() && !Auth::user()->can('manage-any-attendances')) {
+            return response()->json(['error' => 'Permission denied'], 403);
+        }
+
+        $screenshot->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => __('Screenshot deleted successfully'),
         ]);
     }
 

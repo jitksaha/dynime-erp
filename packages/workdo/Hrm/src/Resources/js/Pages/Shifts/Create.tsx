@@ -1,128 +1,452 @@
-import { DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { useForm } from "@inertiajs/react";
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useForm, router } from '@inertiajs/react';
+import { DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Label } from '@/components/ui/label';
-import InputError from '@/components/ui/input-error';
-import { Input } from '@/components/ui/input';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CreateShiftProps, CreateShiftFormData } from './types';
-import { usePage } from '@inertiajs/react';
-import { useEffect, useState } from 'react';
-import axios from 'axios';
+import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Clock, Globe, ShieldCheck, Plus, Trash2, Moon, Calendar, AlertCircle } from 'lucide-react';
+import { SearchableCountrySelect } from '@/components/ui/searchable-country-select';
+import { ShiftFormData } from './types';
 
-export default function Create({ onSuccess }: CreateShiftProps) {
-    const { users } = usePage<any>().props;
+interface CreateProps {
+    timezones: Record<string, string>;
+    employees: any[];
+    departments: any[];
+    onClose: () => void;
+}
 
+export default function Create({ timezones, employees, departments, onClose }: CreateProps) {
     const { t } = useTranslation();
-    const { data, setData, post, processing, errors } = useForm<CreateShiftFormData>({
+    const [activeTab, setActiveTab] = useState('basic');
+
+    const { data, setData, post, processing, errors } = useForm<ShiftFormData>({
         shift_name: '',
-        start_time: '',
-        end_time: '',
-        break_start_time: '',
-        break_end_time: '',
-        is_night_shift: false,
+        shift_code: 'SFT-' + Math.random().toString(36).substring(2, 7).toUpperCase(),
+        shift_type: 'fixed',
+        description: '',
+        is_active: true,
+        country: 'United States',
+        region: 'North America',
+        timezone: 'America/Denver',
+        start_time: '09:00',
+        end_time: '18:00',
+        required_working_hours: 8,
+        earliest_start_time: '07:00',
+        latest_start_time: '11:00',
+        latest_finish_time: '20:00',
+        on_call_standby_allowance: 0,
+        on_call_response_time_mins: 30,
+        rules: {
+            grace_period_mins: 10,
+            early_clock_in_mins: 30,
+            late_clock_out_mins: 120,
+            min_working_hours: 4,
+            max_working_hours: 12,
+            half_day_threshold_hours: 4,
+            absent_threshold_hours: 2,
+            auto_mark_late: true,
+            auto_mark_early_leave: true,
+        },
+        breaks: [
+            {
+                break_name: 'Lunch Break',
+                break_type: 'unpaid',
+                duration_mins: 60,
+                start_time: '13:00',
+                end_time: '14:00',
+            }
+        ],
+        overtime: {
+            enable_ot: true,
+            ot_starts_after_hours: 8,
+            max_ot_hours: 4,
+            approval_required: true,
+            ot_multiplier: 1.5,
+        },
+        assignments: {
+            assignee_type: 'employee',
+            assignee_ids: []
+        }
     });
 
+    const handleAddBreak = () => {
+        setData('breaks', [
+            ...data.breaks,
+            {
+                break_name: 'Tea / Short Break',
+                break_type: 'paid',
+                duration_mins: 15,
+                start_time: '',
+                end_time: ''
+            }
+        ]);
+    };
 
+    const handleRemoveBreak = (idx: number) => {
+        const updated = data.breaks.filter((_, i) => i !== idx);
+        setData('breaks', updated);
+    };
 
-    const submit = (e: React.FormEvent) => {
+    const handleBreakChange = (idx: number, field: string, value: any) => {
+        const updated = [...data.breaks];
+        updated[idx] = { ...updated[idx], [field]: value };
+        setData('breaks', updated);
+    };
+
+    const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         post(route('hrm.shifts.store'), {
-            onSuccess: () => {
-                onSuccess();
-            }
+            onSuccess: () => onClose(),
         });
     };
 
     return (
-        <DialogContent>
-            <DialogHeader>
-                <DialogTitle>{t('Create Shift')}</DialogTitle>
+        <DialogContent className="sm:max-w-[700px] bg-white rounded-2xl shadow-xl border-slate-200 p-0 overflow-hidden">
+            <DialogHeader className="bg-slate-50 border-b border-slate-100 p-5 pb-4">
+                <DialogTitle className="text-lg font-semibold text-slate-800 flex items-center gap-2">
+                    <Clock className="w-5 h-5 text-indigo-600" />
+                    {t('Create Global Timezone-Aware Shift')}
+                </DialogTitle>
+                <p className="text-xs text-slate-500 font-normal">
+                    {t('Configure global shift parameters, timezone rules, overtime, and employee assignments.')}
+                </p>
             </DialogHeader>
-            <form onSubmit={submit} className="space-y-4">
-                <div>
-                    <Label htmlFor="shift_name">{t('Shift Name')}</Label>
-                    <Input
-                        id="shift_name"
-                        type="text"
-                        value={data.shift_name}
-                        onChange={(e) => setData('shift_name', e.target.value)}
-                        placeholder={t('Enter Shift Name')}
-                        required
-                    />
-                    <InputError message={errors.shift_name} />
-                </div>
-                
-                <div>
-                    <Label htmlFor="start_time">{t('Start Time')}</Label>
-                    <Input
-                        id="start_time"
-                        type="time"
-                        value={data.start_time}
-                        onChange={(e) => setData('start_time', e.target.value)}
-                        required
-                    />
-                    <InputError message={errors.start_time} />
-                </div>
-                
-                <div>
-                    <Label htmlFor="end_time">{t('End Time')}</Label>
-                    <Input
-                        id="end_time"
-                        type="time"
-                        value={data.end_time}
-                        onChange={(e) => setData('end_time', e.target.value)}
-                        required
-                    />
-                    <InputError message={errors.end_time} />
-                </div>
-                
-                <div>
-                    <Label htmlFor="break_start_time">{t('Break Start Time')}</Label>
-                    <Input
-                        id="break_start_time"
-                        type="time"
-                        value={data.break_start_time}
-                        onChange={(e) => setData('break_start_time', e.target.value)}
-                        required
-                    />
-                    <InputError message={errors.break_start_time} />
-                </div>
-                
-                <div>
-                    <Label htmlFor="break_end_time">{t('Break End Time')}</Label>
-                    <Input
-                        id="break_end_time"
-                        type="time"
-                        value={data.break_end_time}
-                        onChange={(e) => setData('break_end_time', e.target.value)}
-                        required
-                    />
-                    <InputError message={errors.break_end_time} />
-                </div>
-                
-                <div className="flex items-center space-x-2">
-                    <Checkbox
-                        id="is_night_shift"
-                        checked={data.is_night_shift || false}
-                        onCheckedChange={(checked) => setData('is_night_shift', !!checked)}
-                    />
-                    <Label htmlFor="is_night_shift" className="cursor-pointer">{t('Is Night Shift')}</Label>
-                    <InputError message={errors.is_night_shift} />
-                </div>
-                
 
-                
-                <div className="flex justify-end gap-2">
-                    <Button type="button" variant="outline" onClick={onSuccess}>
-                        {t('Cancel')}
-                    </Button>
-                    <Button type="submit" disabled={processing}>
-                        {processing ? t('Creating...') : t('Create')}
-                    </Button>
-                </div>
+            <form onSubmit={handleSubmit}>
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                    <div className="bg-slate-50/80 border-b border-slate-200 px-5 pt-2">
+                        <TabsList className="bg-slate-200/70 p-1 rounded-xl grid grid-cols-4 gap-1">
+                            <TabsTrigger value="basic" className="text-xs font-medium rounded-lg py-1.5">{t('1. Basic & Timezone')}</TabsTrigger>
+                            <TabsTrigger value="schedule" className="text-xs font-medium rounded-lg py-1.5">{t('2. Schedule & Breaks')}</TabsTrigger>
+                            <TabsTrigger value="rules" className="text-xs font-medium rounded-lg py-1.5">{t('3. Rules & Overtime')}</TabsTrigger>
+                            <TabsTrigger value="assignments" className="text-xs font-medium rounded-lg py-1.5">{t('4. Assignments')}</TabsTrigger>
+                        </TabsList>
+                    </div>
+
+                    <div className="p-5 max-h-[440px] overflow-y-auto space-y-4">
+                        {/* TAB 1: BASIC & TIMEZONE */}
+                        <TabsContent value="basic" className="space-y-4 m-0">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-1.5">
+                                    <Label className="text-xs font-medium text-slate-700">{t('Shift Name')} *</Label>
+                                    <Input
+                                        value={data.shift_name}
+                                        onChange={(e) => setData('shift_name', e.target.value)}
+                                        placeholder="e.g. US US-East Morning Shift"
+                                        className="rounded-xl text-xs font-medium"
+                                        required
+                                    />
+                                    {errors.shift_name && <span className="text-[11px] text-rose-500 font-medium">{errors.shift_name}</span>}
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <Label className="text-xs font-medium text-slate-700">{t('Shift Code')} *</Label>
+                                    <Input
+                                        value={data.shift_code}
+                                        onChange={(e) => setData('shift_code', e.target.value.toUpperCase())}
+                                        placeholder="SFT-US01"
+                                        className="rounded-xl text-xs font-mono font-medium"
+                                        required
+                                    />
+                                    {errors.shift_code && <span className="text-[11px] text-rose-500 font-medium">{errors.shift_code}</span>}
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-1.5">
+                                    <Label className="text-xs font-medium text-slate-700">{t('Shift Type')} *</Label>
+                                    <Select value={data.shift_type} onValueChange={(val: any) => setData('shift_type', val)}>
+                                        <SelectTrigger className="rounded-xl text-xs font-medium">
+                                            <SelectValue placeholder={t('Select shift type')} />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="fixed">{t('Fixed Shift (Standard Regular)')}</SelectItem>
+                                            <SelectItem value="flexible">{t('Flexible Shift (Flexi Hours)')}</SelectItem>
+                                            <SelectItem value="rotational">{t('Rotational Shift (Cyclic Shift A/B)')}</SelectItem>
+                                            <SelectItem value="split">{t('Split Shift (Multiple Daily Segments)')}</SelectItem>
+                                            <SelectItem value="on_call">{t('On-Call Shift (Standby Duty)')}</SelectItem>
+                                            <SelectItem value="weekend">{t('Weekend Shift (Special Days)')}</SelectItem>
+                                            <SelectItem value="night">{t('Night Shift (Cross Midnight)')}</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <Label className="text-xs font-medium text-slate-700">{t('Primary Country / Region')} *</Label>
+                                    <SearchableCountrySelect
+                                        value={data.country}
+                                        onChange={(val) => setData('country', val)}
+                                        placeholder={t('Select Primary Country')}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="space-y-1.5">
+                                <Label className="text-xs font-medium text-slate-700 flex items-center gap-1">
+                                    <Globe className="w-3.5 h-3.5 text-indigo-600" />
+                                    {t('IANA Timezone Database (Backend Standard)')} *
+                                </Label>
+                                <Select value={data.timezone} onValueChange={(val) => setData('timezone', val)}>
+                                    <SelectTrigger className="rounded-xl text-xs font-medium">
+                                        <SelectValue placeholder={t('Select IANA Timezone')} />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {Object.entries(timezones).map(([key, label]) => (
+                                            <SelectItem key={key} value={key}>
+                                                {label} ({key})
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <div className="space-y-1.5">
+                                <Label className="text-xs font-medium text-slate-700">{t('Description & Operational Notes')}</Label>
+                                <Textarea
+                                    value={data.description}
+                                    onChange={(e) => setData('description', e.target.value)}
+                                    placeholder={t('Write shift policies, handover notes or guidelines...')}
+                                    className="rounded-xl text-xs font-medium h-20"
+                                />
+                            </div>
+                        </TabsContent>
+
+                        {/* TAB 2: SCHEDULE & BREAKS */}
+                        <TabsContent value="schedule" className="space-y-4 m-0">
+                            {data.shift_type !== 'flexible' ? (
+                                <div className="grid grid-cols-2 gap-4 bg-slate-50 border border-slate-200/80 p-3.5 rounded-xl">
+                                    <div className="space-y-1.5">
+                                        <Label className="text-xs font-medium text-slate-700">{t('Start Time')} *</Label>
+                                        <Input
+                                            type="time"
+                                            value={data.start_time}
+                                            onChange={(e) => setData('start_time', e.target.value)}
+                                            className="rounded-xl text-xs font-mono font-medium"
+                                        />
+                                    </div>
+
+                                    <div className="space-y-1.5">
+                                        <Label className="text-xs font-medium text-slate-700">{t('End Time')} *</Label>
+                                        <Input
+                                            type="time"
+                                            value={data.end_time}
+                                            onChange={(e) => setData('end_time', e.target.value)}
+                                            className="rounded-xl text-xs font-mono font-medium"
+                                        />
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="space-y-3 bg-indigo-50/70 border border-indigo-200 p-3.5 rounded-xl">
+                                    <h5 className="text-xs font-medium text-indigo-900">{t('Flexible Shift Parameters')}</h5>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="space-y-1">
+                                            <Label className="text-[11px] font-medium text-slate-700">{t('Required Working Hours')}</Label>
+                                            <Input
+                                                type="number"
+                                                step="0.5"
+                                                value={data.required_working_hours}
+                                                onChange={(e) => setData('required_working_hours', parseFloat(e.target.value) || 0)}
+                                                className="rounded-xl text-xs font-mono font-medium"
+                                            />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <Label className="text-[11px] font-medium text-slate-700">{t('Earliest Start Time')}</Label>
+                                            <Input
+                                                type="time"
+                                                value={data.earliest_start_time}
+                                                onChange={(e) => setData('earliest_start_time', e.target.value)}
+                                                className="rounded-xl text-xs font-mono"
+                                            />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <Label className="text-[11px] font-medium text-slate-700">{t('Latest Start Time')}</Label>
+                                            <Input
+                                                type="time"
+                                                value={data.latest_start_time}
+                                                onChange={(e) => setData('latest_start_time', e.target.value)}
+                                                className="rounded-xl text-xs font-mono"
+                                            />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <Label className="text-[11px] font-medium text-slate-700">{t('Latest Finish Time')}</Label>
+                                            <Input
+                                                type="time"
+                                                value={data.latest_finish_time}
+                                                onChange={(e) => setData('latest_finish_time', e.target.value)}
+                                                className="rounded-xl text-xs font-mono"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Breaks Section */}
+                            <div className="space-y-3 pt-2">
+                                <div className="flex items-center justify-between">
+                                    <Label className="text-xs font-medium text-slate-800">{t('Configured Shift Breaks')}</Label>
+                                    <Button type="button" variant="outline" size="sm" onClick={handleAddBreak} className="h-7 text-[11px] font-medium rounded-lg gap-1 text-indigo-600 border-indigo-200">
+                                        <Plus className="w-3 h-3" />
+                                        {t('Add Break')}
+                                    </Button>
+                                </div>
+
+                                {data.breaks.map((b, idx) => (
+                                    <div key={idx} className="flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 bg-slate-50/70 text-xs">
+                                        <Input
+                                            value={b.break_name}
+                                            onChange={(e) => handleBreakChange(idx, 'break_name', e.target.value)}
+                                            placeholder="Break Name"
+                                            className="w-1/3 rounded-lg text-xs font-medium"
+                                        />
+                                        <Select value={b.break_type} onValueChange={(val) => handleBreakChange(idx, 'break_type', val)}>
+                                            <SelectTrigger className="w-1/4 rounded-lg text-xs">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="unpaid">{t('Unpaid')}</SelectItem>
+                                                <SelectItem value="paid">{t('Paid')}</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                        <Input
+                                            type="number"
+                                            value={b.duration_mins}
+                                            onChange={(e) => handleBreakChange(idx, 'duration_mins', parseInt(e.target.value) || 0)}
+                                            placeholder="Mins"
+                                            className="w-1/5 rounded-lg text-xs font-mono"
+                                        />
+                                        {data.breaks.length > 1 && (
+                                            <Button type="button" variant="ghost" size="sm" onClick={() => handleRemoveBreak(idx)} className="h-8 w-8 p-0 text-rose-500 hover:bg-rose-50">
+                                                <Trash2 className="w-3.5 h-3.5" />
+                                            </Button>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </TabsContent>
+
+                        {/* TAB 3: RULES & OVERTIME */}
+                        <TabsContent value="rules" className="space-y-4 m-0">
+                            <div className="bg-slate-50 border border-slate-200 p-3.5 rounded-xl space-y-3">
+                                <h5 className="text-xs font-medium text-slate-800">{t('Attendance Grace & Threshold Rules')}</h5>
+                                <div className="grid grid-cols-3 gap-3">
+                                    <div className="space-y-1">
+                                        <Label className="text-[11px] font-medium text-slate-700">{t('Grace Period (Mins)')}</Label>
+                                        <Input
+                                            type="number"
+                                            value={data.rules.grace_period_mins}
+                                            onChange={(e) => setData('rules', { ...data.rules, grace_period_mins: parseInt(e.target.value) || 0 })}
+                                            className="rounded-xl text-xs font-mono"
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <Label className="text-[11px] font-medium text-slate-700">{t('Early Clock-In (Mins)')}</Label>
+                                        <Input
+                                            type="number"
+                                            value={data.rules.early_clock_in_mins}
+                                            onChange={(e) => setData('rules', { ...data.rules, early_clock_in_mins: parseInt(e.target.value) || 0 })}
+                                            className="rounded-xl text-xs font-mono"
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <Label className="text-[11px] font-medium text-slate-700">{t('Late Clock-Out (Mins)')}</Label>
+                                        <Input
+                                            type="number"
+                                            value={data.rules.late_clock_out_mins}
+                                            onChange={(e) => setData('rules', { ...data.rules, late_clock_out_mins: parseInt(e.target.value) || 0 })}
+                                            className="rounded-xl text-xs font-mono"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="bg-amber-50/60 border border-amber-200 p-3.5 rounded-xl space-y-3">
+                                <h5 className="text-xs font-medium text-amber-950">{t('Overtime (OT) Engine Rules')}</h5>
+                                <div className="grid grid-cols-3 gap-3">
+                                    <div className="space-y-1">
+                                        <Label className="text-[11px] font-medium text-slate-700">{t('OT Starts After (Hrs)')}</Label>
+                                        <Input
+                                            type="number"
+                                            step="0.5"
+                                            value={data.overtime.ot_starts_after_hours}
+                                            onChange={(e) => setData('overtime', { ...data.overtime, ot_starts_after_hours: parseFloat(e.target.value) || 0 })}
+                                            className="rounded-xl text-xs font-mono"
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <Label className="text-[11px] font-medium text-slate-700">{t('Max OT Allowed (Hrs)')}</Label>
+                                        <Input
+                                            type="number"
+                                            step="0.5"
+                                            value={data.overtime.max_ot_hours}
+                                            onChange={(e) => setData('overtime', { ...data.overtime, max_ot_hours: parseFloat(e.target.value) || 0 })}
+                                            className="rounded-xl text-xs font-mono"
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <Label className="text-[11px] font-medium text-slate-700">{t('OT Multiplier (x)')}</Label>
+                                        <Input
+                                            type="number"
+                                            step="0.1"
+                                            value={data.overtime.ot_multiplier}
+                                            onChange={(e) => setData('overtime', { ...data.overtime, ot_multiplier: parseFloat(e.target.value) || 1.5 })}
+                                            className="rounded-xl text-xs font-mono font-medium"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        </TabsContent>
+
+                        {/* TAB 4: ASSIGNMENTS */}
+                        <TabsContent value="assignments" className="space-y-4 m-0">
+                            <div className="space-y-2">
+                                <Label className="text-xs font-medium text-slate-700">{t('Assign Target Employees')}</Label>
+                                <div className="max-h-[220px] overflow-y-auto border border-slate-200 rounded-xl p-2 space-y-1 bg-slate-50/50">
+                                    {employees.map((emp) => {
+                                        const empIdStr = String(emp.id);
+                                        const isChecked = data.assignments.assignee_ids.includes(empIdStr);
+
+                                        return (
+                                            <div
+                                                key={emp.id}
+                                                onClick={() => {
+                                                    const current = [...data.assignments.assignee_ids];
+                                                    if (isChecked) {
+                                                        setData('assignments', { ...data.assignments, assignee_ids: current.filter(id => id !== empIdStr) });
+                                                    } else {
+                                                        setData('assignments', { ...data.assignments, assignee_ids: [...current, empIdStr] });
+                                                    }
+                                                }}
+                                                className={`flex items-center justify-between p-2 rounded-lg cursor-pointer text-xs ${
+                                                    isChecked ? 'bg-indigo-50 border border-indigo-200 font-medium text-indigo-900' : 'bg-white border border-slate-100 text-slate-700'
+                                                }`}
+                                            >
+                                                <div className="flex items-center gap-2">
+                                                    <Checkbox checked={isChecked} />
+                                                    <span>{emp.name} ({emp.employee_id})</span>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        </TabsContent>
+                    </div>
+
+                    <DialogFooter className="bg-slate-50 border-t border-slate-100 p-4">
+                        <Button type="button" variant="outline" onClick={onClose} className="rounded-xl font-medium text-xs">
+                            {t('Cancel')}
+                        </Button>
+                        <Button type="submit" disabled={processing} className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-medium text-xs">
+                            {processing ? t('Saving Shift...') : t('Create Shift')}
+                        </Button>
+                    </DialogFooter>
+                </Tabs>
             </form>
         </DialogContent>
     );

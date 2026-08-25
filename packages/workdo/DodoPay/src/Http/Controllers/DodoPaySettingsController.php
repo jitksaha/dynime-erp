@@ -16,8 +16,14 @@ class DodoPaySettingsController extends Controller
             
             try {
                 foreach ($settings as $key => $value) {
-                    setSetting($key, $value, creatorId(), $key == "dodopay_enabled");
+                    setSetting($key, $value, creatorId(), true);
                 }
+                if (isset($settings['dodopay_enabled'])) {
+                    setSetting('dodopay_is_on', $settings['dodopay_enabled'], creatorId(), true);
+                }
+
+                \Illuminate\Support\Facades\Cache::forget('company_settings_' . creatorId());
+                \Illuminate\Support\Facades\Cache::forget('company_settings_' . creatorId() . '_public');
 
                 return redirect()->back()->with('success', __('DodoPay settings saved successfully.'));
             } catch (\Exception $e) {

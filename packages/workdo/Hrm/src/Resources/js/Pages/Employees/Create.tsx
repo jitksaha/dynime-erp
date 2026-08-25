@@ -5,13 +5,16 @@ import { Button } from "@/components/ui/button";
 import { Label } from '@/components/ui/label';
 import InputError from '@/components/ui/input-error';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { DatePicker } from '@/components/ui/date-picker';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { PhoneInputComponent } from '@/components/ui/phone-input';
+import { toast } from 'sonner';
+import { SearchableCountrySelect } from '@/components/ui/searchable-country-select';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Trash2, Plus } from 'lucide-react';
+import { Trash2, Plus, Calculator, DollarSign, TrendingUp, ShieldCheck, Check } from 'lucide-react';
 import { CreateEmployeeFormData } from './types';
 import { useEffect, useState } from 'react';
 import { useFormFields } from '@/hooks/useFormFields';
@@ -23,7 +26,7 @@ import axios from 'axios';
 import { usePersistentForm } from "@/hooks/usePersistentForm";
 
 export default function Create() {
-    const { users = [], roles = {}, branches = [], departments = [], designations = [], shifts = [], documentTypes = [], allowanceTypes = [], deductionTypes = [], generatedEmployeeId = '', companyAllSetting = {} } = usePage<any>().props;
+    const { users = [], roles = {}, allRoles = [], managers = [], branches = [], departments = [], designations = [], shifts = [], documentTypes = [], allowanceTypes = [], deductionTypes = [], generatedEmployeeId = '', companyAllSetting = {} } = usePage<any>().props;
     const safeBranches = branches || [];
     const safeDepartments = departments || [];
     const safeDesignations = designations || [];
@@ -32,6 +35,8 @@ export default function Create() {
     const safeAllowanceTypes = allowanceTypes || [];
     const safeDeductionTypes = deductionTypes || [];
     const safeUsers = users || [];
+    const safeAllRoles = allRoles || [];
+    const safeManagers = managers || [];
 
     const [activeTab, setActiveTab] = useState(() => {
         try {
@@ -193,6 +198,28 @@ export default function Create() {
     };
 
 
+    const getDefaultRolesAndResponsibilities = (designationName?: string, departmentName?: string) => {
+        const des = (designationName || '').toLowerCase();
+        const dept = (departmentName || '').toLowerCase();
+
+        if (des.includes('developer') || des.includes('engineer') || des.includes('programmer') || des.includes('software') || des.includes('tech') || dept.includes('it') || dept.includes('software') || dept.includes('tech')) {
+            return `• Design, develop, and maintain clean, scalable web applications and software systems.\n• Write clean, well-tested code in accordance with software architecture guidelines.\n• Collaborate with team members to ship new feature releases.\n• Perform code reviews, optimize database queries, and resolve bugs.`;
+        }
+        if (des.includes('design') || des.includes('ui') || des.includes('ux') || des.includes('graphic') || dept.includes('design')) {
+            return `• Create intuitive, user-centered interface designs, wireframes, and prototypes.\n• Collaborate closely with developers to ensure design system consistency.\n• Conduct usability evaluations and continuously refine user experience workflows.`;
+        }
+        if (des.includes('hr') || des.includes('human resource') || des.includes('recruiter') || dept.includes('hr') || dept.includes('human')) {
+            return `• Oversee end-to-end recruitment, employee onboarding, attendance, and records.\n• Facilitate performance appraisal cycles and employee engagement initiatives.\n• Administer workplace policies and ensure statutory labor law compliance.`;
+        }
+        if (des.includes('sales') || des.includes('marketing') || des.includes('business development') || dept.includes('sales') || dept.includes('marketing')) {
+            return `• Identify business opportunities, generate qualified leads, and execute sales strategies.\n• Build and cultivate strong relationships with prospective and existing clients.\n• Track conversion metrics and present product proposals to achieve growth goals.`;
+        }
+        if (des.includes('account') || des.includes('finance') || des.includes('audit') || dept.includes('account') || dept.includes('finance')) {
+            return `• Manage day-to-day accounting, general ledger entries, and accounts payable/receivable.\n• Prepare monthly financial statements, budget analysis, and tax compliance reports.`;
+        }
+        return `• Execute core operational duties in alignment with department goals and company standards.\n• Collaborate effectively with team members and cross-functional stakeholders.\n• Meet defined Key Performance Indicators (KPIs) and deliver high-quality work on schedule.`;
+    };
+
     const { data, setData, post, setError, processing, errors, clearStorage, transform, clearErrors } = usePersistentForm<CreateEmployeeFormData>('employee_create_form', {
         employee_id: generatedEmployeeId,
         avatar: null,
@@ -241,6 +268,8 @@ export default function Create() {
         rate_per_hour: '',
         user_id: '',
         official_email: '',
+        whatsapp: '',
+        roles_responsibilities: '',
         branch_id: '',
         department_id: '',
         designation_id: '',
@@ -374,27 +403,43 @@ export default function Create() {
     };
 
     const calculateRatePerHour = (salaryVal: string, hoursVal: string, daysVal: string, salaryTypeVal?: string) => {
-        let salary = parseFloat(salaryVal);
+        const salary = parseFloat(salaryVal);
         const hours = parseFloat(hoursVal);
         const days = parseFloat(daysVal);
         const salaryType = salaryTypeVal || data.salary_type || 'yearly';
 
-        if (!isNaN(salary) && !isNaN(hours) && hours > 0) {
-            if (salaryType === 'yearly') {
-                salary = salary / 12;
-            }
-
-            let rate = 0;
+        if (!isNaN(salary) && salary > 0 && !isNaN(hours) && hours > 0) {
+            let totalHours = 0;
             if (hours > 24) {
-                // If hours represents monthly hours (like 266.66)
-                rate = salary / hours;
+                totalHours = hours;
             } else if (!isNaN(days) && days > 0) {
-                // Standard calculation: monthly salary / (hours/day * days/week * 4.333)
-                rate = salary / (hours * days * 4.333);
+                totalHours = salaryType === 'yearly' ? (hours * days * 52) : (hours * days * (52 / 12));
             } else {
-                rate = salary / (hours * 22);
+                totalHours = salaryType === 'yearly' ? (hours * 22 * 12) : (hours * 22);
             }
+            const rate = salary / totalHours;
             return rate > 0 ? rate.toFixed(2) : '';
+        }
+        return '';
+    };
+
+    const calculateSalaryFromRate = (rateVal: string, hoursVal: string, daysVal: string, salaryTypeVal?: string) => {
+        const rate = parseFloat(rateVal);
+        const hours = parseFloat(hoursVal);
+        const days = parseFloat(daysVal);
+        const salaryType = salaryTypeVal || data.salary_type || 'yearly';
+
+        if (!isNaN(rate) && rate > 0 && !isNaN(hours) && hours > 0) {
+            let totalHours = 0;
+            if (hours > 24) {
+                totalHours = hours;
+            } else if (!isNaN(days) && days > 0) {
+                totalHours = salaryType === 'yearly' ? (hours * days * 52) : (hours * days * (52 / 12));
+            } else {
+                totalHours = salaryType === 'yearly' ? (hours * 22 * 12) : (hours * 22);
+            }
+            const salary = rate * totalHours;
+            return salary > 0 ? salary.toFixed(2) : '';
         }
         return '';
     };
@@ -794,12 +839,11 @@ export default function Create() {
 
                                     <div>
                                         <Label htmlFor="work_location_country" required>{t('Work Location Country')}</Label>
-                                        <Input
+                                        <SearchableCountrySelect
                                             id="work_location_country"
-                                            type="text"
                                             value={data.work_location_country}
-                                            onChange={(e) => setData('work_location_country', e.target.value)}
-                                            placeholder={t('Enter Work Location Country (e.g. Bangladesh)')}
+                                            onValueChange={(val) => setData('work_location_country', val)}
+                                            placeholder={t('Search & select work location country...')}
                                             required
                                         />
                                         <InputError message={errors.work_location_country} />
@@ -853,7 +897,18 @@ export default function Create() {
                                         <Label htmlFor="designation_id" required>{t('Designation')}</Label>
                                         <Select
                                             value={data.designation_id?.toString() || ''}
-                                            onValueChange={(value) => setData('designation_id', value)}
+                                            onValueChange={(value) => {
+                                                setData((prev) => {
+                                                    const selectedDes = filteredDesignations?.find((d: any) => d.id.toString() === value)?.designation_name;
+                                                    const selectedDept = filteredDepartments?.find((d: any) => d.id.toString() === prev.department_id?.toString())?.department_name;
+                                                    const prefill = !prev.roles_responsibilities ? getDefaultRolesAndResponsibilities(selectedDes, selectedDept) : prev.roles_responsibilities;
+                                                    return {
+                                                        ...prev,
+                                                        designation_id: value,
+                                                        roles_responsibilities: prefill
+                                                    };
+                                                });
+                                            }}
                                             disabled={!data.department_id}
                                             required
                                         >
@@ -869,6 +924,105 @@ export default function Create() {
                                             </SelectContent>
                                         </Select>
                                         <InputError message={errors.designation_id} />
+                                    </div>
+
+                                    {/* Reporting Manager (Hierarchy Scope) */}
+                                    <div>
+                                        <Label htmlFor="manager_id">{t('Reporting Manager (Hierarchy Scope)')}</Label>
+                                        <Select
+                                            value={data.manager_id?.toString() || ''}
+                                            onValueChange={(value) => setData('manager_id', value)}
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue placeholder={t('Select Reporting Manager (Optional)')} />
+                                            </SelectTrigger>
+                                            <SelectContent searchable={true}>
+                                                <SelectItem value="">{t('None / Direct Report to Owner')}</SelectItem>
+                                                {safeManagers?.map((mgr: any) => (
+                                                    <SelectItem key={mgr.id} value={mgr.id.toString()}>
+                                                        {mgr.name}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                        <InputError message={errors.manager_id} />
+                                    </div>
+
+                                    {/* Multi-Role Assignment (RBAC System) */}
+                                    <div className="md:col-span-2 p-3.5 rounded-xl bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/50 space-y-2">
+                                        <div className="flex items-center justify-between">
+                                            <Label className="font-bold text-indigo-900 dark:text-indigo-200 flex items-center gap-1.5">
+                                                <ShieldCheck className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                                                {t('Assign RBAC System Roles (Multi-Role Support)')}
+                                            </Label>
+                                            <span className="text-[11px] text-indigo-600 dark:text-indigo-400 font-medium">
+                                                {t('Permissions are inherited from all assigned roles')}
+                                            </span>
+                                        </div>
+
+                                        <div className="flex flex-wrap gap-2 pt-1">
+                                            {safeAllRoles?.map((roleItem: any) => {
+                                                const isSelected = (data.roles || []).includes(roleItem.name);
+                                                return (
+                                                    <button
+                                                        key={roleItem.id}
+                                                        type="button"
+                                                        onClick={() => {
+                                                            const currentRoles = data.roles || [];
+                                                            if (isSelected) {
+                                                                setData('roles', currentRoles.filter((r: string) => r !== roleItem.name));
+                                                            } else {
+                                                                setData('roles', [...currentRoles, roleItem.name]);
+                                                            }
+                                                        }}
+                                                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all flex items-center gap-1.5 ${
+                                                            isSelected
+                                                                ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
+                                                                : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:border-indigo-300'
+                                                        }`}
+                                                    >
+                                                        <span className={`w-2 h-2 rounded-full ${isSelected ? 'bg-white' : 'bg-slate-300 dark:bg-slate-700'}`} />
+                                                        {roleItem.label || roleItem.name}
+                                                        {isSelected && <Check className="w-3 h-3 ml-0.5" />}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                        <InputError message={errors.roles} />
+                                    </div>
+
+                                    <div className="md:col-span-2">
+                                        <div className="flex items-center justify-between mb-1.5">
+                                            <Label htmlFor="roles_responsibilities" className="font-bold text-slate-800 dark:text-slate-200">
+                                                {t('Roles & Responsibilities')} <span className="text-xs font-normal text-muted-foreground">({t('Set by HR & Company')})</span>
+                                            </Label>
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => {
+                                                    const selectedDes = filteredDesignations?.find((d: any) => d.id.toString() === data.designation_id?.toString())?.designation_name;
+                                                    const selectedDept = filteredDepartments?.find((d: any) => d.id.toString() === data.department_id?.toString())?.department_name;
+                                                    const template = getDefaultRolesAndResponsibilities(selectedDes, selectedDept);
+                                                    setData('roles_responsibilities', template);
+                                                    toast.success(t('Roles & Responsibilities prefilled from template!'));
+                                                }}
+                                                className="h-7 px-2.5 text-xs font-semibold text-indigo-600 border-indigo-200 hover:bg-indigo-50 dark:hover:bg-indigo-950/40"
+                                            >
+                                                ⚡ {t('Auto-Prefill Template')}
+                                            </Button>
+                                        </div>
+                                        <Textarea
+                                            id="roles_responsibilities"
+                                            value={data.roles_responsibilities}
+                                            onChange={(e) => setData('roles_responsibilities', e.target.value)}
+                                            placeholder={t('Enter or customize official roles, key duties, and responsibilities for this employee...')}
+                                            className="min-h-[110px] text-xs font-sans leading-relaxed"
+                                        />
+                                        <p className="text-[11px] text-slate-500 mt-1">
+                                            {t('Note: Only HR and Company Admins can edit this field. Employees will see this in Read-Only mode on their profile.')}
+                                        </p>
+                                        <InputError message={errors.roles_responsibilities} />
                                     </div>
                                 </div>
                             </CardContent>
@@ -935,13 +1089,12 @@ export default function Create() {
                                     </div>
 
                                     <div>
-                                        <Label htmlFor="country">{t('Country')}</Label>
-                                        <Input
+                                        <Label htmlFor="country" required>{t('Country')}</Label>
+                                        <SearchableCountrySelect
                                             id="country"
-                                            type="text"
                                             value={data.country}
-                                            onChange={(e) => setData('country', e.target.value)}
-                                            placeholder={t('Enter Country')}
+                                            onValueChange={(val) => setData('country', val)}
+                                            placeholder={t('Search & select country...')}
                                             required
                                         />
                                         <InputError message={errors.country} />
@@ -987,14 +1140,25 @@ export default function Create() {
                                     </div>
                                 </div>
 
-                                <div>
-                                    <PhoneInputComponent
-                                        label={t('Emergency Contact Number')}
-                                        value={data.emergency_contact_number}
-                                        onChange={(value) => setData('emergency_contact_number', value || '')}
-                                        error={errors.emergency_contact_number}
-                                        required
-                                    />
+                                <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                                    <div>
+                                        <PhoneInputComponent
+                                            label={t('Emergency Contact Number')}
+                                            value={data.emergency_contact_number}
+                                            onChange={(value) => setData('emergency_contact_number', value || '')}
+                                            error={errors.emergency_contact_number}
+                                            required
+                                        />
+                                    </div>
+                                    <div>
+                                        <PhoneInputComponent
+                                            label={t('WhatsApp Number (Direct Link)')}
+                                            value={data.whatsapp}
+                                            onChange={(value) => setData('whatsapp', value || '')}
+                                            error={errors.whatsapp}
+                                            placeholder="+1 (555) 000-0000"
+                                        />
+                                    </div>
                                 </div>
                             </CardContent>
                         </Card>
@@ -1299,31 +1463,59 @@ export default function Create() {
                                         </div>
                                     )}
 
-                                    {data.payment_method === 'kast' && (
-                                        <div>
-                                            <Label htmlFor="kast_username" required>{t('Kast Username / Phone / Email')}</Label>
-                                            <Input
-                                                id="kast_username"
-                                                value={data.payment_details?.kast_username || ''}
-                                                onChange={(e) => handleDetailChange('kast_username', e.target.value)}
-                                                placeholder={t('Enter Kast Username')}
-                                                required
-                                            />
-                                        </div>
-                                    )}
+                                                {data.payment_method === 'kast' && (
+                                                    <>
+                                                        <div>
+                                                            <Label htmlFor="kast_username" required>{t('Kast User ID / Wallet / Username')}</Label>
+                                                            <Input
+                                                                id="kast_username"
+                                                                value={data.payment_details?.kast_username || data.payment_details?.kast_user_id || ''}
+                                                                onChange={(e) => {
+                                                                    handleDetailChange('kast_username', e.target.value);
+                                                                    handleDetailChange('kast_user_id', e.target.value);
+                                                                }}
+                                                                placeholder={t('Enter Kast User ID / Wallet')}
+                                                                required
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <Label htmlFor="kast_card_number">{t('Kast Virtual Card Number')}</Label>
+                                                            <Input
+                                                                id="kast_card_number"
+                                                                value={data.payment_details?.kast_card_number || ''}
+                                                                onChange={(e) => handleDetailChange('kast_card_number', e.target.value)}
+                                                                placeholder={t('Enter Kast 16-Digit Card Number')}
+                                                            />
+                                                        </div>
+                                                    </>
+                                                )}
 
-                                    {data.payment_method === 'redotpay' && (
-                                        <div>
-                                            <Label htmlFor="redotpay_id" required>{t('Redotpay ID / Email / Phone')}</Label>
-                                            <Input
-                                                id="redotpay_id"
-                                                value={data.payment_details?.redotpay_id || ''}
-                                                onChange={(e) => handleDetailChange('redotpay_id', e.target.value)}
-                                                placeholder={t('Enter Redotpay Identifier')}
-                                                required
-                                            />
-                                        </div>
-                                    )}
+                                                {data.payment_method === 'redotpay' && (
+                                                    <>
+                                                        <div>
+                                                            <Label htmlFor="redotpay_id" required>{t('RedotPay User ID / Account ID')}</Label>
+                                                            <Input
+                                                                id="redotpay_id"
+                                                                value={data.payment_details?.redotpay_id || data.payment_details?.redotpay_user_id || ''}
+                                                                onChange={(e) => {
+                                                                    handleDetailChange('redotpay_id', e.target.value);
+                                                                    handleDetailChange('redotpay_user_id', e.target.value);
+                                                                }}
+                                                                placeholder={t('Enter RedotPay User ID / Account ID')}
+                                                                required
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <Label htmlFor="redotpay_card_number">{t('RedotPay Virtual Card Number')}</Label>
+                                                            <Input
+                                                                id="redotpay_card_number"
+                                                                value={data.payment_details?.redotpay_card_number || ''}
+                                                                onChange={(e) => handleDetailChange('redotpay_card_number', e.target.value)}
+                                                                placeholder={t('Enter RedotPay 16-Digit Card Number')}
+                                                            />
+                                                        </div>
+                                                    </>
+                                                )}
 
                                     {data.payment_method === 'remitly' && (
                                         <>
@@ -1565,19 +1757,25 @@ export default function Create() {
                                             required
                                         />
                                         <InputError message={errors.basic_salary} />
-                                        {data.salary_type === 'yearly' && data.basic_salary && !isNaN(parseFloat(data.basic_salary)) && parseFloat(data.basic_salary) > 0 && (
-                                            <div className="mt-2 text-xs font-semibold text-slate-500 flex items-center justify-between bg-emerald-50 dark:bg-emerald-950/40 p-2.5 rounded-lg border border-emerald-200 dark:border-emerald-800">
-                                                <span className="text-emerald-700 dark:text-emerald-400">{t('Monthly Salary:')}</span>
-                                                <span className="text-emerald-700 dark:text-emerald-400 font-bold">{formatCurrency(parseFloat(data.basic_salary) / 12)} / {t('month')}</span>
-                                            </div>
-                                        )}
-                                        {data.salary_type === 'monthly' && data.basic_salary && !isNaN(parseFloat(data.basic_salary)) && parseFloat(data.basic_salary) > 0 && (
-                                            <div className="mt-2 text-xs font-semibold text-slate-500 flex items-center justify-between bg-blue-50 dark:bg-blue-950/40 p-2.5 rounded-lg border border-blue-200 dark:border-blue-800">
-                                                <span className="text-blue-700 dark:text-blue-400">{t('Yearly Salary:')}</span>
-                                                <span className="text-blue-700 dark:text-blue-400 font-bold">{formatCurrency(parseFloat(data.basic_salary) * 12)} / {t('year')}</span>
-                                            </div>
-                                        )}
-                                    </div>
+                                         {data.basic_salary && !isNaN(parseFloat(data.basic_salary)) && parseFloat(data.basic_salary) > 0 && (() => {
+                                             const basic = parseFloat(data.basic_salary) || 0;
+                                             const isYearly = data.salary_type === 'yearly';
+                                             const basicMonthly = isYearly ? basic / 12 : basic;
+                                             const basicYearly = isYearly ? basic : basic * 12;
+                                             return (
+                                                 <div className="mt-2 text-[11px] font-medium space-y-1 bg-emerald-50/80 dark:bg-emerald-950/40 p-2.5 rounded-lg border border-emerald-200 dark:border-emerald-800">
+                                                     <div className="flex justify-between items-center text-slate-700 dark:text-slate-300">
+                                                         <span>{t('Monthly Basic:')}</span>
+                                                         <span className="font-bold text-emerald-700 dark:text-emerald-400">{formatCurrency(basicMonthly)} / {t('month')}</span>
+                                                     </div>
+                                                     <div className="flex justify-between items-center text-slate-700 dark:text-slate-300">
+                                                         <span>{t('Yearly Basic:')}</span>
+                                                         <span className="font-bold text-blue-700 dark:text-blue-400">{formatCurrency(basicYearly)} / {t('year')}</span>
+                                                     </div>
+                                                 </div>
+                                             );
+                                         })()}
+                                     </div>
 
                                     <div>
                                         <Label htmlFor="hours_per_day" required>{t('Hours Per Day')}</Label>
@@ -1624,20 +1822,178 @@ export default function Create() {
                                     </div>
 
                                     <div>
-                                        <Label htmlFor="rate_per_hour" required>{t('Rate Per Hour')}</Label>
-                                        <Input
-                                            id="rate_per_hour"
-                                            type="number"
-                                            step="0.01"
-                                            min="0"
-                                            value={data.rate_per_hour}
-                                            onChange={(e) => setData('rate_per_hour', e.target.value)}
-                                            placeholder={t('Enter Rate Per Hour')}
-                                            required
-                                        />
-                                        <InputError message={errors.rate_per_hour} />
+                                         <Label htmlFor="rate_per_hour" required>{t('Rate Per Hour')}</Label>
+                                         <Input
+                                             id="rate_per_hour"
+                                             type="number"
+                                             step="0.01"
+                                             min="0"
+                                             value={data.rate_per_hour}
+                                             onChange={(e) => {
+                                                 const val = e.target.value;
+                                                 setData(prev => {
+                                                     const hours = prev.hours_per_day || '8';
+                                                     const days = prev.days_per_week || '5';
+                                                     const calcSalary = calculateSalaryFromRate(val, hours, days, prev.salary_type);
+                                                     return {
+                                                         ...prev,
+                                                         rate_per_hour: val,
+                                                         basic_salary: calcSalary || prev.basic_salary
+                                                     };
+                                                 });
+                                             }}
+                                             placeholder={t('Enter Rate Per Hour')}
+                                             required
+                                         />
+                                         <InputError message={errors.rate_per_hour} />
                                     </div>
                                 </div>
+
+                                {/* Live Compensation & CTC Breakdown Card */}
+                                {data.basic_salary && !isNaN(parseFloat(data.basic_salary)) && parseFloat(data.basic_salary) > 0 && (() => {
+                                    const basic = parseFloat(data.basic_salary) || 0;
+                                    const isYearly = data.salary_type === 'yearly';
+
+                                    const basicMonthly = isYearly ? basic / 12 : basic;
+                                    const basicYearly = isYearly ? basic : basic * 12;
+
+                                    // Allowances Sum (per period)
+                                    let allowancePeriodSum = 0;
+                                    (data.allowances || []).forEach((a: any) => {
+                                        const amt = parseFloat(a.amount) || 0;
+                                        if (a.type === 'percentage') {
+                                            allowancePeriodSum += (basic * amt) / 100;
+                                        } else {
+                                            allowancePeriodSum += amt;
+                                        }
+                                    });
+                                    const allowancesMonthly = isYearly ? allowancePeriodSum / 12 : allowancePeriodSum;
+                                    const allowancesYearly = isYearly ? allowancePeriodSum : allowancePeriodSum * 12;
+
+                                    // Deductions Sum (per period)
+                                    let deductionPeriodSum = 0;
+                                    (data.deductions || []).forEach((d: any) => {
+                                        const amt = parseFloat(d.amount) || 0;
+                                        if (d.type === 'percentage') {
+                                            deductionPeriodSum += (basic * amt) / 100;
+                                        } else {
+                                            deductionPeriodSum += amt;
+                                        }
+                                    });
+                                    const deductionsMonthly = isYearly ? deductionPeriodSum / 12 : deductionPeriodSum;
+                                    const deductionsYearly = isYearly ? deductionPeriodSum : deductionPeriodSum * 12;
+
+                                    // Gross CTC = Basic + Allowances
+                                    const ctcMonthly = basicMonthly + allowancesMonthly;
+                                    const ctcYearly = basicYearly + allowancesYearly;
+
+                                    // Net Take Home = Gross CTC - Deductions
+                                    const netMonthly = Math.max(0, ctcMonthly - deductionsMonthly);
+                                    const netYearly = Math.max(0, ctcYearly - deductionsYearly);
+
+                                    return (
+                                        <div className="mt-4 p-4 rounded-xl bg-slate-100/90 dark:bg-slate-900/90 text-slate-900 dark:text-slate-100 shadow-xs border border-slate-200/80 dark:border-slate-800">
+                                            <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-200 dark:border-slate-800 mb-3">
+                                                <div className="flex items-center gap-2.5">
+                                                    <div className="p-2 rounded-lg bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800">
+                                                        <Calculator className="w-5 h-5" />
+                                                    </div>
+                                                    <div>
+                                                        <h4 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                                                            {t('Compensation & CTC Live Summary')}
+                                                            <span className="px-2 py-0.5 text-[10px] rounded-full bg-indigo-50 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 capitalize font-extrabold">
+                                                                {data.salary_type || 'yearly'} {t('Input')}
+                                                            </span>
+                                                        </h4>
+                                                        <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                                                            {t('Calculated live from Basic Salary, Allowances & Deductions')}
+                                                        </p>
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex gap-4 items-center bg-white dark:bg-slate-950 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 shadow-xs">
+                                                    <div className="text-right">
+                                                        <span className="text-[10px] uppercase font-bold tracking-wider text-slate-500 dark:text-slate-400 block">{t('Monthly CTC')}</span>
+                                                        <span className="text-sm font-extrabold text-emerald-600 dark:text-emerald-400">{formatCurrency(ctcMonthly)}</span>
+                                                    </div>
+                                                    <div className="h-6 w-px bg-slate-200 dark:bg-slate-800" />
+                                                    <div className="text-right">
+                                                        <span className="text-[10px] uppercase font-bold tracking-wider text-slate-500 dark:text-slate-400 block">{t('Yearly CTC')}</span>
+                                                        <span className="text-sm font-extrabold text-emerald-600 dark:text-emerald-400">{formatCurrency(ctcYearly)}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                {/* Monthly Column */}
+                                                <div className="p-3.5 rounded-lg bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2.5 shadow-xs">
+                                                    <div className="flex justify-between items-center pb-2 border-b border-slate-100 dark:border-slate-900">
+                                                        <span className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wide flex items-center gap-1">
+                                                            <DollarSign className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                                                            {t('Monthly CTC Breakdown')}
+                                                        </span>
+                                                        <span className="text-xs font-black text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">
+                                                            {formatCurrency(ctcMonthly)} / {t('mo')}
+                                                        </span>
+                                                    </div>
+                                                    <div className="space-y-1.5 text-xs">
+                                                        <div className="flex justify-between text-slate-600 dark:text-slate-400">
+                                                            <span>{t('Basic Salary')}:</span>
+                                                            <span className="font-medium text-slate-900 dark:text-slate-100">{formatCurrency(basicMonthly)}</span>
+                                                        </div>
+                                                        <div className="flex justify-between text-slate-600 dark:text-slate-400">
+                                                            <span>{t('Total Allowances')}:</span>
+                                                            <span className="font-semibold text-emerald-600 dark:text-emerald-400">+{formatCurrency(allowancesMonthly)}</span>
+                                                        </div>
+                                                        {deductionsMonthly > 0 && (
+                                                            <div className="flex justify-between text-slate-600 dark:text-slate-400">
+                                                                <span>{t('Total Deductions')}:</span>
+                                                                <span className="font-semibold text-rose-600 dark:text-rose-400">-{formatCurrency(deductionsMonthly)}</span>
+                                                            </div>
+                                                        )}
+                                                        <div className="flex justify-between pt-2 border-t border-slate-100 dark:border-slate-900 font-bold text-slate-900 dark:text-slate-100">
+                                                            <span>{t('Estimated Net Take-Home')}:</span>
+                                                            <span className="text-emerald-600 dark:text-emerald-400 font-extrabold">{formatCurrency(netMonthly)} / {t('mo')}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {/* Yearly Column */}
+                                                <div className="p-3.5 rounded-lg bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2.5 shadow-xs">
+                                                    <div className="flex justify-between items-center pb-2 border-b border-slate-100 dark:border-slate-900">
+                                                        <span className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wide flex items-center gap-1">
+                                                            <TrendingUp className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                                                            {t('Yearly CTC Breakdown')}
+                                                        </span>
+                                                        <span className="text-xs font-black text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">
+                                                            {formatCurrency(ctcYearly)} / {t('yr')}
+                                                        </span>
+                                                    </div>
+                                                    <div className="space-y-1.5 text-xs">
+                                                        <div className="flex justify-between text-slate-600 dark:text-slate-400">
+                                                            <span>{t('Basic Salary')}:</span>
+                                                            <span className="font-medium text-slate-900 dark:text-slate-100">{formatCurrency(basicYearly)}</span>
+                                                        </div>
+                                                        <div className="flex justify-between text-slate-600 dark:text-slate-400">
+                                                            <span>{t('Total Allowances')}:</span>
+                                                            <span className="font-semibold text-emerald-600 dark:text-emerald-400">+{formatCurrency(allowancesYearly)}</span>
+                                                        </div>
+                                                        {deductionsYearly > 0 && (
+                                                            <div className="flex justify-between text-slate-600 dark:text-slate-400">
+                                                                <span>{t('Total Deductions')}:</span>
+                                                                <span className="font-semibold text-rose-600 dark:text-rose-400">-{formatCurrency(deductionsYearly)}</span>
+                                                            </div>
+                                                        )}
+                                                        <div className="flex justify-between pt-2 border-t border-slate-100 dark:border-slate-900 font-bold text-slate-900 dark:text-slate-100">
+                                                            <span>{t('Estimated Net Take-Home')}:</span>
+                                                            <span className="text-emerald-600 dark:text-emerald-400 font-extrabold">{formatCurrency(netYearly)} / {t('yr')}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })()}
 
                                 {/* Sub-sections container: 50/50 Split Grid */}
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 border-t border-slate-200 dark:border-slate-800 pt-6 mt-6">

@@ -18,7 +18,7 @@ import {
     ExternalLink, 
     Copy 
 } from 'lucide-react';
-import { getDocumentTitle, getDocumentName } from './Index';
+import { getDocumentName, getDocumentTitle } from './documentUtils';
 
 interface SignProps {
     document: {
@@ -151,7 +151,11 @@ function SignatureCanvas({ onSave }: { onSave: (dataUrl: string | null) => void 
 
 export default function Sign({ document: docModel, employee: currentEmployee, companySettings, isHR }: SignProps) {
     const { t } = useTranslation();
-    const isYearlySalary = currentEmployee?.salary_type === 'yearly';
+    const isYearlySalary = currentEmployee?.salary_type === 'yearly' || currentEmployee?.salary_type === 'year' || currentEmployee?.salary_type === 'annual';
+    const rawBasicSalary = parseFloat(currentEmployee?.basic_salary || 0);
+    const displayMonthlySalary = isYearlySalary ? (rawBasicSalary / 12) : rawBasicSalary;
+    const displayYearlySalary = isYearlySalary ? rawBasicSalary : (rawBasicSalary * 12);
+    const activeSalaryAmount = isYearlySalary ? displayYearlySalary : displayMonthlySalary;
     const printRef = useRef<HTMLDivElement>(null);
 
     const [activeTab, setActiveTab] = useState<'draw' | 'type'>('draw');
@@ -654,7 +658,7 @@ export default function Sign({ document: docModel, employee: currentEmployee, co
                                                 <div><span className="text-[#8e8e93]">{t('Reporting to')}:</span> <strong className="text-[#1c1c1e]">{reportingTo || '—'}</strong></div>
                                             </div>
                                             <div className="mt-3 border-t border-[#e5e5ea] pt-3">
-                                                <span className="text-[#8e8e93]">{t('Gross compensation')}:</span> <strong className="text-[#1c1c1e]">{formatCurrency(currentEmployee.basic_salary)} {isYearlySalary ? t('/ year') : t('/ month')}</strong>
+                                                <span className="text-[#8e8e93]">{t('Gross compensation')}:</span> <strong className="text-[#1c1c1e]">{isYearlySalary ? `${formatCurrency(displayYearlySalary)} / year (${formatCurrency(displayMonthlySalary)} / month)` : `${formatCurrency(displayMonthlySalary)} / month`}</strong>
                                             </div>
                                         </div>
 
@@ -665,14 +669,14 @@ export default function Sign({ document: docModel, employee: currentEmployee, co
                                                 <div className="p-4 space-y-2 text-xs">
                                                     <div className="flex justify-between items-center">
                                                         <span className="text-[#787880]">{t('Basic salary')}</span>
-                                                        <span className="font-semibold text-[#1c1c1e]">{formatCurrency(currentEmployee.basic_salary)}</span>
+                                                        <span className="font-semibold text-[#1c1c1e]">{formatCurrency(isYearlySalary ? displayYearlySalary : displayMonthlySalary)}</span>
                                                     </div>
                                                     <div className="text-[#8e8e93] italic text-[11px]">
                                                         {t('N/A — no allowances configured')}
                                                     </div>
                                                     <div className="flex justify-between items-center border-t border-[#e5e5ea] pt-2 font-bold text-[#1c1c1e] mt-4">
                                                         <span>{t('Gross (CTC)')}</span>
-                                                        <span>{formatCurrency(currentEmployee.basic_salary)}</span>
+                                                        <span>{formatCurrency(isYearlySalary ? displayYearlySalary : displayMonthlySalary)}</span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -684,7 +688,7 @@ export default function Sign({ document: docModel, employee: currentEmployee, co
                                                     </div>
                                                     <div className="flex justify-between items-center border-t border-[#e5e5ea] pt-2 font-bold text-[#1c1c1e]">
                                                         <span>{t('Net take-home')}</span>
-                                                        <span>{formatCurrency(currentEmployee.basic_salary)}</span>
+                                                        <span>{formatCurrency(isYearlySalary ? displayYearlySalary : displayMonthlySalary)}</span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -706,7 +710,7 @@ export default function Sign({ document: docModel, employee: currentEmployee, co
                                             <div><span className="text-[#8e8e93]">{t('Employment type')}:</span> <strong className="text-[#1c1c1e]">{overrideEmploymentType}</strong></div>
                                             <div><span className="text-[#8e8e93]">{t('Job type')}:</span> <strong className="text-[#1c1c1e]">{overrideJobType}</strong></div>
                                             <div><span className="text-[#8e8e93]">{t('Work location')}:</span> <strong className="text-[#1c1c1e]">{workLocation || '—'}</strong></div>
-                                            <div><span className="text-[#8e8e93]">{t('Gross salary')}:</span> <strong className="text-[#1c1c1e]">{formatCurrency(currentEmployee.basic_salary)} {isYearlySalary ? t('/ year') : t('/ month')}</strong></div>
+                                            <div><span className="text-[#8e8e93]">{t('Gross salary')}:</span> <strong className="text-[#1c1c1e]">{isYearlySalary ? `${formatCurrency(displayYearlySalary)} / year (${formatCurrency(displayMonthlySalary)} / month)` : `${formatCurrency(displayMonthlySalary)} / month`}</strong></div>
                                         </div>
 
                                         {/* Earnings and Deductions tables side-by-side */}
@@ -716,14 +720,14 @@ export default function Sign({ document: docModel, employee: currentEmployee, co
                                                 <div className="p-4 space-y-2 text-xs">
                                                     <div className="flex justify-between font-semibold text-[#1c1c1e]">
                                                         <span>{t('Basic salary')}</span>
-                                                        <span>{formatCurrency(currentEmployee.basic_salary)}</span>
+                                                        <span>{formatCurrency(isYearlySalary ? displayYearlySalary : displayMonthlySalary)}</span>
                                                     </div>
                                                     <div className="text-[#8e8e93] italic">
                                                         {t('N/A — no allowances configured')}
                                                     </div>
                                                     <div className="flex justify-between border-t border-[#e5e5ea] pt-2 font-bold text-[#1c1c1e]">
                                                         <span>{t('Gross (CTC)')}</span>
-                                                        <span>{formatCurrency(currentEmployee.basic_salary)}</span>
+                                                        <span>{formatCurrency(isYearlySalary ? displayYearlySalary : displayMonthlySalary)}</span>
                                                     </div>
                                                 </div>
                                             </div>

@@ -36,6 +36,7 @@ class DocumentBuilderController extends Controller
                 'designation' => $employee->designation ? $employee->designation->designation_name : '',
                 'department' => $employee->department ? $employee->department->department_name : '',
                 'basic_salary' => $employee->basic_salary,
+                'salary_type' => $employee->salary_type,
                 'date_of_joining' => $employee->date_of_joining ? $employee->date_of_joining->toDateString() : '',
                 'employment_type' => $employee->employment_type,
                 'branch' => $employee->branch ? $employee->branch->branch_name : '',

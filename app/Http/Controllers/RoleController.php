@@ -45,11 +45,27 @@ class RoleController extends Controller
                     if (in_array($addOn, $hiddenModules)) {
                         return false;
                     }
-                    return $addOn === 'general' || Module_is_active($addOn);
+                    return $addOn === 'general' || $addOn === 'Agreement Builder' || Module_is_active($addOn);
                 })
                 ->map(function ($addOnPermissions) {
                     return $addOnPermissions->groupBy('module');
                 });
+
+            $orderedPermissions = collect();
+            foreach ($permissions as $key => $val) {
+                if ($key === 'Agreement Builder') {
+                    continue;
+                }
+                $orderedPermissions->put($key, $val);
+                if (($key === 'Quotation' || $key === 'quotation') && $permissions->has('Agreement Builder')) {
+                    $orderedPermissions->put('Agreement Builder', $permissions->get('Agreement Builder'));
+                }
+            }
+            if ($permissions->has('Agreement Builder') && !$orderedPermissions->has('Agreement Builder')) {
+                $orderedPermissions->put('Agreement Builder', $permissions->get('Agreement Builder'));
+            }
+            $permissions = $orderedPermissions;
+
             return Inertia::render('roles/create', ['permissions' => $permissions]);
         }
         else{
@@ -84,11 +100,26 @@ class RoleController extends Controller
                     if (in_array($addOn, $hiddenModules)) {
                         return false;
                     }
-                    return $addOn === 'general' || Module_is_active($addOn);
+                    return $addOn === 'general' || $addOn === 'Agreement Builder' || Module_is_active($addOn);
                 })
                 ->map(function ($addOnPermissions) {
                     return $addOnPermissions->groupBy('module');
                 });
+
+            $orderedPermissions = collect();
+            foreach ($permissions as $key => $val) {
+                if ($key === 'Agreement Builder') {
+                    continue;
+                }
+                $orderedPermissions->put($key, $val);
+                if (($key === 'Quotation' || $key === 'quotation') && $permissions->has('Agreement Builder')) {
+                    $orderedPermissions->put('Agreement Builder', $permissions->get('Agreement Builder'));
+                }
+            }
+            if ($permissions->has('Agreement Builder') && !$orderedPermissions->has('Agreement Builder')) {
+                $orderedPermissions->put('Agreement Builder', $permissions->get('Agreement Builder'));
+            }
+            $permissions = $orderedPermissions;
             $rolePermissions = $role->permissions->pluck('name')->toArray();
             return Inertia::render('roles/edit', [
                 'role' => $role,
@@ -109,6 +140,8 @@ class RoleController extends Controller
                 'label' => $request->label
             ]);
             $role->syncPermissions($request->permissions ?? []);
+            app(\Spatie\Permission\PermissionRegistrar::class)->forgetCachedPermissions();
+            \Illuminate\Support\Facades\Cache::flush();
             return redirect()->route('roles.index')->with('success', __('The role details are updated successfully.'));
         }
         else{

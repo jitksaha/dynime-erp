@@ -6,6 +6,15 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { ChevronDown } from 'lucide-react';
 import { NavItem } from '@/types';
 
+const getHrefPathAndSearch = (href: string) => {
+    try {
+        const u = new URL(href, window.location.origin);
+        return u.pathname + u.search;
+    } catch {
+        return href;
+    }
+};
+
 export function NavMain({ items = [], searchQuery = "" }: { items: NavItem[], searchQuery?: string }) {
     const page = usePage();
 
@@ -32,6 +41,11 @@ export function NavMain({ items = [], searchQuery = "" }: { items: NavItem[], se
     // Helper function to check if URL matches (exact or starts with for detail pages)
     const isUrlActive = (itemPath: string, activePaths?: string[], exact = false): boolean => {
         const currentPath = page.url.split('?')[0];
+        const currentFull = page.url;
+
+        if (itemPath.includes('?')) {
+            return currentFull === itemPath || currentFull.startsWith(itemPath + '&');
+        }
 
         if (exact) {
             if (currentPath === itemPath) return true;
@@ -57,8 +71,7 @@ export function NavMain({ items = [], searchQuery = "" }: { items: NavItem[], se
     const isChildActive = (children: NavItem[]): boolean => {
         return children.some(child => {
             if (child.href) {
-                const childPath = new URL(child.href, window.location.origin).pathname;
-                return isUrlActive(childPath, child.activePaths);
+                return isUrlActive(getHrefPathAndSearch(child.href), child.activePaths);
             }
             if (child.activePaths) {
                 return isUrlActive('', child.activePaths);
@@ -162,7 +175,7 @@ function NavMainItem({ item, isUrlActive, isChildActive }: NavMainItemProps) {
                         <CollapsibleContent>
                             <SidebarMenuSub>
                                 {item.children.map((subItem) => {
-                                    const subItemActive = !!(subItem.href && isUrlActive(new URL(subItem.href, window.location.origin).pathname, subItem.activePaths));
+                                    const subItemActive = !!(subItem.href && isUrlActive(getHrefPathAndSearch(subItem.href), subItem.activePaths));
                                     const hasActiveSubChild = subItem.children ? isChildActive(subItem.children) : false;
                                     const subItemShouldBeActive = subItemActive || hasActiveSubChild;
                                     

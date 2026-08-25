@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from '@/components/ui/label';
 import InputError from '@/components/ui/input-error';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 
 import { CreateBranchProps, BranchFormData } from './types';
 
@@ -12,6 +13,7 @@ export default function Create({ onSuccess }: CreateBranchProps) {
     const { t } = useTranslation();
     const { data, setData, post, processing, errors } = useForm<BranchFormData>({
         branch_name: '',
+        branch_address: '',
         priority: '',
     });
 
@@ -37,10 +39,22 @@ export default function Create({ onSuccess }: CreateBranchProps) {
                         type="text"
                         value={data.branch_name}
                         onChange={(e) => setData('branch_name', e.target.value)}
-                        placeholder={t('Enter Branch Name')}
+                        placeholder={t('Enter Branch Name (e.g. Gulshan Branch)')}
                         required
                     />
                     <InputError message={errors.branch_name} />
+                </div>
+
+                <div>
+                    <Label htmlFor="branch_address">{t('Branch Official Address')}</Label>
+                    <Textarea
+                        id="branch_address"
+                        value={data.branch_address}
+                        onChange={(e) => setData('branch_address', e.target.value)}
+                        placeholder={t('Enter full physical address of this branch (e.g. House 12, Road 4, Gulshan-1, Dhaka)')}
+                        rows={3}
+                    />
+                    <InputError message={errors.branch_address} />
                 </div>
 
                 <div>
