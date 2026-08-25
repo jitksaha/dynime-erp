@@ -7,10 +7,21 @@ import { Badge } from '@/components/ui/badge';
 import { Megaphone, Calendar, MapPin, Building2, DollarSign, Clock, Users, FileText, CheckCircle, Star } from 'lucide-react';
 import { JobPosting, JobPostingShowProps } from './types';
 import { formatCurrency, formatDate } from '@/utils/helpers';
+import { FormattedJobText } from '../../Components/FormattedJobText';
 
 export default function Show() {
     const { t } = useTranslation();
     const { jobposting } = usePage<JobPostingShowProps>().props;
+
+    if (!jobposting) {
+        return (
+            <AuthenticatedLayout pageTitle={t('Job Posting Details')}>
+                <div className="p-8 text-center text-slate-500 font-medium">
+                    {t('Job posting details not available or deleted.')}
+                </div>
+            </AuthenticatedLayout>
+        );
+    }
 
     const statusConfig: any = {
         "0": { label: "Draft", class: "bg-gray-100 text-gray-800" },
@@ -20,7 +31,7 @@ export default function Show() {
         "active": { label: "Published", class: "bg-green-100 text-green-800" },
         "closed": { label: "Closed", class: "bg-red-100 text-red-800" }
     };
-    const statusInfo = statusConfig[jobposting.status] || { label: jobposting.status || '-', class: 'bg-gray-100 text-gray-800' };
+    const statusInfo = statusConfig[jobposting?.status] || { label: jobposting?.status || '-', class: 'bg-gray-100 text-gray-800' };
 
     const departmentOptions: any = {"0":"Technology","1":"Accounting","2":"HR section"};
 
@@ -57,13 +68,23 @@ export default function Show() {
                                     </div>
                                     <div className="flex items-center gap-4 text-sm text-gray-600">
                                         <span className="flex items-center gap-1">
-                                            <Building2 className="h-4 w-4" />
+                                            <Building2 className="h-4 w-4 text-indigo-500" />
                                             {jobposting.jobType?.name || jobposting.job_type?.name || '-'}
                                         </span>
                                         <span className="flex items-center gap-1">
-                                            <MapPin className="h-4 w-4" />
+                                            <MapPin className="h-4 w-4 text-rose-500" />
                                             {jobposting.location?.name || '-'}
                                         </span>
+                                        {((jobposting as any).department_name || jobposting.department?.department_name) && (
+                                            <span className="flex items-center gap-1 font-semibold text-slate-800 bg-slate-100 px-2 py-0.5 rounded">
+                                                {t('Dept:')} {(jobposting as any).department_name || jobposting.department?.department_name}
+                                            </span>
+                                        )}
+                                        {((jobposting as any).designation_name || jobposting.designation?.designation_name) && (
+                                            <span className="flex items-center gap-1 font-semibold text-indigo-800 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">
+                                                {t('Role:')} {(jobposting as any).designation_name || jobposting.designation?.designation_name}
+                                            </span>
+                                        )}
                                     </div>
                                 </div>
                             </div>
@@ -83,12 +104,12 @@ export default function Show() {
                             <Card>
                                 <CardHeader>
                                     <h3 className="text-lg font-semibold flex items-center gap-2">
-                                        <FileText className="h-5 w-5" />
+                                        <FileText className="h-5 w-5 text-indigo-600" />
                                         {t('Job Description')}
                                     </h3>
                                 </CardHeader>
                                 <CardContent>
-                                    <div className="prose max-w-none text-gray-700" dangerouslySetInnerHTML={{ __html: jobposting.description }} />
+                                    <FormattedJobText content={jobposting.description} />
                                 </CardContent>
                             </Card>
                         )}
@@ -98,12 +119,12 @@ export default function Show() {
                             <Card>
                                 <CardHeader>
                                     <h3 className="text-lg font-semibold flex items-center gap-2">
-                                        <CheckCircle className="h-5 w-5" />
+                                        <CheckCircle className="h-5 w-5 text-emerald-600" />
                                         {t('Requirements')}
                                     </h3>
                                 </CardHeader>
                                 <CardContent>
-                                    <div className="prose max-w-none text-gray-700" dangerouslySetInnerHTML={{ __html: jobposting.requirements }} />
+                                    <FormattedJobText content={jobposting.requirements} />
                                 </CardContent>
                             </Card>
                         )}
@@ -113,12 +134,12 @@ export default function Show() {
                             <Card>
                                 <CardHeader>
                                     <h3 className="text-lg font-semibold flex items-center gap-2">
-                                        <Star className="h-5 w-5" />
+                                        <Star className="h-5 w-5 text-amber-500" />
                                         {t('Benefits')}
                                     </h3>
                                 </CardHeader>
                                 <CardContent>
-                                    <div className="prose max-w-none text-gray-700" dangerouslySetInnerHTML={{ __html: jobposting.benefits }} />
+                                    <FormattedJobText content={jobposting.benefits} />
                                 </CardContent>
                             </Card>
                         )}
@@ -187,6 +208,14 @@ export default function Show() {
                                 <div className="flex items-center justify-between py-2 border-b border-gray-100">
                                     <span className="text-sm text-gray-600">{t('Branch')}</span>
                                     <span className="text-sm font-medium">{jobposting.branch_name || '-'}</span>
+                                </div>
+                                <div className="flex items-center justify-between py-2 border-b border-gray-100">
+                                    <span className="text-sm text-gray-600">{t('Department')}</span>
+                                    <span className="text-sm font-medium">{(jobposting as any).department_name || jobposting.department?.department_name || '-'}</span>
+                                </div>
+                                <div className="flex items-center justify-between py-2 border-b border-gray-100">
+                                    <span className="text-sm text-gray-600">{t('Designation')}</span>
+                                    <span className="text-sm font-medium">{(jobposting as any).designation_name || jobposting.designation?.designation_name || '-'}</span>
                                 </div>
                                 {(jobposting.min_salary || jobposting.max_salary) && (
                                     <div className="flex items-center justify-between py-2 border-b border-gray-100">

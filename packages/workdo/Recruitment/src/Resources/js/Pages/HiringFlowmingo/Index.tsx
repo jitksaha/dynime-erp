@@ -8,6 +8,8 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { RichTextEditor } from '@/components/ui/rich-text-editor';
+import { FormattedJobText } from '../../Components/FormattedJobText';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -475,12 +477,10 @@ export default function Index() {
 
                             <div className="space-y-1.5">
                                 <Label htmlFor="description">{t('Job Description')}</Label>
-                                <Textarea 
-                                    id="description" 
-                                    rows={4} 
+                                <RichTextEditor 
                                     value={formData.description} 
-                                    onChange={(e) => setFormData({ ...formData, description: e.target.value })} 
-                                    placeholder="Enter full job description..."
+                                    onChange={(value) => setFormData({ ...formData, description: value })} 
+                                    placeholder="Enter or paste full job description..."
                                 />
                             </div>
 

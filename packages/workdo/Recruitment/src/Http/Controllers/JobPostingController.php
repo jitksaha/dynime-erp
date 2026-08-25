@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Workdo\Hrm\Models\Branch;
 use Workdo\Hrm\Models\Department;
+use Workdo\Hrm\Models\Designation;
 use Workdo\Recruitment\Models\CustomQuestion;
 use Workdo\Recruitment\Models\JobType;
 use Workdo\Recruitment\Models\JobLocation;
@@ -24,10 +25,19 @@ class JobPostingController extends Controller
         if(Auth::user()->can('manage-job-postings')){
             $jobpostings = JobPosting::query()
                 ->leftJoin('branches', 'job_postings.branch_id', '=', 'branches.id')
-                ->select('job_postings.*', 'branches.branch_name as branch_name')
+                ->leftJoin('departments', 'job_postings.department_id', '=', 'departments.id')
+                ->leftJoin('designations', 'job_postings.designation_id', '=', 'designations.id')
+                ->select(
+                    'job_postings.*',
+                    'branches.branch_name as branch_name',
+                    'departments.department_name as department_name',
+                    'designations.designation_name as designation_name'
+                )
                 ->with([
                     'jobType:id,name,created_by',
-                    'location:id,name'
+                    'location:id,name',
+                    'department:id,department_name',
+                    'designation:id,designation_name'
                 ])
                 ->where(function($q) {
                     if(Auth::user()->can('manage-any-job-postings')) {
@@ -43,12 +53,16 @@ class JobPostingController extends Controller
                     $query->where('job_postings.title', 'like', '%' . request('title') . '%')
                           ->orWhere('job_postings.description', 'like', '%' . request('title') . '%')
                           ->orWhere('job_postings.posting_code', 'like', '%' . request('title') . '%')
-                          ->orWhere('branches.branch_name', 'like', '%' . request('title') . '%');
+                          ->orWhere('branches.branch_name', 'like', '%' . request('title') . '%')
+                          ->orWhere('departments.department_name', 'like', '%' . request('title') . '%')
+                          ->orWhere('designations.designation_name', 'like', '%' . request('title') . '%');
                     });
                 })
                 ->when(request('job_type_id') && request('job_type_id') !== 'all', fn($q) => $q->where('job_type_id', request('job_type_id')))
                 ->when(request('location_id') && request('location_id') !== 'all', fn($q) => $q->where('location_id', request('location_id')))
                 ->when(request('branch_id') && request('branch_id') !== 'all', fn($q) => $q->where('job_postings.branch_id', request('branch_id')))
+                ->when(request('department_id') && request('department_id') !== 'all', fn($q) => $q->where('job_postings.department_id', request('department_id')))
+                ->when(request('designation_id') && request('designation_id') !== 'all', fn($q) => $q->where('job_postings.designation_id', request('designation_id')))
                 ->when(request('status') && request('status') !== 'all', fn($q) => $q->where('status', request('status')))
                 ->when(request('sort'), function($q) {
                     $sort = request('sort');
@@ -56,6 +70,10 @@ class JobPostingController extends Controller
 
                     if ($sort === 'branch_name') {
                         $q->orderBy('branches.branch_name', $direction);
+                    } elseif ($sort === 'department_name') {
+                        $q->orderBy('departments.department_name', $direction);
+                    } elseif ($sort === 'designation_name') {
+                        $q->orderBy('designations.designation_name', $direction);
                     } elseif ($sort === 'salary_range') {
                         $q->orderBy('job_postings.min_salary', $direction)
                           ->orderBy('job_postings.max_salary', $direction);
@@ -83,6 +101,8 @@ class JobPostingController extends Controller
                     ->select('id', 'question', 'is_required')
                     ->get(),
                 'branches' => Branch::where('created_by', creatorId())->select('id', 'branch_name')->get(),
+                'departments' => Department::where('created_by', creatorId())->select('id', 'department_name', 'branch_id')->get(),
+                'designations' => Designation::where('created_by', creatorId())->select('id', 'designation_name', 'branch_id', 'department_id')->get(),
             ]);
         }
         else{
@@ -107,6 +127,8 @@ class JobPostingController extends Controller
                     ->select('id', 'question', 'is_required')
                     ->get(),
                 'branches' => Branch::where('created_by', creatorId())->select('id', 'branch_name')->get(),
+                'departments' => Department::where('created_by', creatorId())->select('id', 'department_name', 'branch_id')->get(),
+                'designations' => Designation::where('created_by', creatorId())->select('id', 'designation_name', 'branch_id', 'department_id')->get(),
             ]);
         }
         else{
@@ -132,6 +154,8 @@ class JobPostingController extends Controller
                     ->select('id', 'question', 'is_required')
                     ->get(),
                 'branches' => Branch::where('created_by', creatorId())->select('id', 'branch_name')->get(),
+                'departments' => Department::where('created_by', creatorId())->select('id', 'department_name', 'branch_id')->get(),
+                'designations' => Designation::where('created_by', creatorId())->select('id', 'designation_name', 'branch_id', 'department_id')->get(),
             ]);
         }
         else{
@@ -148,7 +172,9 @@ class JobPostingController extends Controller
             $applicationUrl = null;
             if ($validated['job_application'] === 'existing') {
                 $userSlug = Auth::user()->slug ?? 'demo';
-                $applicationUrl = route('recruitment.frontend.careers.jobs.index', ['userSlug' => $userSlug]);
+                $applicationUrl = ($userSlug && $userSlug !== 'company' && $userSlug !== 'demo')
+                    ? "https://careers.dynime.com/{$userSlug}"
+                    : "https://careers.dynime.com/";
             } elseif ($validated['job_application'] === 'custom' && !empty($validated['application_url'])) {
                 $applicationUrl = $validated['application_url'];
             }
@@ -160,12 +186,16 @@ class JobPostingController extends Controller
             $jobposting->position = $validated['position'];
             $jobposting->priority = $validated['priority'];
             $jobposting->job_application = $validated['job_application'];
+            $jobposting->posting_source = $validated['posting_source'] ?? 'manual';
             $jobposting->application_url = $applicationUrl;
             $jobposting->branch_id = $validated['branch_id'];
+            $jobposting->department_id = $validated['department_id'] ?? null;
+            $jobposting->designation_id = $validated['designation_id'] ?? null;
             $jobposting->min_experience = $validated['min_experience'];
             $jobposting->max_experience = $validated['max_experience'];
             $jobposting->min_salary = $validated['min_salary'];
             $jobposting->max_salary = $validated['max_salary'];
+            $jobposting->salary_rate = $validated['salary_rate'] ?? 'yearly';
             $jobposting->description = $validated['description'];
             $jobposting->requirements = $validated['requirements'];
             $jobposting->skills = isset($validated['skills']) && is_array($validated['skills']) ? implode(',', $validated['skills']) : null;
@@ -174,6 +204,7 @@ class JobPostingController extends Controller
             $jobposting->show_terms_condition = $validated['show_terms_condition'] ?? false;
             $jobposting->application_deadline = $validated['application_deadline'];
             $jobposting->is_published = $validated['is_published'] ?? false;
+            $jobposting->is_hiring = isset($validated['is_hiring']) ? (bool) $validated['is_hiring'] : true;
             $jobposting->publish_date = $validated['publish_date'];
             $jobposting->is_featured = $validated['is_featured'] ?? false;
             $jobposting->status = $validated['status'];
@@ -223,7 +254,9 @@ class JobPostingController extends Controller
             $applicationUrl = null;
             if ($validated['job_application'] === 'existing') {
                 $userSlug = Auth::user()->slug ?? 'demo';
-                $applicationUrl = route('recruitment.frontend.careers.jobs.index', ['userSlug' => $userSlug]);
+                $applicationUrl = ($userSlug && $userSlug !== 'company' && $userSlug !== 'demo')
+                    ? "https://careers.dynime.com/{$userSlug}"
+                    : "https://careers.dynime.com/";
             } elseif ($validated['job_application'] === 'custom' && !empty($validated['application_url'])) {
                 $applicationUrl = $validated['application_url'];
             }
@@ -232,12 +265,16 @@ class JobPostingController extends Controller
             $jobposting->position = $validated['position'];
             $jobposting->priority = $validated['priority'];
             $jobposting->job_application = $validated['job_application'];
+            $jobposting->posting_source = $validated['posting_source'] ?? 'manual';
             $jobposting->application_url = $applicationUrl;
             $jobposting->branch_id = $validated['branch_id'];
+            $jobposting->department_id = $validated['department_id'] ?? null;
+            $jobposting->designation_id = $validated['designation_id'] ?? null;
             $jobposting->min_experience = $validated['min_experience'];
             $jobposting->max_experience = $validated['max_experience'];
             $jobposting->min_salary = $validated['min_salary'];
             $jobposting->max_salary = $validated['max_salary'];
+            $jobposting->salary_rate = $validated['salary_rate'] ?? 'yearly';
             $jobposting->description = $validated['description'];
             $jobposting->requirements = $validated['requirements'];
             $jobposting->skills = isset($validated['skills']) && is_array($validated['skills']) ? implode(',', $validated['skills']) : null;
@@ -246,6 +283,7 @@ class JobPostingController extends Controller
             $jobposting->show_terms_condition = $validated['show_terms_condition'] ?? false;
             $jobposting->application_deadline = $validated['application_deadline'];
             $jobposting->is_published = $validated['is_published'];
+            $jobposting->is_hiring = isset($validated['is_hiring']) ? (bool) $validated['is_hiring'] : true;
             $jobposting->publish_date = $validated['publish_date'];
             $jobposting->is_featured = $validated['is_featured'];
             $jobposting->status = $validated['status'];
@@ -309,17 +347,31 @@ class JobPostingController extends Controller
                 return redirect()->route('recruitment.job-postings.index')->with('error', __('Permission denied'));
             }
 
-            $jobposting = JobPosting::leftJoin('branches', 'job_postings.branch_id', '=', 'branches.id')
-                ->select('job_postings.*', 'branches.branch_name as branch_name')
-                ->where('job_postings.id', $jobposting->id)
+            $jobId = is_object($jobposting) ? $jobposting->id : $jobposting;
+            $jobData = JobPosting::leftJoin('branches', 'job_postings.branch_id', '=', 'branches.id')
+                ->leftJoin('departments', 'job_postings.department_id', '=', 'departments.id')
+                ->leftJoin('designations', 'job_postings.designation_id', '=', 'designations.id')
+                ->select(
+                    'job_postings.*',
+                    'branches.branch_name as branch_name',
+                    'departments.department_name as department_name',
+                    'designations.designation_name as designation_name'
+                )
+                ->where('job_postings.id', $jobId)
                 ->with([
                     'jobType:id,name',
-                    'location:id,name'
+                    'location:id,name',
+                    'department:id,department_name',
+                    'designation:id,designation_name'
                 ])
                 ->first();
 
+            if (!$jobData && is_object($jobposting)) {
+                $jobData = $jobposting;
+            }
+
             return Inertia::render('Recruitment/JobPostings/Show', [
-                'jobposting' => $jobposting
+                'jobposting' => $jobData
             ]);
         }
         else{

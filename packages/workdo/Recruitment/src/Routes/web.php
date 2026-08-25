@@ -196,6 +196,7 @@ Route::middleware(['web', 'auth', 'verified', 'PlanModuleCheck:Recruitment'])->g
     Route::prefix('recruitment/flowmingo')->name('recruitment.flowmingo.')->group(function () {
         Route::get('/', [FlowmingoHiringController::class, 'index'])->name('index');
         Route::post('/sync', [FlowmingoHiringController::class, 'sync'])->name('sync');
+        Route::post('/webhook', [FlowmingoHiringController::class, 'webhookIngest'])->name('webhook');
         Route::post('/store', [FlowmingoHiringController::class, 'store'])->name('store');
         Route::put('/{id}', [FlowmingoHiringController::class, 'update'])->name('update');
         Route::delete('/{id}', [FlowmingoHiringController::class, 'destroy'])->name('destroy');
@@ -204,7 +205,7 @@ Route::middleware(['web', 'auth', 'verified', 'PlanModuleCheck:Recruitment'])->g
 
 // Public frontend routes with slug support (no authentication required)
 Route::middleware(['web', RecruitmentSharedDataMiddleware::class])->group(function () {
-    Route::prefix('{userSlug}/careers')->name('recruitment.frontend.careers.')->group(function () {
+    Route::group(['prefix' => '{userSlug}/careers', 'where' => ['userSlug' => '^(?!login|admin|dashboard|api|recruitment).*$'], 'as' => 'recruitment.frontend.careers.'], function () {
         Route::get('/', [FrontendController::class, 'jobListings'])->name('jobs.index');
         Route::get('/job/{id}', [FrontendController::class, 'jobDetails'])->name('jobs.show');
         Route::get('/job/{id}/apply', [FrontendController::class, 'jobApply'])->name('jobs.apply');
@@ -219,6 +220,30 @@ Route::middleware(['web', RecruitmentSharedDataMiddleware::class])->group(functi
 
     // Public offer letter download route
     Route::get('/recruitment/offer-letter/download/{encryptedId}', [OfferController::class, 'downloadOfferLetter'])->name('recruitment.offers.public-download');
+});
+
+// Dedicated Domain Routing for https://careers.dynime.com/
+Route::group(['domain' => 'careers.dynime.com', 'middleware' => ['web', RecruitmentSharedDataMiddleware::class]], function () {
+    Route::get('/', [FrontendController::class, 'jobListings'])->name('recruitment.frontend.careers.domain.index');
+    Route::get('/job/{id}', [FrontendController::class, 'jobDetails'])->name('recruitment.frontend.careers.domain.show');
+    Route::get('/job/{id}/apply', [FrontendController::class, 'jobApply'])->name('recruitment.frontend.careers.domain.apply');
+    Route::get('/job/{id}/terms', [FrontendController::class, 'jobTerms'])->name('recruitment.frontend.careers.domain.terms');
+    Route::post('/job/{id}/apply', [FrontendController::class, 'submitApplication'])->name('recruitment.frontend.careers.domain.apply.submit');
+    Route::get('/application-success/{trackingId?}', [FrontendController::class, 'applicationSuccess'])->name('recruitment.frontend.careers.domain.application.success');
+    Route::get('/track', [FrontendController::class, 'trackingForm'])->name('recruitment.frontend.careers.domain.track.form');
+    Route::post('/track/verify', [FrontendController::class, 'trackingVerify'])->name('recruitment.frontend.careers.domain.track.verify');
+    Route::get('/track/{trackingId}', [FrontendController::class, 'trackingDetails'])->name('recruitment.frontend.careers.domain.track.details');
+
+    // Redirect any login attempt on careers.dynime.com back to public career portal
+    Route::get('/login{any?}', function() {
+        return redirect()->route('recruitment.frontend.careers.domain.index');
+    })->where('any', '.*');
+
+    Route::group(['prefix' => '{userSlug}', 'where' => ['userSlug' => '^(?!login|admin|dashboard|api|recruitment).*$']], function () {
+        Route::get('/', [FrontendController::class, 'jobListings']);
+        Route::get('/job/{id}', [FrontendController::class, 'jobDetails']);
+        Route::get('/job/{id}/apply', [FrontendController::class, 'jobApply']);
+    });
 });
 
 // Public API routes for Flowmingo ATS synced jobs (for website integration)

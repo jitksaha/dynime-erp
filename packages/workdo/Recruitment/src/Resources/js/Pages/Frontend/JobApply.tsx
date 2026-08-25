@@ -23,6 +23,8 @@ interface Job {
     encrypted_id: string;
     title: string;
     location: string;
+    department?: string;
+    designation?: string;
     jobType: string;
     salaryFrom: number;
     salaryTo: number;
@@ -128,7 +130,9 @@ export default function JobApply({ job, applicationTips, storageSettings, custom
         if (uploadedFiles.profilePhoto) formDataToSubmit.append('profilePhoto', uploadedFiles.profilePhoto);
 
         // Use Inertia router for form submission
-        router.post(route('recruitment.frontend.careers.jobs.apply.submit', { userSlug, id: job.encrypted_id }), formDataToSubmit, {
+        const targetSlug = (job as any).slug || job.id;
+        const submitUrl = userSlug ? `/${userSlug}/job/${targetSlug}/apply` : `/job/${targetSlug}/apply`;
+        router.post(submitUrl, formDataToSubmit, {
             onStart: () => setIsSubmitting(true),
             onFinish: () => setIsSubmitting(false),
             onError: () => setIsSubmitting(false)
@@ -171,12 +175,35 @@ export default function JobApply({ job, applicationTips, storageSettings, custom
                                 variant="ghost"
                                 size="sm"
                                 className="text-gray-600 hover:text-gray-900 hover:bg-gray-100 mb-6"
-                                onClick={() => router.visit(route('recruitment.frontend.careers.jobs.show', { userSlug, id: job.encrypted_id }))}
+                                onClick={() => {
+                                    const targetSlug = (job as any).slug || job.id;
+                                    router.visit(userSlug ? `/${userSlug}/job/${targetSlug}` : `/job/${targetSlug}`);
+                                }}
                             >
                                 <ArrowLeft className="h-4 w-4 mr-2" />
                                 {t('Back to Job Details')}
                             </Button>
-                            <h1 className="text-3xl font-bold text-gray-900 mb-2">{t('Apply for Position')}</h1>
+                            <h1 className="text-3xl font-bold text-gray-900 mb-2">{t('Apply for Position')}: {job.title}</h1>
+                            <div className="flex flex-wrap items-center gap-2 mb-3">
+                                <span className="inline-flex items-center text-sm font-medium text-slate-600">
+                                    <MapPin className="h-4 w-4 mr-1 text-blue-500 shrink-0" />
+                                    {job.location}
+                                </span>
+                                <span className="inline-flex items-center text-sm font-medium text-slate-600">
+                                    <Briefcase className="h-4 w-4 mr-1 text-indigo-500 shrink-0" />
+                                    {job.jobType}
+                                </span>
+                                {job.department && (
+                                    <Badge variant="outline" className="bg-slate-100 text-slate-800 border-slate-200 font-bold">
+                                        {t('Dept:')} {job.department}
+                                    </Badge>
+                                )}
+                                {job.designation && (
+                                    <Badge variant="outline" className="bg-indigo-50 text-indigo-800 border-indigo-200 font-bold">
+                                        {t('Role:')} {job.designation}
+                                    </Badge>
+                                )}
+                            </div>
                             <p className="text-gray-600">{t('Please fill out the form below to submit your application')}</p>
                         </div>
 

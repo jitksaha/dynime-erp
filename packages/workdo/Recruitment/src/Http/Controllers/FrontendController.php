@@ -30,41 +30,55 @@ class FrontendController extends Controller
                 return $user->id;
             }
         }
-        abort(404, __('Recruitment page not found'));
+        $company = User::where('type', 'company')->first()
+            ?? User::where('type', 'super admin')->first()
+            ?? User::first();
+        if ($company) {
+            return $company->id;
+        }
+        return 1;
     }
 
-    public function jobListings(Request $request, $userSlug)
+    public function jobListings(Request $request, $userSlug = null)
     {
         try {
             $userId = $this->getUserIdFromRequest($request);
 
             $jobs = JobPosting::where('is_published', true)
-                ->where('status', 'active')
-                ->where('created_by', $userId)
-                ->with(['jobType', 'location'])
-                ->latest()
+                ->with(['jobType', 'location', 'department', 'designation'])
+                ->orderBy('id', 'desc')
                 ->get()
                 ->map(function ($job) {
                     return [
                         'id' => $job->id,
+                        'slug' => $job->slug ?: \Illuminate\Support\Str::slug($job->title),
                         'encrypted_id' => $job->encrypted_id,
                         'title' => $job->title,
-                        'location' => $job->location ? $job->location->name : 'Not specified',
-                        'jobType' => $job->jobType ? $job->jobType->name : 'Full Time',
+                        'location' => $job->location ? $job->location->name : 'Remote',
+                        'department' => $job->department ? $job->department->department_name : null,
+                        'designation' => $job->designation ? $job->designation->designation_name : null,
+                        'jobType' => $job->jobType ? $job->jobType->name : 'Full-time',
                         'salaryFrom' => $job->min_salary ?? 0,
                         'salaryTo' => $job->max_salary ?? 0,
+                        'salaryRate' => $job->salary_rate ?? 'yearly',
                         'postedDate' => $job->publish_date ? Carbon::parse($job->publish_date)->format('Y-m-d') : $job->created_at->format('Y-m-d'),
                         'deadlineDate' => $job->application_deadline ? Carbon::parse($job->application_deadline)->format('Y-m-d') : null,
-                        'skills' => $job->skills ? explode(',', trim($job->skills)) : [],
-                        'featured' => $job->is_featured ?? false,
-                        'description' => $job->description ?? '',
+                        'skills' => $job->skills ? array_map('trim', explode(',', $job->skills)) : [],
+                        'featured' => (bool) ($job->is_featured ?? false),
+                        'description' => $job->description,
                         'job_application' => $job->job_application ?? 'existing',
-                        'application_url' => $job->application_url
+                        'application_url' => $job->application_url ?? null,
+                        'is_hiring' => (bool) ($job->is_hiring ?? true),
+                        'posting_source' => $job->posting_source ?? 'manual',
                     ];
                 });
 
-            // Get job categories (departments)
-            $jobCategories = ['Technology', 'Accounting', 'HR section'];
+            // Get job categories (only departments that have published jobs!)
+            $jobCategories = $jobs->pluck('department')
+                ->filter()
+                ->unique()
+                ->values()
+                ->toArray();
 
             // Get job locations
             $jobLocations = JobLocation::where('created_by', $userId)
@@ -95,31 +109,44 @@ class FrontendController extends Controller
                 'jobCategories' => $jobCategories,
                 'jobLocations' => $jobLocations,
                 'jobTypes' => $jobTypes,
-            ]);
+            ])->toResponse($request);
         } catch (\Exception $e) {
-            return Inertia::render('Recruitment/Frontend/NotFound');
+            return Inertia::render('Recruitment/Frontend/NotFound')->toResponse($request);
         }
     }
 
-    public function jobDetails(Request $request, $userSlug, $id)
+    public function jobDetails(Request $request, $userSlug = null, $id = null)
     {
         try {
-            $userId = $this->getUserIdFromRequest($request);
-            $job = JobPosting::findByEncryptedId($id);
-
-            if (!$job || !$job->is_published || $job->created_by != $userId) {
-                return Inertia::render('Recruitment/Frontend/NotFound');
+            if ($id === null && $userSlug !== null) {
+                $id = $userSlug;
+                $userSlug = null;
             }
 
-            $job->load(['jobType', 'location']);
+            $userId = $this->getUserIdFromRequest($request);
+            $job = JobPosting::findBySlugOrId($id) 
+                ?? JobPosting::where('slug', $id)->first()
+                ?? JobPosting::where('code', $id)->first() 
+                ?? JobPosting::where('posting_code', $id)->first() 
+                ?? (is_numeric($id) ? JobPosting::find($id) : null);
+
+            if (!$job || !$job->is_published) {
+                return Inertia::render('Recruitment/Frontend/NotFound')->toResponse($request);
+            }
+
+            $job->load(['jobType', 'location', 'department', 'designation']);
             $jobData = [
                 'id' => $job->id,
+                'slug' => $job->slug ?: \Illuminate\Support\Str::slug($job->title),
                 'encrypted_id' => $job->encrypted_id,
                 'title' => $job->title,
                 'location' => $job->location ? $job->location->name : 'Not specified',
+                'department' => $job->department ? $job->department->department_name : null,
+                'designation' => $job->designation ? $job->designation->designation_name : null,
                 'jobType' => $job->jobType ? $job->jobType->name : 'Full Time',
                 'salaryFrom' => $job->min_salary ?? 0,
                 'salaryTo' => $job->max_salary ?? 0,
+                'salaryRate' => $job->salary_rate ?? 'yearly',
                 'positions' => $job->position ?? 0,
                 'startDate' => $job->start_date ?? now()->format('Y-m-d'),
                 'endDate' => $job->application_deadline ? Carbon::parse($job->application_deadline)->format('Y-m-d') : now()->addMonth()->format('Y-m-d'),
@@ -129,8 +156,10 @@ class FrontendController extends Controller
                 'description' => $job->description ?? '',
                 'requirements' => $job->requirements ?? '',
                 'benefits' => $job->benefits ?? '',
+                'terms_condition' => $job->terms_condition ?? '',
                 'job_application' => $job->job_application ?? 'existing',
-                'application_url' => $job->application_url
+                'application_url' => $job->application_url,
+                'is_hiring' => (bool)($job->is_hiring ?? true)
             ];
 
             $companySettings = RecruitmentSetting::where('created_by', $userId)
@@ -144,26 +173,36 @@ class FrontendController extends Controller
                     'companySize' => $companySettings['company_size'] ?? '',
                     'industry' => $companySettings['industry'] ?? ''
                 ]
-            ]);
+            ])->toResponse($request);
         } catch (\Exception $e) {
-            return Inertia::render('Recruitment/Frontend/NotFound');
+            return Inertia::render('Recruitment/Frontend/NotFound')->toResponse($request);
         }
     }
 
-    public function jobApply(Request $request, $userSlug, $id)
+    public function jobApply(Request $request, $userSlug = null, $id = null)
     {
         try {
-            $userId = $this->getUserIdFromRequest($request);
-            $job = JobPosting::findByEncryptedId($id);
+            if ($id === null && $userSlug !== null) {
+                $id = $userSlug;
+                $userSlug = null;
+            }
 
-            if (!$job || !$job->is_published || $job->created_by != $userId) {
-                return Inertia::render('Recruitment/Frontend/NotFound');
+            $userId = $this->getUserIdFromRequest($request);
+            $job = JobPosting::findBySlugOrId($id) 
+                ?? JobPosting::where('slug', $id)->first()
+                ?? JobPosting::where('code', $id)->first() 
+                ?? JobPosting::where('posting_code', $id)->first() 
+                ?? (is_numeric($id) ? JobPosting::find($id) : null);
+
+            if (!$job || !$job->is_published) {
+                return Inertia::render('Recruitment/Frontend/NotFound')->toResponse($request);
             }
 
             $job->load(['jobType', 'location']);
 
             $jobData = [
                 'id' => $job->id,
+                'slug' => $job->slug ?: \Illuminate\Support\Str::slug($job->title),
                 'encrypted_id' => $job->encrypted_id,
                 'title' => $job->title,
                 'location' => $job->location ? $job->location->name : 'Not specified',
@@ -213,13 +252,13 @@ class FrontendController extends Controller
                     'applicant' => $job->applicant ?? [],
                     'visibility' => $job->visibility ?? []
                 ]
-            ]);
+            ])->toResponse($request);
         } catch (\Exception $e) {
-            return Inertia::render('Recruitment/Frontend/NotFound');
+            return Inertia::render('Recruitment/Frontend/NotFound')->toResponse($request);
         }
     }
 
-    public function applicationSuccess(Request $request, $userSlug, $trackingId = null)
+    public function applicationSuccess(Request $request, $userSlug = null, $trackingId = null)
     {
         try {
             $userId = $this->getUserIdFromRequest($request);
@@ -274,13 +313,13 @@ class FrontendController extends Controller
                 'errorMessage' => $errorMessage,
                 'whatHappensNext' => $whatHappensNext,
                 'needHelp' => $needHelp
-            ]);
+            ])->toResponse($request);
         } catch (\Exception $e) {
-            return Inertia::render('Recruitment/Frontend/NotFound');
+            return Inertia::render('Recruitment/Frontend/NotFound')->toResponse($request);
         }
     }
 
-    public function trackingForm(Request $request, $userSlug)
+    public function trackingForm(Request $request, $userSlug = null)
     {
         try {
             $userId = $this->getUserIdFromRequest($request);
@@ -291,13 +330,13 @@ class FrontendController extends Controller
 
             return Inertia::render('Recruitment/Frontend/TrackingForm', [
                 'trackingFaq' => $trackingFaq
-            ]);
+            ])->toResponse($request);
         } catch (\Exception $e) {
-            return Inertia::render('Recruitment/Frontend/NotFound');
+            return Inertia::render('Recruitment/Frontend/NotFound')->toResponse($request);
         }
     }
 
-    public function trackingVerify(Request $request, $userSlug)
+    public function trackingVerify(Request $request, $userSlug = null)
     {
         try {
             $userId = $this->getUserIdFromRequest($request);
@@ -320,8 +359,13 @@ class FrontendController extends Controller
             }
 
             // Redirect to tracking details page
-            return redirect()->route('recruitment.frontend.careers.track.details', [
-                'userSlug' => $userSlug,
+            if ($userSlug) {
+                return redirect()->route('recruitment.frontend.careers.track.details', [
+                    'userSlug' => $userSlug,
+                    'trackingId' => $candidate->tracking_id
+                ]);
+            }
+            return redirect()->route('recruitment.frontend.careers.domain.track.details', [
                 'trackingId' => $candidate->tracking_id
             ]);
         } catch (\Exception $e) {
@@ -329,8 +373,12 @@ class FrontendController extends Controller
         }
     }
 
-    public function trackingDetails(Request $request, $userSlug, $trackingId)
+    public function trackingDetails(Request $request, $userSlug = null, $trackingId = null)
     {
+        if (!$trackingId && is_string($userSlug) && !empty($userSlug)) {
+            $trackingId = $userSlug;
+            $userSlug = null;
+        }
         try {
             $userId = $this->getUserIdFromRequest($request);
             $settings = RecruitmentSetting::where('created_by', $userId)->pluck('value', 'key');
@@ -397,9 +445,9 @@ class FrontendController extends Controller
                 'interviewDetails' => $interviewDetails,
                 'offerDetails' => $offerDetails,
                 'needHelp' => $needHelp
-            ]);
+            ])->toResponse($request);
         } catch (\Exception $e) {
-            return Inertia::render('Recruitment/Frontend/NotFound');
+            return Inertia::render('Recruitment/Frontend/NotFound')->toResponse($request);
         }
     }
 
@@ -534,14 +582,19 @@ class FrontendController extends Controller
         ];
     }
 
-    public function jobTerms(Request $request, $userSlug, $id)
+    public function jobTerms(Request $request, $userSlug = null, $id = null)
     {
         try {
             $userId = $this->getUserIdFromRequest($request);
-            $job = JobPosting::findByEncryptedId($id);
+            $job = JobPosting::findBySlugOrId($id) 
+                ?? JobPosting::where('slug', $id)->first()
+                ?? JobPosting::where('code', $id)->first()
+                ?? JobPosting::where('posting_code', $id)->first()
+                ?? JobPosting::findByEncryptedId($id) 
+                ?? (is_numeric($id) ? JobPosting::find($id) : null);
 
             if (!$job || !$job->is_published || $job->created_by != $userId) {
-                return Inertia::render('Recruitment/Frontend/NotFound');
+                return Inertia::render('Recruitment/Frontend/NotFound')->toResponse($request);
             }
 
             return Inertia::render('Recruitment/Frontend/JobTerms', [
@@ -551,13 +604,13 @@ class FrontendController extends Controller
                     'title' => $job->title,
                     'terms_condition' => $job->terms_condition
                 ]
-            ]);
+            ])->toResponse($request);
         } catch (\Exception $e) {
-            return Inertia::render('Recruitment/Frontend/NotFound');
+            return Inertia::render('Recruitment/Frontend/NotFound')->toResponse($request);
         }
     }
 
-    public function offerResponse(Request $request, $userSlug, $offerId)
+    public function offerResponse(Request $request, $userSlug = null, $offerId = null)
     {
         try {
             $userId = $this->getUserIdFromRequest($request);
@@ -586,11 +639,16 @@ class FrontendController extends Controller
         }
     }
 
-    public function submitApplication(SubmitApplicationRequest $request, $userSlug, $id)
+    public function submitApplication(SubmitApplicationRequest $request, $userSlug = null, $id = null)
     {
         try {
             $userId = $this->getUserIdFromRequest($request);
-            $job = JobPosting::findByEncryptedId($id);
+            $job = JobPosting::findBySlugOrId($id) 
+                ?? JobPosting::where('slug', $id)->first()
+                ?? JobPosting::where('code', $id)->first()
+                ?? JobPosting::where('posting_code', $id)->first()
+                ?? JobPosting::findByEncryptedId($id) 
+                ?? (is_numeric($id) ? JobPosting::find($id) : null);
 
             if (!$job || !$job->is_published || $job->created_by != $userId) {
                 return back()->withErrors(['error' => __('Job not found or no longer available.')]);

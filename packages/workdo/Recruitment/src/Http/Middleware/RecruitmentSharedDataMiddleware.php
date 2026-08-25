@@ -61,7 +61,12 @@ class RecruitmentSharedDataMiddleware
             }
         }
         
-        abort(404, 'Recruitment page not found');
+        $company = User::where('type', 'company')->first();
+        if ($company) {
+            return $company->id;
+        }
+
+        return 1;
     }
 
     private function getRecruitmentSettings($userId)

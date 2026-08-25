@@ -1,13 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Head, usePage, router } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import FrontendLayout from '../../Components/Frontend/FrontendLayout';
-import { MapPin, Clock, DollarSign, Briefcase, Star, ArrowLeft, Bookmark, Users, Calendar } from 'lucide-react';
+import { MapPin, Clock, DollarSign, Briefcase, Star, ArrowLeft, Bookmark, Users, Calendar, Share2, Check, Bot, FileText, Sparkles, Send } from 'lucide-react';
 import { formatDate, formatCurrency } from '@/utils/helpers';
 import { useFormFields } from '@/hooks/useFormFields';
+import { FormattedJobText } from '../../Components/FormattedJobText';
+import { toast } from 'sonner';
 
 
 
@@ -16,9 +18,12 @@ interface Job {
     encrypted_id: string;
     title: string;
     location: string;
+    department?: string;
+    designation?: string;
     jobType: string;
     salaryFrom: number;
     salaryTo: number;
+    salaryRate?: string;
     positions: number;
     startDate: string;
     endDate: string;
@@ -28,6 +33,7 @@ interface Job {
     description: string;
     requirements: string;
     benefits: string;
+    terms_condition?: string;
     job_application?: string;
     application_url?: string;
 }
@@ -46,6 +52,33 @@ export default function JobDetails({ job, companyInfo }: JobDetailsProps) {
     const { props } = usePage();
     const userSlug = props.userSlug as string;
     const [savedJobs, setSavedJobs] = useState<number[]>([]);
+    const [isCopied, setIsCopied] = useState(false);
+    const jobSlug = (job as any)?.slug || (job?.title ? job.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") : job?.id);
+
+    const handleShareJob = async () => {
+        const shareUrl = window.location.href;
+        if (navigator.share) {
+            try {
+                await navigator.share({
+                    title: `${job.title} | Dynime Careers`,
+                    text: `Apply for ${job.title} at Dynime!`,
+                    url: shareUrl,
+                });
+                return;
+            } catch (err) {
+                // Fallback to copy clipboard if native share cancelled or unavailable
+            }
+        }
+        
+        try {
+            await navigator.clipboard.writeText(shareUrl);
+            setIsCopied(true);
+            toast.success(t('Job URL copied to clipboard! Share it anywhere.'));
+            setTimeout(() => setIsCopied(false), 2500);
+        } catch (e) {
+            console.error('Failed to copy', e);
+        }
+    };
 
     const integrationFields = useFormFields('getIntegrationFields', {}, () => { }, {}, 'create', t, 'Recruitment');
 
@@ -61,8 +94,32 @@ export default function JobDetails({ job, companyInfo }: JobDetailsProps) {
         }
     }, [userSlug]);
 
-    const formatSalary = (from: number, to: number) => {
-        return `${formatCurrency(from)} - ${formatCurrency(to)}`;
+    const formatSalary = (from: number, to: number, rate?: string) => {
+        const rateLabels: Record<string, string> = {
+            yearly: ' / Year',
+            monthly: ' / Month',
+            weekly: ' / Week',
+            hourly: ' / Hour',
+            project: ' / Project'
+        };
+        const rateSuffix = rateLabels[rate || 'yearly'] || ' / Year';
+
+        const formatClean = (val: number) => {
+            let str = formatCurrency(val);
+            if (/\$\d{1,3}(,\d{3})*,\d{2}$/.test(str)) {
+                str = str.replace(/,(\d{2})$/, '.$1');
+            }
+            return str;
+        };
+
+        if (from && to) {
+            return `${formatClean(from)} - ${formatClean(to)}${rateSuffix}`;
+        } else if (from) {
+            return `${formatClean(from)}${rateSuffix}`;
+        } else if (to) {
+            return `${formatClean(to)}${rateSuffix}`;
+        }
+        return `Negotiable${rateSuffix}`;
     };
 
     const handleSaveJob = () => {
@@ -81,216 +138,320 @@ export default function JobDetails({ job, companyInfo }: JobDetailsProps) {
 
 
 
+    // Extract clean 160-char text description for SEO Meta tag
+    const seoDescription = useMemo(() => {
+        if (!job?.description) return `Apply for ${job?.title || 'this position'} at Dynime. Full-time & remote career opportunities.`;
+        const stripped = job.description.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+        return stripped.length > 160 ? stripped.substring(0, 157) + '...' : stripped;
+    }, [job?.description, job?.title]);
+
+    // Google Jobs JSON-LD Schema
+    const googleJobsSchema = useMemo(() => {
+        return {
+            "@context": "https://schema.org/",
+            "@type": "JobPosting",
+            "title": job?.title || "",
+            "description": job?.description || seoDescription,
+            "identifier": {
+                "@type": "PropertyValue",
+                "name": "Dynime",
+                "value": String(job?.id || "")
+            },
+            "datePosted": job?.postedDate || new Date().toISOString(),
+            "validThrough": job?.endDate || "",
+            "employmentType": (job?.jobType && String(job.jobType).toUpperCase().includes('PART')) ? 'PART_TIME' : 'FULL_TIME',
+            "hiringOrganization": {
+                "@type": "Organization",
+                "name": "Dynime LLC",
+                "sameAs": "https://dynime.com",
+                "logo": "https://app.dynime.com/logo.png"
+            },
+            "jobLocation": {
+                "@type": "Place",
+                "address": {
+                    "@type": "PostalAddress",
+                    "addressLocality": job?.location || "Remote"
+                }
+            },
+            "baseSalary": job?.salaryFrom ? {
+                "@type": "MonetaryAmount",
+                "currency": "USD",
+                "value": {
+                    "@type": "QuantitativeValue",
+                    "minValue": job.salaryFrom,
+                    "maxValue": job.salaryTo || job.salaryFrom,
+                    "unitText": "YEAR"
+                }
+            } : undefined
+        };
+    }, [job, seoDescription]);
+
     return (
         <FrontendLayout title={job.title}>
-            <Head title={`${job.title} - Job Details`} />
+            <Head title={`${job.title} | Careers at Dynime`}>
+                <meta name="description" content={seoDescription} />
+                <meta name="keywords" content={`${job.title}, Dynime careers, job opening, hiring, ${job.location || 'remote'}, ${job.skills?.join(', ') || ''}`} />
+                
+                {/* Open Graph / Facebook Meta Tags */}
+                <meta property="og:type" content="article" />
+                <meta property="og:title" content={`${job.title} | Dynime Careers`} />
+                <meta property="og:description" content={seoDescription} />
+                <meta property="og:site_name" content="Dynime Careers" />
+
+                {/* Twitter Meta Tags */}
+                <meta name="twitter:card" content="summary_large_image" />
+                <meta name="twitter:title" content={`${job.title} | Dynime Careers`} />
+                <meta name="twitter:description" content={seoDescription} />
+
+                {/* Google JobPosting JSON-LD Schema */}
+                <script type="application/ld+json">
+                    {JSON.stringify(googleJobsSchema)}
+                </script>
+            </Head>
 
 
 
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                <div className="flex flex-col lg:flex-row gap-8">
-                    {/* Main Content */}
-                    <div className="lg:w-2/3">
-                        {/* Job Header */}
-                        <Card className="mb-8">
-                            <CardContent className="p-8">
-                                {/* Action Buttons */}
-                                <div className="flex items-center justify-between mb-2">
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="text-gray-600 hover:text-gray-900 hover:bg-gray-100"
-                                        onClick={() => router.visit(route('recruitment.frontend.careers.jobs.index', { userSlug }))}
-                                    >
-                                        <ArrowLeft className="h-4 w-4 mr-2" />
-                                        {t('Back to Jobs')}
-                                    </Button>
-
-                                </div>
-
-                                <div className="flex justify-between items-start mb-6">
-                                    <div className="flex-1">
-                                        <div className="flex items-center gap-3 mb-4">
-                                            <h1 className="text-3xl font-bold text-gray-900">{job.title}</h1>
-                                            <div className="flex gap-2">
+            <div className="bg-slate-50/60 min-h-screen py-8 sm:py-12">
+                <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="flex flex-col lg:flex-row gap-8">
+                        {/* Main Content: Sleek Unified Job Card */}
+                        <div className="lg:w-2/3">
+                            <Card className="shadow-xs border border-slate-200/90 rounded-2xl bg-white overflow-hidden">
+                                <CardContent className="p-6 md:p-8 space-y-6">
+                                    {/* Top Row: Title, Share Job */}
+                                    <div className="flex items-start justify-between gap-4">
+                                        <div className="space-y-2 flex-1">
+                                            <div className="flex items-center gap-2.5 flex-wrap">
+                                                <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">
+                                                    {job.title}
+                                                </h1>
                                                 {job.featured && (
-                                                    <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200 hover:bg-yellow-100">
-                                                        <Star className="h-3 w-3 mr-1" />
+                                                    <Badge className="bg-amber-100 text-amber-900 border-amber-200 hover:bg-amber-100 text-xs px-2.5 py-0.5">
+                                                        <Star className="h-3 w-3 mr-1 text-amber-600 fill-amber-600" />
                                                         {t('Featured')}
                                                     </Badge>
                                                 )}
                                             </div>
-                                        </div>
 
-                                        <div className="flex items-center text-gray-600 mb-6">
-                                            <MapPin className="h-5 w-5 mr-2 text-blue-500" />
-                                            <span className="font-medium text-lg">{job.location}</span>
-                                        </div>
-
-                                        {/* Job Info Grid */}
-                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                                            <div className="bg-gray-50 rounded-lg p-4">
-                                                <DollarSign className="h-6 w-6 mb-2 text-green-600" />
-                                                <p className="text-xs text-gray-500 uppercase tracking-wide mb-1"> {t('Salary Range')} </p>
-                                                <p className="font-bold text-gray-900">{formatSalary(job.salaryFrom, job.salaryTo)}</p>
-                                            </div>
-                                            <div className="bg-gray-50 rounded-lg p-4">
-                                                <Briefcase className="h-6 w-6 mb-2 text-blue-600" />
-                                                <p className="text-xs text-gray-500 uppercase tracking-wide mb-1"> {t('Job Type')} </p>
-                                                <p className="font-bold text-gray-900">{job.jobType}</p>
-                                            </div>
-                                            <div className="bg-gray-50 rounded-lg p-4">
-                                                <Users className="h-6 w-6 mb-2 text-purple-600" />
-                                                <p className="text-xs text-gray-500 uppercase tracking-wide mb-1"> {t('Positions')} </p>
-                                                <p className="font-bold text-gray-900">{job.positions} {t('Available')} </p>
-                                            </div>
-                                            <div className="bg-red-50 rounded-lg p-4">
-                                                <Clock className="h-6 w-6 mb-2 text-red-600" />
-                                                <p className="text-xs text-gray-500 uppercase tracking-wide mb-1"> {t('Deadline')} </p>
-                                                <p className="font-bold text-red-700">{formatDate(job.endDate)}</p>
+                                            {/* Department & Designation Badges */}
+                                            <div className="flex flex-wrap items-center gap-2 pt-0.5">
+                                                {job.department && (
+                                                    <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold bg-slate-100 text-slate-700">
+                                                        {job.department}
+                                                    </span>
+                                                )}
+                                                {job.designation && (
+                                                    <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold bg-indigo-50 text-indigo-700">
+                                                        {job.designation}
+                                                    </span>
+                                                )}
                                             </div>
                                         </div>
 
-                                        {/* Skills */}
-                                        {job.skills && job.skills.length > 0 && (
-                                            <div className="mb-6">
-                                                <h3 className="text-sm font-medium text-gray-700 mb-3"> {t('Required Skills')} </h3>
-                                                <div className="flex flex-wrap gap-2">
-                                                    {job.skills.map((skill) => (
-                                                        <Badge key={skill} variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                                                            {skill}
-                                                        </Badge>
-                                                    ))}
-                                                </div>
+                                        {/* Share Job Top Button */}
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={handleShareJob}
+                                            className="border-slate-200 bg-slate-50/80 text-slate-700 hover:bg-slate-100 font-semibold text-xs rounded-lg transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer flex-shrink-0"
+                                        >
+                                            {isCopied ? (
+                                                <><Check className="w-3.5 h-3.5 text-emerald-600" /> {t('Link Copied!')}</>
+                                            ) : (
+                                                <><Share2 className="w-3.5 h-3.5 text-slate-600" /> {t('Share')}</>
+                                            )}
+                                        </Button>
+                                    </div>
+
+                                    {/* Job Metadata: Normal text with subtle icons (replaces 4 colored grid boxes) */}
+                                    <div className="flex flex-wrap items-center gap-x-6 gap-y-2.5 py-3.5 border-y border-slate-100 text-xs sm:text-sm text-slate-600 font-medium">
+                                        {/* Location */}
+                                        <div className="inline-flex items-center gap-1.5">
+                                            <MapPin className="h-4 w-4 text-slate-400 flex-shrink-0" />
+                                            <span className="font-semibold text-slate-800">{job.location || t('Remote')}</span>
+                                        </div>
+
+                                        {/* Job Type */}
+                                        <div className="inline-flex items-center gap-1.5">
+                                            <Briefcase className="h-4 w-4 text-slate-400 flex-shrink-0" />
+                                            <span>{job.jobType || t('Full-time')}</span>
+                                        </div>
+
+                                        {/* Compensation */}
+                                        <div className="inline-flex items-center gap-1.5 text-slate-800 font-semibold">
+                                            <DollarSign className="h-4 w-4 text-emerald-600 flex-shrink-0" />
+                                            <span>{formatSalary(job.salaryFrom, job.salaryTo, job.salaryRate)}</span>
+                                        </div>
+
+                                        {/* Positions Available */}
+                                        {job.positions > 0 && (
+                                            <div className="inline-flex items-center gap-1.5">
+                                                <Users className="h-4 w-4 text-slate-400 flex-shrink-0" />
+                                                <span>{job.positions} {job.positions === 1 ? t('Position Available') : t('Positions Available')}</span>
+                                            </div>
+                                        )}
+
+                                        {/* Deadline */}
+                                        {job.endDate && (
+                                            <div className="inline-flex items-center gap-1.5 text-slate-700">
+                                                <Clock className="h-4 w-4 text-rose-500 flex-shrink-0" />
+                                                <span>{t('Deadline')}: <strong className="text-slate-900">{formatDate(job.endDate)}</strong></span>
                                             </div>
                                         )}
                                     </div>
-                                </div>
-                            </CardContent>
-                        </Card>
 
-                        {/* Job Description */}
-                            {job.description && (
-                            <Card className="mb-8">
-                                <CardContent className="p-8">
-                                    <h2 className="text-2xl font-bold text-gray-900 mb-6"> {t('Job Description')} </h2>
-                                    <div
-                                        className="prose prose-gray max-w-none prose-headings:text-gray-900 prose-h3:text-xl prose-h4:text-lg prose-ul:list-disc prose-li:mb-2"
-                                        dangerouslySetInnerHTML={{ __html: job.description }}
-                                    />
+                                    {/* Required Skills */}
+                                    {job.skills && job.skills.length > 0 && (
+                                        <div className="space-y-2">
+                                            <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                                                {t('Required Skills')}
+                                            </h3>
+                                            <div className="flex flex-wrap gap-1.5">
+                                                {job.skills.map((skill) => (
+                                                    <span 
+                                                        key={skill} 
+                                                        className="px-3 py-1 bg-slate-100 text-slate-800 rounded-lg text-xs font-medium border border-slate-200/60"
+                                                    >
+                                                        {skill}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Job Details Content (Description, Requirements, Benefits, Terms) */}
+                                    <div className="space-y-6 pt-2 divide-y divide-slate-100">
+                                        {job.description && (
+                                            <div className="pt-2">
+                                                <FormattedJobText content={job.description} />
+                                            </div>
+                                        )}
+
+                                        {job.requirements && (
+                                            <div className="pt-6">
+                                                <FormattedJobText content={job.requirements} />
+                                            </div>
+                                        )}
+
+                                        {job.benefits && (
+                                            <div className="pt-6">
+                                                <FormattedJobText content={job.benefits} />
+                                            </div>
+                                        )}
+
+                                        {job.terms_condition && (
+                                            <div className="pt-6">
+                                                <FormattedJobText content={job.terms_condition} />
+                                            </div>
+                                        )}
+                                    </div>
                                 </CardContent>
                             </Card>
-                        )}
+                        </div>
 
-                        {/* Job Requirements */}
-                        {job.requirements && (
-                            <Card className="mb-8">
-                                <CardContent className="p-8">
-                                    <h2 className="text-2xl font-bold text-gray-900 mb-6"> {t('Job Requirements')} </h2>
-                                    <div
-                                        className="prose prose-gray max-w-none prose-headings:text-gray-900 prose-h3:text-xl prose-h4:text-lg prose-ul:list-disc prose-li:mb-2"
-                                        dangerouslySetInnerHTML={{ __html: job.requirements }}
-                                    />
-                                </CardContent>
-                            </Card>
-                        )}
+                        {/* Sidebar: Apply and Details */}
+                        <div className="lg:w-1/3 space-y-6">
+                            {/* Apply Card */}
+                            <Card className="shadow-xs border border-slate-200/90 rounded-2xl bg-white overflow-hidden sticky top-8">
+                                <CardContent className="p-6 space-y-6">
+                                    <div className="text-center space-y-1">
+                                        <h3 className="text-lg font-bold text-slate-900">{t('Ready to Apply?')}</h3>
+                                        <p className="text-slate-500 text-xs">{t('Take the next step in your career with us')}</p>
+                                    </div>
 
-                        {/* Benefits */}
-                        {job.benefits && (
-                            <Card className="mb-8">
-                                <CardContent className="p-8">
-                                    <h2 className="text-2xl font-bold text-gray-900 mb-6"> {t('Benefits')} </h2>
-                                    <div
-                                        className="prose prose-gray max-w-none prose-headings:text-gray-900 prose-h3:text-xl prose-h4:text-lg prose-ul:list-disc prose-li:mb-2"
-                                        dangerouslySetInnerHTML={{ __html: job.benefits }}
-                                    />
-                                </CardContent>
-                            </Card>
-                        )}
-                    </div>
-
-                    {/* Sidebar */}
-                    <div className="lg:w-1/3">
-                        {/* Apply Card */}
-                        <Card className="mb-6">
-                            <CardContent className="p-6">
-                                <div className="text-center mb-6">
-                                    <h3 className="text-xl font-bold text-gray-900 mb-2"> {t('Ready to Apply?')} </h3>
-                                    <p className="text-gray-600 text-sm"> {t('Join our team and make a difference')} </p>
-                                </div>
-
-                                <div className="space-y-4">
-                                    <Button
-                                        className="w-full bg-slate-700 hover:bg-slate-800 text-white py-3 text-lg"
-                                        onClick={() => {
-                                            if (job.job_application === 'custom' && job.application_url) {
-                                                window.open(job.application_url, '_blank');
-                                            } else {
-                                                router.visit(route('recruitment.frontend.careers.jobs.apply', { userSlug, id: job.encrypted_id }));
-                                            }
-                                        }}
-                                    >
-                                        {t('Apply for This Position')}
-                                    </Button>
-                                    <Button
-                                        variant="outline"
-                                        className={`w-full border-slate-300 hover:bg-slate-50 ${savedJobs.includes(job.id) ? 'bg-blue-50 text-blue-600 border-blue-200' : 'text-slate-700'
+                                    <div className="space-y-3">
+                                        {/* Primary Apply Button */}
+                                        <a
+                                            href={job.application_url || (userSlug ? `/${userSlug}/job/${jobSlug}/apply` : `/job/${jobSlug}/apply`)}
+                                            target={job.application_url ? "_blank" : "_self"}
+                                            rel="noopener noreferrer"
+                                            className={`w-full font-bold py-3 px-4 text-sm rounded-xl flex items-center justify-center gap-2 transition-all no-underline cursor-pointer shadow-xs ${
+                                                (job as any).is_hiring === false
+                                                    ? 'bg-slate-200 text-slate-500 pointer-events-none'
+                                                    : 'bg-slate-900 hover:bg-slate-800 text-white active:scale-98'
                                             }`}
-                                        onClick={handleSaveJob}
-                                    >
-                                        {savedJobs.includes(job.id) ? 'Saved' : 'Save for Later'}
-                                    </Button>
-                                </div>
+                                        >
+                                            <Send className="w-4 h-4 text-slate-200" />
+                                            {(job as any).is_hiring === false ? t('Currently Not Hiring') : t('Apply Now')}
+                                        </a>
 
-                                <div className="border-t border-gray-200 my-6"></div>
+                                        {/* Save for Later Button */}
+                                        <Button
+                                            variant="outline"
+                                            className={`w-full border-slate-200 hover:bg-slate-50 rounded-xl text-xs font-semibold ${
+                                                savedJobs.includes(job.id) ? 'bg-blue-50 text-blue-600 border-blue-200' : 'text-slate-700'
+                                            }`}
+                                            onClick={handleSaveJob}
+                                        >
+                                            <Bookmark className={`w-3.5 h-3.5 mr-1.5 ${savedJobs.includes(job.id) ? 'fill-current' : ''}`} />
+                                            {savedJobs.includes(job.id) ? t('Saved') : t('Save for Later')}
+                                        </Button>
 
-                                <div className="space-y-4 text-sm">
-                                    <div className="flex justify-between">
-                                        <span className="text-gray-500"> {t('Posted')} :</span>
-                                        <span className="font-medium">{formatDate(job.postedDate)}</span>
+                                        {/* Share Job Opening */}
+                                        <Button
+                                            variant="outline"
+                                            onClick={handleShareJob}
+                                            className="w-full border-slate-200 bg-slate-50/60 text-slate-700 hover:bg-slate-100 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer transition-all"
+                                        >
+                                            {isCopied ? (
+                                                <><Check className="w-3.5 h-3.5 text-emerald-600" /> {t('Link Copied to Clipboard')}</>
+                                            ) : (
+                                                <><Share2 className="w-3.5 h-3.5 text-slate-600" /> {t('Share Job Opening')}</>
+                                            )}
+                                        </Button>
                                     </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-gray-500"> {t('Application Deadline')} :</span>
-                                        <span className="font-medium">{formatDate(job.endDate)}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-gray-500"> {t('Start Date')} :</span>
-                                        <span className="font-medium">{formatDate(job.startDate)}</span>
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
 
-                        {/* Company Info Card */}
-                        {(companyInfo.ourMission || companyInfo.companySize || companyInfo.industry) && (
-                            <Card>
-                                <CardContent className="p-6">
-                                    <h3 className="text-lg font-bold text-gray-900 mb-4"> {t('About the Company')} </h3>
-                                    <div className="space-y-4">
-                                        {companyInfo.ourMission && (
-                                            <div>
-                                                <h4 className="font-medium text-gray-900 mb-2"> {t('Our Mission')} </h4>
-                                                <p className="text-gray-600 text-sm">
-                                                    {companyInfo.ourMission}
-                                                </p>
-                                            </div>
-                                        )}
-                                        {companyInfo.companySize && (
-                                            <div>
-                                                <h4 className="font-medium text-gray-900 mb-2"> {t('Company Size')} </h4>
-                                                <p className="text-gray-600 text-sm">{companyInfo.companySize}</p>
-                                            </div>
-                                        )}
-                                        {companyInfo.industry && (
-                                            <div>
-                                                <h4 className="font-medium text-gray-900 mb-2"> {t('Industry')} </h4>
-                                                <p className="text-gray-600 text-sm">{companyInfo.industry}</p>
-                                            </div>
-                                        )}
+                                    <div className="border-t border-slate-100 my-4"></div>
+
+                                    {/* Dates Info List */}
+                                    <div className="space-y-3 text-xs">
+                                        <div className="flex justify-between items-center text-slate-600">
+                                            <span className="text-slate-400">{t('Posted')}:</span>
+                                            <span className="font-semibold text-slate-800">{formatDate(job.postedDate)}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center text-slate-600">
+                                            <span className="text-slate-400">{t('Application Deadline')}:</span>
+                                            <span className="font-semibold text-slate-800">{formatDate(job.endDate)}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center text-slate-600">
+                                            <span className="text-slate-400">{t('Start Date')}:</span>
+                                            <span className="font-semibold text-slate-800">{formatDate(job.startDate)}</span>
+                                        </div>
                                     </div>
                                 </CardContent>
                             </Card>
-                        )}
+
+                            {/* Company Info Card */}
+                            {(companyInfo.ourMission || companyInfo.companySize || companyInfo.industry) && (
+                                <Card className="shadow-xs border border-slate-200/90 rounded-2xl bg-white overflow-hidden">
+                                    <CardContent className="p-6 space-y-4">
+                                        <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
+                                            {t('About the Company')}
+                                        </h3>
+                                        <div className="space-y-3.5 text-xs">
+                                            {companyInfo.ourMission && (
+                                                <div>
+                                                    <h4 className="font-semibold text-slate-800 mb-1">{t('Our Mission')}</h4>
+                                                    <p className="text-slate-600 leading-relaxed">{companyInfo.ourMission}</p>
+                                                </div>
+                                            )}
+                                            {companyInfo.companySize && (
+                                                <div className="flex justify-between items-center pt-2 border-t border-slate-100">
+                                                    <span className="text-slate-400">{t('Company Size')}:</span>
+                                                    <span className="font-semibold text-slate-800">{companyInfo.companySize}</span>
+                                                </div>
+                                            )}
+                                            {companyInfo.industry && (
+                                                <div className="flex justify-between items-center pt-2 border-t border-slate-100">
+                                                    <span className="text-slate-400">{t('Industry')}:</span>
+                                                    <span className="font-semibold text-slate-800">{companyInfo.industry}</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>

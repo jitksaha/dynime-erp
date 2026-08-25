@@ -247,6 +247,13 @@ class AIPromptSeeder extends Seeder
             ],
             [
                 'module'          => 'recruitment',
+                'submodule'       => 'job_posting',
+                'field_type'      => 'skills',
+                'prompt_template' => 'Generate a comma-separated list of 5-8 relevant, industry-standard required skills and keywords for the job title: {title}.',
+                'description'     => 'Job posting skills generation'
+            ],
+            [
+                'module'          => 'recruitment',
                 'submodule'       => 'offer_letter_template',
                 'field_type'      => 'template',
                 'prompt_template' => 'Generate a professional offer letter template including company introduction, position details, compensation, benefits, and terms. Use placeholders: {applicant_name}, {company_name}, {job_title}, {salary}, {start_date}, {workplace_location}, {days_of_week}, {salary_type}, {salary_duration}, {offer_expiration_date}.',

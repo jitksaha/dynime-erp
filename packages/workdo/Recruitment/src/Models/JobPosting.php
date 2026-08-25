@@ -19,12 +19,14 @@ class JobPosting extends Model
         'code',
         'posting_code',
         'title',
+        'slug',
         'position',
         'priority',
         'min_experience',
         'max_experience',
         'min_salary',
         'max_salary',
+        'salary_rate',
         'description',
         'requirements',
         'skills',
@@ -33,14 +35,18 @@ class JobPosting extends Model
         'show_terms_condition',
         'application_deadline',
         'is_published',
+        'is_hiring',
         'publish_date',
         'is_featured',
         'status',
         'job_application',
+        'posting_source',
         'application_url',
         'applicant',
         'visibility',
         'branch_id',
+        'department_id',
+        'designation_id',
         'job_type_id',
         'location_id',
         'custom_questions',
@@ -86,6 +92,7 @@ class JobPosting extends Model
             'min_salary' => 'decimal:2',
             'max_salary' => 'decimal:2',
             'is_published' => 'boolean',
+            'is_hiring' => 'boolean',
             'is_featured' => 'boolean',
             'show_terms_condition' => 'boolean',
             'status' => 'string',
@@ -113,7 +120,54 @@ class JobPosting extends Model
 
     public function department()
     {
-        return $this->belongsTo(Department::class);
+        return $this->belongsTo(\Workdo\Hrm\Models\Department::class, 'department_id');
+    }
+
+    public function designation()
+    {
+        return $this->belongsTo(\Workdo\Hrm\Models\Designation::class, 'designation_id');
+    }
+
+    public function getSlugAttribute()
+    {
+        $baseSlug = \Illuminate\Support\Str::slug($this->title);
+        return $baseSlug ? $baseSlug : "job-{$this->id}";
+    }
+
+    public function getSeoUrlAttribute()
+    {
+        return $this->slug;
+    }
+
+    public static function findBySlugOrId($slugOrId)
+    {
+        if (!$slugOrId) return null;
+
+        // Try direct ID match first if numeric
+        if (is_numeric($slugOrId)) {
+            $job = static::find($slugOrId);
+            if ($job) return $job;
+        }
+
+        // Try encrypted ID
+        $job = static::findByEncryptedId($slugOrId);
+        if ($job) return $job;
+
+        // Match title slug or posting_code
+        $all = static::all();
+        foreach ($all as $item) {
+            $itemSlug = \Illuminate\Support\Str::slug($item->title);
+            if ($itemSlug === $slugOrId || $item->posting_code === $slugOrId || "{$itemSlug}-{$item->id}" === $slugOrId) {
+                return $item;
+            }
+        }
+
+        // Fallback match trailing ID if slug format like "some-job-title-2"
+        if (preg_match('/-(\d+)$/', $slugOrId, $matches)) {
+            return static::find($matches[1]);
+        }
+
+        return null;
     }
 
     public function getEncryptedIdAttribute()

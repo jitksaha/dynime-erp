@@ -33,7 +33,7 @@ class FlowmingoHiringController extends Controller
                 'departments' => $jobs->pluck('department')->filter()->unique()->count(),
             ];
 
-            return Inertia::render('Recruitment::HiringFlowmingo/Index', [
+            return Inertia::render('Recruitment/HiringFlowmingo/Index', [
                 'jobs' => $jobs,
                 'stats' => $stats,
             ]);
@@ -48,15 +48,47 @@ class FlowmingoHiringController extends Controller
     public function sync(Request $request)
     {
         try {
-            // Check if there's external API integration or seed/update
-            $count = FlowmingoJob::count();
-            if ($count === 0) {
-                $this->seedInitialJobs();
+            $apiKey = $request->input('api_key');
+            if ($apiKey) {
+                $userId = \Auth::id() ?? 1;
+                \Workdo\Recruitment\Models\RecruitmentSetting::updateOrCreate(
+                    ['created_by' => $userId, 'key' => 'flowmingo_api_key'],
+                    ['value' => $apiKey]
+                );
             }
 
-            return redirect()->back()->with('success', __('Flowmingo ATS jobs synchronized successfully!'));
+            $result = \Workdo\Recruitment\Services\FlowmingoSyncService::syncFromFlowmingoOfficialApi($apiKey);
+            $msg = $result['message'] ?? __('Flowmingo ATS jobs synchronized successfully!');
+
+            if (!empty($result['success'])) {
+                return redirect()->back()->with('success', $msg);
+            } else {
+                return redirect()->back()->with('warning', $msg);
+            }
         } catch (\Exception $e) {
             return redirect()->back()->with('error', __('Failed to sync jobs: ') . $e->getMessage());
+        }
+    }
+
+    /**
+     * Webhook/API endpoint for Flowmingo ATS to automatically push new or updated jobs.
+     */
+    public function webhookIngest(Request $request)
+    {
+        try {
+            $data = $request->all();
+            if (empty($data['title'])) {
+                return response()->json(['success' => false, 'message' => 'Job title is required'], 422);
+            }
+            $job = \Workdo\Recruitment\Services\FlowmingoSyncService::ingestJob($data);
+            return response()->json([
+                'success' => true,
+                'message' => 'Job successfully ingested into Dynime ERP Careers',
+                'job_id' => $job->id,
+                'code' => $job->code,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
     }
 

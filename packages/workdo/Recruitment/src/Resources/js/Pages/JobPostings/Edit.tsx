@@ -18,7 +18,7 @@ import { useFormFields } from '@/hooks/useFormFields';
 
 
 export default function EditJobPosting({ jobposting, onSuccess }: EditJobPostingProps) {
-    const { jobtypes, joblocations, customquestions, branches } = usePage<any>().props;
+    const { jobtypes, joblocations, customquestions, departments, designations, branches } = usePage<any>().props;
     const { t } = useTranslation();
     const [customQuestionsError, setCustomQuestionsError] = useState('');
     const { data, setData, put, processing, errors } = useForm<EditJobPostingFormData>({
@@ -28,6 +28,8 @@ export default function EditJobPosting({ jobposting, onSuccess }: EditJobPosting
         job_application: jobposting.job_application ?? 'existing',
         application_url: jobposting.application_url ?? '',
         branch_id: jobposting.branch_id?.toString() ?? '',
+        department_id: jobposting.department_id ? jobposting.department_id.toString() : '',
+        designation_id: jobposting.designation_id ? jobposting.designation_id.toString() : '',
         applicant: (() => {
             try {
                 if (jobposting.applicant) {
@@ -72,6 +74,7 @@ export default function EditJobPosting({ jobposting, onSuccess }: EditJobPosting
         max_experience: jobposting.max_experience ?? '',
         min_salary: jobposting.min_salary ?? '',
         max_salary: jobposting.max_salary ?? '',
+        salary_rate: jobposting.salary_rate ?? 'yearly',
         description: jobposting.description ?? '',
         requirements: jobposting.requirements ?? '',
         benefits: jobposting.benefits ?? '',
@@ -79,6 +82,7 @@ export default function EditJobPosting({ jobposting, onSuccess }: EditJobPosting
         show_terms_condition: jobposting.show_terms_condition ?? false,
         application_deadline: jobposting.application_deadline ?? '',
         is_published: jobposting.is_published ?? false,
+        is_hiring: jobposting.is_hiring ?? true,
         publish_date: jobposting.publish_date ?? '',
         is_featured: jobposting.is_featured ?? false,
         status: jobposting.status?.toString() ?? '0',
@@ -120,6 +124,15 @@ export default function EditJobPosting({ jobposting, onSuccess }: EditJobPosting
         setData('terms_condition', value);
         setTermsEditorKey(prev => prev + 1);
     }, errors, 'edit', 'terms_condition', 'Terms Condition', 'recruitment', 'job_posting');
+
+    const skillsAI = useFormFields('aiField', data, (field, value) => {
+        if (typeof value === 'string') {
+            const parsed = value.split(',').map((s: string) => s.trim().replace(/^[-•*]\s*/, '')).filter(Boolean);
+            setData('skills', parsed);
+        } else if (Array.isArray(value)) {
+            setData('skills', value);
+        }
+    }, errors, 'edit', 'skills', 'Skills', 'recruitment', 'job_posting');
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -212,7 +225,7 @@ export default function EditJobPosting({ jobposting, onSuccess }: EditJobPosting
                             <SelectTrigger>
                                 <SelectValue placeholder={t('Select Branch')} />
                             </SelectTrigger>
-                            <SelectContent>
+                            <SelectContent searchable={true}>
                                 {Array.isArray(branches) ? branches.map((branch: any) => (
                                     <SelectItem key={branch.id} value={branch.id.toString()}>
                                         {branch.branch_name}
@@ -221,6 +234,51 @@ export default function EditJobPosting({ jobposting, onSuccess }: EditJobPosting
                             </SelectContent>
                         </Select>
                         <InputError message={errors.branch_id} />
+                    </div>
+
+                    <div>
+                        <Label htmlFor="department_id">{t('Department')}</Label>
+                        <Select 
+                            value={data.department_id?.toString() || ''} 
+                            onValueChange={(value) => {
+                                setData('department_id', value);
+                                setData('designation_id', '');
+                            }}
+                        >
+                            <SelectTrigger>
+                                <SelectValue placeholder={t('Select Department')} />
+                            </SelectTrigger>
+                            <SelectContent searchable={true}>
+                                {Array.isArray(departments) ? departments.map((dept: any) => (
+                                    <SelectItem key={dept.id} value={dept.id.toString()}>
+                                        {dept.department_name}
+                                    </SelectItem>
+                                )) : []}
+                            </SelectContent>
+                        </Select>
+                        <InputError message={errors.department_id} />
+                    </div>
+
+                    <div>
+                        <Label htmlFor="designation_id">{t('Designation')}</Label>
+                        <Select value={data.designation_id?.toString() || ''} onValueChange={(value) => setData('designation_id', value)}>
+                            <SelectTrigger>
+                                <SelectValue placeholder={t('Select Designation')} />
+                            </SelectTrigger>
+                            <SelectContent searchable={true}>
+                                {Array.isArray(designations) ? designations.filter((desig: any) => {
+                                    if (!data.department_id) return true;
+                                    if (!desig.department_id) return true;
+                                    const deptIds = desig.department_id.toString().split(',');
+                                    return deptIds.includes(data.department_id.toString());
+                                }).map((desig: any) => (
+                                    <SelectItem key={desig.id} value={desig.id.toString()}>
+                                        {desig.designation_name}
+                                    </SelectItem>
+                                )) : []}
+                            </SelectContent>
+                        </Select>
+                        <InputError message={errors.designation_id} />
                     </div>
 
                     <div>
@@ -240,9 +298,14 @@ export default function EditJobPosting({ jobposting, onSuccess }: EditJobPosting
                         <div>
                             <Label>{t('Career Portal URL')}</Label>
                             <Input
-                                value={route('recruitment.frontend.careers.jobs.index', { userSlug: usePage<any>().props.auth?.user?.slug || 'demo' })}
+                                value={(() => {
+                                    const slug = usePage<any>().props.auth?.user?.slug;
+                                    return (slug && slug !== 'company' && slug !== 'demo')
+                                        ? `https://careers.dynime.com/${slug}`
+                                        : 'https://careers.dynime.com/';
+                                })()}
                                 readOnly
-                                className="bg-gray-50"
+                                className="bg-slate-50 font-mono text-xs text-indigo-700 font-semibold border-indigo-200"
                             />
                         </div>
                     ) : data.job_application === 'custom' ? (
@@ -358,6 +421,23 @@ export default function EditJobPosting({ jobposting, onSuccess }: EditJobPosting
                                 {t('Must be greater than or equal to minimum salary')}
                             </p>
                         )}
+                    </div>
+
+                    <div>
+                        <Label htmlFor="salary_rate">{t('Salary Rate / Period')}</Label>
+                        <Select value={data.salary_rate || 'yearly'} onValueChange={(value) => setData('salary_rate', value)}>
+                            <SelectTrigger>
+                                <SelectValue placeholder={t('Select Salary Rate')} />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="yearly">{t('Yearly (Per Year)')}</SelectItem>
+                                <SelectItem value="monthly">{t('Monthly (Per Month)')}</SelectItem>
+                                <SelectItem value="weekly">{t('Weekly (Per Week)')}</SelectItem>
+                                <SelectItem value="hourly">{t('Hourly (Per Hour)')}</SelectItem>
+                                <SelectItem value="project">{t('Project-based (Per Project)')}</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <InputError message={errors.salary_rate} />
                     </div>
 
                     <div>
@@ -480,23 +560,27 @@ export default function EditJobPosting({ jobposting, onSuccess }: EditJobPosting
                 </div>
 
                 <div>
-                    <Label htmlFor="skills" required>{t('Required Skills')}</Label>
+                    <div className="flex items-center justify-between mb-2">
+                        <Label htmlFor="skills">{t('Skills (Optional)')}</Label>
+                        <div className="flex gap-2">
+                            {skillsAI.map(field => <div key={field.id}>{field.component}</div>)}
+                        </div>
+                    </div>
                     <TagsInput
                         value={data.skills}
                         onChange={(skills) => setData('skills', skills)}
-                        placeholder={t('Add skills and press Enter...')}
+                        placeholder={t('Add skills and press Enter (or generate with AI)...')}
                         allowCustom={true}
-                        required
                     />
                     <p className="text-xs text-muted-foreground mt-1">
-                        {t('Type Required Skills and press Enter')}
+                        {t('Optional. Type skills and press Enter, or use AI assistant to generate skills.')}
                     </p>
                     <InputError message={errors.skills} />
                 </div>
 
                 <div>
                     <div className="flex items-center justify-between mb-2">
-                        <Label htmlFor="description">{t('Description')}</Label>
+                        <Label htmlFor="description" required>{t('Job Description (Full Details)')}</Label>
                         <div className="flex gap-2">
                             {descriptionAI.map(field => <div key={field.id}>{field.component}</div>)}
                         </div>
@@ -505,65 +589,9 @@ export default function EditJobPosting({ jobposting, onSuccess }: EditJobPosting
                         key={`description-editor-${descriptionEditorKey}`}
                         content={data.description}
                         onChange={(content) => setData('description', content)}
-                        placeholder={t('Enter Description')}
+                        placeholder={t('Enter or paste full job details, key responsibilities, requirements, benefits, and terms...')}
                     />
                     <InputError message={errors.description} />
-                </div>
-
-                <div>
-                    <div className="flex items-center justify-between mb-2">
-                        <Label htmlFor="requirements">{t('Requirements')}</Label>
-                        <div className="flex gap-2">
-                            {requirementsAI.map(field => <div key={field.id}>{field.component}</div>)}
-                        </div>
-                    </div>
-                    <RichTextEditor
-                        key={`requirements-editor-${requirementsEditorKey}`}
-                        content={data.requirements}
-                        onChange={(content) => setData('requirements', content)}
-                        placeholder={t('Enter Requirements')}
-                    />
-                    <InputError message={errors.requirements} />
-                </div>
-
-                <div>
-                    <div className="flex items-center justify-between mb-2">
-                        <Label htmlFor="benefits">{t('Benefits')}</Label>
-                        <div className="flex gap-2">
-                            {benefitsAI.map(field => <div key={field.id}>{field.component}</div>)}
-                        </div>
-                    </div>
-                    <RichTextEditor
-                        key={`benefits-editor-${benefitsEditorKey}`}
-                        content={data.benefits}
-                        onChange={(content) => setData('benefits', content)}
-                        placeholder={t('Enter Benefits')}
-                    />
-                    <InputError message={errors.benefits} />
-                </div>
-
-                <div>
-                    <div className="flex items-center justify-between mb-2">
-                        <Label htmlFor="terms_condition" required>{t('Terms Condition')}</Label>
-                        <div className="flex gap-2">
-                            {termsAI.map(field => <div key={field.id}>{field.component}</div>)}
-                        </div>
-                    </div>
-                    <RichTextEditor
-                        key={`terms-editor-${termsEditorKey}`}
-                        content={data.terms_condition}
-                        onChange={(content) => setData('terms_condition', content)}
-                        placeholder={t('Enter Terms Condition')}
-                    />
-                    <div className="flex items-center space-x-2 mt-2">
-                        <Checkbox
-                            id="show_terms_condition"
-                            checked={data.show_terms_condition || false}
-                            onCheckedChange={(checked) => setData('show_terms_condition', !!checked)}
-                        />
-                        <Label htmlFor="show_terms_condition" className="cursor-pointer">{t('Show Terms & Conditions on Application Form')}</Label>
-                    </div>
-                    <InputError message={errors.terms_condition} />
                 </div>
 
                 <div>

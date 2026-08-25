@@ -24,11 +24,14 @@ export interface JobPosting {
     show_terms_condition?: boolean;
     application_deadline?: any;
     is_published?: boolean;
+    is_hiring?: boolean;
     publish_date?: any;
     is_featured?: boolean;
     status: boolean;
     department_id?: number;
     department_name?: string;
+    designation_id?: number;
+    designation_name?: string;
     job_type_id?: number;
     jobType?: JobType;
     location_id?: number;
@@ -50,10 +53,12 @@ export interface CreateJobPostingFormData {
     show_terms_condition: boolean;
     application_deadline: any;
     is_published: boolean;
+    is_hiring: boolean;
     publish_date: any;
     is_featured: boolean;
     status: boolean;
     department_id: string;
+    designation_id: string;
     job_type_id: string;
     location_id: string;
     custom_questions: number[];
@@ -73,10 +78,12 @@ export interface EditJobPostingFormData {
     show_terms_condition: boolean;
     application_deadline: any;
     is_published: boolean;
+    is_hiring: boolean;
     publish_date: any;
     is_featured: boolean;
     status: boolean;
     department_id: string;
+    designation_id: string;
     job_type_id: string;
     location_id: string;
     custom_questions: number[];
@@ -89,6 +96,8 @@ export interface JobPostingFilters {
     job_type_id: string;
     location_id: string;
     branch_id: string;
+    department_id?: string;
+    designation_id?: string;
     status: string;
 }
 
@@ -101,6 +110,8 @@ export interface JobPostingsIndexProps {
     jobtypes: any[];
     joblocations: any[];
     branches: any[];
+    departments: any[];
+    designations: any[];
     [key: string]: unknown;
 }
 

@@ -18,7 +18,7 @@ import { useFormFields } from '@/hooks/useFormFields';
 
 
 export default function Create({ onSuccess }: CreateJobPostingProps) {
-    const { jobtypes, joblocations, customquestions, departments, branches } = usePage<any>().props;
+    const { jobtypes, joblocations, customquestions, departments, designations, branches } = usePage<any>().props;
 
     const { t } = useTranslation();
     const [customQuestionsError, setCustomQuestionsError] = useState('');
@@ -35,6 +35,7 @@ export default function Create({ onSuccess }: CreateJobPostingProps) {
         max_experience: '',
         min_salary: '',
         max_salary: '',
+        salary_rate: 'yearly',
         description: '',
         requirements: '',
         benefits: '',
@@ -42,10 +43,12 @@ export default function Create({ onSuccess }: CreateJobPostingProps) {
         show_terms_condition: false,
         application_deadline: '',
         is_published: false,
+        is_hiring: true,
         publish_date: '',
         is_featured: false,
         status: '0',
         department_id: '',
+        designation_id: '',
         job_type_id: '',
         location_id: '',
         custom_questions: [],
@@ -78,6 +81,15 @@ export default function Create({ onSuccess }: CreateJobPostingProps) {
         setData('terms_condition', value);
         setTermsEditorKey(prev => prev + 1);
     }, errors, 'create', 'terms_condition', 'Terms Condition', 'recruitment', 'job_posting');
+
+    const skillsAI = useFormFields('aiField', data, (field, value) => {
+        if (typeof value === 'string') {
+            const parsed = value.split(',').map((s: string) => s.trim().replace(/^[-•*]\s*/, '')).filter(Boolean);
+            setData('skills', parsed);
+        } else if (Array.isArray(value)) {
+            setData('skills', value);
+        }
+    }, errors, 'create', 'skills', 'Skills', 'recruitment', 'job_posting');
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -192,7 +204,7 @@ export default function Create({ onSuccess }: CreateJobPostingProps) {
                             <SelectTrigger>
                                 <SelectValue placeholder={t('Select Branch')} />
                             </SelectTrigger>
-                            <SelectContent>
+                            <SelectContent searchable={true}>
                                 {branches?.map((branch: any) => (
                                     <SelectItem key={branch.id} value={branch.id.toString()}>
                                         {branch.branch_name}
@@ -201,9 +213,6 @@ export default function Create({ onSuccess }: CreateJobPostingProps) {
                             </SelectContent>
                         </Select>
                         <InputError message={errors.branch_id} />
-                        <p className="text-xs text-muted-foreground mt-1">
-                            {t('Branch data comes from HRM add-on. Please ensure branches are created in HRM module first.')}
-                        </p>
                         {(!branches || branches.length === 0) && (
                             <p className="text-xs text-muted-foreground mt-1">
                                 {t('Create branch here. ')}
@@ -212,6 +221,73 @@ export default function Create({ onSuccess }: CreateJobPostingProps) {
                                     className="text-blue-600 hover:text-blue-800 cursor-pointer"
                                 >
                                     {t('branch')}
+                                </a>.
+                            </p>
+                        )}
+                    </div>
+
+                    <div>
+                        <Label htmlFor="department_id">{t('Department')}</Label>
+                        <Select 
+                            value={data.department_id?.toString() || ''} 
+                            onValueChange={(value) => {
+                                setData('department_id', value);
+                                setData('designation_id', '');
+                            }}
+                        >
+                            <SelectTrigger>
+                                <SelectValue placeholder={t('Select Department')} />
+                            </SelectTrigger>
+                            <SelectContent searchable={true}>
+                                {departments?.map((dept: any) => (
+                                    <SelectItem key={dept.id} value={dept.id.toString()}>
+                                        {dept.department_name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        <InputError message={errors.department_id} />
+                        {(!departments || departments.length === 0) && (
+                            <p className="text-xs text-muted-foreground mt-1">
+                                {t('Create department here. ')}
+                                <a
+                                    href={route('hrm.departments.index')}
+                                    className="text-blue-600 hover:text-blue-800 cursor-pointer"
+                                >
+                                    {t('department')}
+                                </a>.
+                            </p>
+                        )}
+                    </div>
+
+                    <div>
+                        <Label htmlFor="designation_id">{t('Designation')}</Label>
+                        <Select value={data.designation_id?.toString() || ''} onValueChange={(value) => setData('designation_id', value)}>
+                            <SelectTrigger>
+                                <SelectValue placeholder={t('Select Designation')} />
+                            </SelectTrigger>
+                            <SelectContent searchable={true}>
+                                {designations?.filter((desig: any) => {
+                                    if (!data.department_id) return true;
+                                    if (!desig.department_id) return true;
+                                    const deptIds = desig.department_id.toString().split(',');
+                                    return deptIds.includes(data.department_id.toString());
+                                }).map((desig: any) => (
+                                    <SelectItem key={desig.id} value={desig.id.toString()}>
+                                        {desig.designation_name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        <InputError message={errors.designation_id} />
+                        {(!designations || designations.length === 0) && (
+                            <p className="text-xs text-muted-foreground mt-1">
+                                {t('Create designation here. ')}
+                                <a
+                                    href={route('hrm.designations.index')}
+                                    className="text-blue-600 hover:text-blue-800 cursor-pointer"
+                                >
+                                    {t('designation')}
                                 </a>.
                             </p>
                         )}
@@ -234,9 +310,14 @@ export default function Create({ onSuccess }: CreateJobPostingProps) {
                         <div>
                             <Label>{t('Career Portal URL')}</Label>
                             <Input
-                                value={route('recruitment.frontend.careers.jobs.index', { userSlug: usePage<any>().props.auth?.user?.slug || 'demo' })}
+                                value={(() => {
+                                    const slug = usePage<any>().props.auth?.user?.slug;
+                                    return (slug && slug !== 'company' && slug !== 'demo')
+                                        ? `https://careers.dynime.com/${slug}`
+                                        : 'https://careers.dynime.com/';
+                                })()}
                                 readOnly
-                                className="bg-gray-50"
+                                className="bg-slate-50 font-mono text-xs text-indigo-700 font-semibold border-indigo-200"
                             />
                         </div>
                     ) : data.job_application === 'custom' ? (
@@ -352,6 +433,23 @@ export default function Create({ onSuccess }: CreateJobPostingProps) {
                                 {t('Must be greater than or equal to minimum salary')}
                             </p>
                         )}
+                    </div>
+
+                    <div>
+                        <Label htmlFor="salary_rate">{t('Salary Rate / Period')}</Label>
+                        <Select value={data.salary_rate || 'yearly'} onValueChange={(value) => setData('salary_rate', value)}>
+                            <SelectTrigger>
+                                <SelectValue placeholder={t('Select Salary Rate')} />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="yearly">{t('Yearly (Per Year)')}</SelectItem>
+                                <SelectItem value="monthly">{t('Monthly (Per Month)')}</SelectItem>
+                                <SelectItem value="weekly">{t('Weekly (Per Week)')}</SelectItem>
+                                <SelectItem value="hourly">{t('Hourly (Per Hour)')}</SelectItem>
+                                <SelectItem value="project">{t('Project-based (Per Project)')}</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <InputError message={errors.salary_rate} />
                     </div>
 
                     <div>
@@ -474,23 +572,27 @@ export default function Create({ onSuccess }: CreateJobPostingProps) {
                 </div>
 
                 <div>
-                    <Label htmlFor="skills" required>{t('Required Skills')}</Label>
+                    <div className="flex items-center justify-between mb-2">
+                        <Label htmlFor="skills">{t('Skills (Optional)')}</Label>
+                        <div className="flex gap-2">
+                            {skillsAI.map(field => <div key={field.id}>{field.component}</div>)}
+                        </div>
+                    </div>
                     <TagsInput
                         value={data.skills}
                         onChange={(skills) => setData('skills', skills)}
-                        placeholder={t('Add skills and press Enter...')}
+                        placeholder={t('Add skills and press Enter (or generate with AI)...')}
                         allowCustom={true}
-                        required
                     />
                     <p className="text-xs text-muted-foreground mt-1">
-                        {t('Type Required Skills and press Enter')}
+                        {t('Optional. Type skills and press Enter, or use AI assistant to generate skills.')}
                     </p>
                     <InputError message={errors.skills} />
                 </div>
 
                 <div>
                     <div className="flex items-center justify-between mb-2">
-                        <Label htmlFor="description">{t('Description')}</Label>
+                        <Label htmlFor="description" required>{t('Job Description (Full Details)')}</Label>
                         <div className="flex gap-2">
                             {descriptionAI.map(field => <div key={field.id}>{field.component}</div>)}
                         </div>
@@ -499,57 +601,9 @@ export default function Create({ onSuccess }: CreateJobPostingProps) {
                         key={`description-editor-${descriptionEditorKey}`}
                         content={data.description}
                         onChange={(content) => setData('description', content)}
-                        placeholder={t('Enter Description')}
+                        placeholder={t('Enter or paste full job details, key responsibilities, requirements, benefits, and terms...')}
                     />
                     <InputError message={errors.description} />
-                </div>
-
-                <div>
-                    <div className="flex items-center justify-between mb-2">
-                        <Label htmlFor="requirements">{t('Requirements')}</Label>
-                        <div className="flex gap-2">
-                            {requirementsAI.map(field => <div key={field.id}>{field.component}</div>)}
-                        </div>
-                    </div>
-                    <RichTextEditor
-                        key={`requirements-editor-${requirementsEditorKey}`}
-                        content={data.requirements}
-                        onChange={(content) => setData('requirements', content)}
-                        placeholder={t('Enter Requirements')}
-                    />
-                    <InputError message={errors.requirements} />
-                </div>
-
-                <div>
-                    <div className="flex items-center justify-between mb-2">
-                        <Label htmlFor="benefits">{t('Benefits')}</Label>
-                        <div className="flex gap-2">
-                            {benefitsAI.map(field => <div key={field.id}>{field.component}</div>)}
-                        </div>
-                    </div>
-                    <RichTextEditor
-                        key={`benefits-editor-${benefitsEditorKey}`}
-                        content={data.benefits}
-                        onChange={(content) => setData('benefits', content)}
-                        placeholder={t('Enter Benefits')}
-                    />
-                    <InputError message={errors.benefits} />
-                </div>
-
-                <div>
-                    <div className="flex items-center justify-between mb-2">
-                        <Label htmlFor="terms_condition" required>{t('Terms Condition')}</Label>
-                        <div className="flex gap-2">
-                            {termsAI.map(field => <div key={field.id}>{field.component}</div>)}
-                        </div>
-                    </div>
-                    <RichTextEditor
-                        key={`terms-editor-${termsEditorKey}`}
-                        content={data.terms_condition}
-                        onChange={(content) => setData('terms_condition', content)}
-                        placeholder={t('Enter Terms Condition')}
-                    />
-                    <InputError message={errors.terms_condition} />
                     <div className="flex items-center space-x-2 mt-2">
                         <Checkbox
                             id="show_terms_condition"
