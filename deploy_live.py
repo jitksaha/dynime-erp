@@ -110,7 +110,7 @@ def deploy_live():
     build_and_clear_cmds = [
         f"cd ~/{remote_base}",
         "php artisan migrate --force",
-        "export PATH=/opt/alt/alt-nodejs20/root/usr/bin:$PATH && ./node_modules/.bin/vite build",
+        "export PATH=/opt/alt/alt-nodejs20/root/usr/bin:$PATH && chmod -R +x ./node_modules/.bin ./node_modules/@esbuild 2>/dev/null && ./node_modules/.bin/vite build",
         "php artisan view:clear",
         "php artisan config:clear",
         "php artisan cache:clear",
