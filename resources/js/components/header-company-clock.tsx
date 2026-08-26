@@ -8,7 +8,19 @@ export function HeaderCompanyClock() {
     const { companyAllSetting, auth } = usePage<any>().props;
 
     const companyTimezone = companyAllSetting?.timezone || auth?.user?.timezone || 'America/Denver';
-    const [timeStr, setTimeStr] = useState('');
+    const [timeStr, setTimeStr] = useState(() => {
+        try {
+            return new Date().toLocaleTimeString('en-US', {
+                timeZone: companyTimezone,
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: true
+            });
+        } catch (e) {
+            return new Date().toLocaleTimeString();
+        }
+    });
 
     useEffect(() => {
         const updateTime = () => {
@@ -27,15 +39,12 @@ export function HeaderCompanyClock() {
             }
         };
 
-        updateTime();
         const interval = setInterval(updateTime, 1000);
         return () => clearInterval(interval);
     }, [companyTimezone]);
 
-    if (!timeStr) return null;
-
     return (
-        <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 rounded-lg text-slate-700 dark:text-slate-200 text-xs font-mono font-bold shadow-2xs">
+        <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 rounded-lg text-slate-700 dark:text-slate-200 text-xs font-mono font-bold shadow-xs">
             <Building2 className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400 shrink-0" />
             <span className="text-[10px] text-slate-500 font-sans uppercase font-bold mr-0.5">{t('Company')}:</span>
             <span>{timeStr}</span>
