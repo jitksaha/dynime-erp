@@ -9,9 +9,9 @@ export function HeaderAttendance() {
     const { t } = useTranslation();
     const { auth } = usePage<any>().props;
 
-    // Show only for employees
+    // Show for all users (company, hr, employee)
     const userType = auth?.user?.type;
-    const isEmployee = userType !== 'company' && userType !== 'hr' && userType !== 'superadmin';
+    const isEmployee = userType !== 'superadmin';
 
     if (!isEmployee) return null;
 
