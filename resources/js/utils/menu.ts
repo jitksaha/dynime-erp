@@ -142,6 +142,7 @@ export const allMenuItems = (): NavItem[] => {
     // Then group all children (package + custom children) with their parents
     const allChildMenus = [...packageMenuItems, ...customChildMenus];
     const finalGroupedMenuItems = groupMenusByParent(coreWithCustomParents, allChildMenus);
+    const sortedMenuItems = finalGroupedMenuItems.sort((a, b) => (a.order || 999) - (b.order || 999));
 
     const isCompanyOrAdmin = auth?.user?.type === 'company' || auth?.user?.type === 'superadmin' || userRoles.includes('company') || userRoles.includes('superadmin');
 
