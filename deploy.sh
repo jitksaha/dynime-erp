@@ -22,6 +22,7 @@ if [ -d "/home/u740731947/domains/dynime.com/public_html" ]; then
 fi
 
 echo "=== 6. Setting Secure File Permissions ==="
+mkdir -p bootstrap/cache storage/framework/sessions storage/framework/views storage/framework/cache
 chmod -R 755 public/build build storage bootstrap/cache
 touch storage/installed && chmod 666 storage/installed
 
