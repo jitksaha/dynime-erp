@@ -50,15 +50,6 @@ export default defineConfig({
         },
     },
     build: {
-        rollupOptions: {
-            output: {
-                manualChunks: {
-                    vendor: ['react', 'react-dom'],
-                    ui: ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu'],
-                    utils: ['date-fns', 'clsx']
-                }
-            },
-        },
         assetsDir: 'assets',
     }
 });
