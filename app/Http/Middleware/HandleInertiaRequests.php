@@ -37,9 +37,6 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
-        if (!$this->isInstalled()) {
-            return [];
-        }
 
         if ($request->user() && $request->user()->type === 'superadmin' && $request->getHost() !== 'careers.dynime.com') {
             auth()->logout();

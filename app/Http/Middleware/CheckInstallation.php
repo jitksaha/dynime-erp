@@ -10,12 +10,8 @@ class CheckInstallation
 {
     public function handle(Request $request, Closure $next)
     {
-        if (!$this->isInstalled() && !$request->is('install*')) {
-            return redirect()->route('installer.welcome');
-        }
-
-        if ($this->isInstalled() && $request->is('install*')) {
-            return redirect('/dashboard');
+        if ($request->is('install*')) {
+            return redirect('/login');
         }
 
         return $next($request);

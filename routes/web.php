@@ -289,6 +289,7 @@ Route::group(['domain' => 'billing.dynime.com'], function () {
     Route::post('/{invoiceNumber}/pay', [App\Http\Controllers\SalesInvoiceController::class, 'processInvoicePayment'])->name('sales-invoices.public-pay.short');
 });
 
-require __DIR__.'/installer.php';
+// Installer disabled permanently
+// require __DIR__.'/installer.php';
 require __DIR__.'/auth.php';
 
