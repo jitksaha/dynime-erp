@@ -16,11 +16,11 @@ export default defineConfig({
     plugins: [
         laravel({
             input:
-            [
-                'resources/css/app.css',
-                'resources/js/app.tsx',
-                ...workdoPackages
-            ],
+                [
+                    'resources/css/app.css',
+                    'resources/js/app.tsx',
+                    ...workdoPackages
+                ],
             refresh: true,
         }),
         react(),
