@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { Head } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, Clock, ArrowLeft, ShieldCheck } from 'lucide-react';
+import { RefreshCw, Clock, ArrowLeft, ShieldCheck, Loader2 } from 'lucide-react';
 import { SalesInvoice } from './types';
 
 interface PublicPaymentProcessingProps {
